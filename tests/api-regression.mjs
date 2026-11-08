@@ -376,3 +376,19 @@ test('host sync cannot put source into packets; only a contributor give-up suppl
   assert.equal((await f.request('/api/v1/giveup',{va,reason:'stuck at 1 byte',source:'// 0x00401220\nint foo(){return 2;}'})).status,200);
   assert.equal(f.sql.prepare('SELECT best_source FROM functions WHERE va=?').get(va).best_source,'// 0x00401220\nint foo(){return 2;}');
 });
+
+test('invite list limits next and submit to invited GitHub accounts; status stays open', async t => {
+  const f=await fixture(t); f.lease();
+  f.env.INVITED_GITHUB='someone-else, 999';
+  for(const path of ['/api/v1/next','/api/v1/submit']){
+    const r=await f.request(path, path.endsWith('submit')?submission:{});
+    assert.equal(r.status,403); assert.match(r.body.error,/invite-only/);
+  }
+  assert.equal((await f.request('/api/v1/status')).status,200);
+  f.env.INVITED_GITHUB='Someone-Else, TESTER';
+  assert.equal((await f.request('/api/v1/submit',submission)).status,200);
+  f.env.INVITED_GITHUB='1';
+  assert.notEqual((await f.request('/api/v1/next')).status,403);
+  f.env.INVITED_GITHUB='';
+  assert.notEqual((await f.request('/api/v1/next')).status,403);
+});

@@ -45,6 +45,15 @@ const bad = (status, msg) => { throw new ApiError(status, msg); };
 function requireIntake(env) {
   if (env.CONTRIBUTIONS_ENABLED !== 'true') bad(503, 'Contributions are temporarily paused while host verification is validated.');
 }
+// Invite-only (soft launch): INVITED_GITHUB lists GitHub logins or numeric ids, comma-separated. Empty or unset = open.
+function invitedSet(env) {
+  return new Set(String(env.INVITED_GITHUB || "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean));
+}
+function requireInvited(env, user) {
+  const allowed = invitedSet(env);
+  if (allowed.size && !allowed.has(String(user.login || "").toLowerCase()) && !allowed.has(String(user.id)))
+    bad(403, "Project Iblis is invite-only for now; ask the maintainer for an invitation.");
+}
 function requireRotatedCredentials(env) {
   if (env.CREDENTIALS_ROTATED !== 'true') bad(503, 'Host and GitHub sign-in are temporarily paused until credential rotation is complete.');
 }
@@ -275,6 +284,7 @@ const tools = {
 
   async next(env, user, args = {}) {
     requireIntake(env);
+    requireInvited(env, user);
     await expireLeases(env);
     if (user.paused_until && user.paused_until > iso()) bad(429, `new work is paused until ${user.paused_until}`);
     const tier = tierFor(await record(env, user));
@@ -330,6 +340,7 @@ const tools = {
 
   async submit(env, user, args = {}) {
     requireIntake(env);
+    requireInvited(env, user);
     const va = normVa(args.va) || bad(400, "va is required");
     const l = await env.DB.prepare("SELECT 1 FROM leases WHERE va = ? AND user_id = ? AND expires_utc > ?").bind(va, user.id, iso()).first();
     if (!l) bad(404, `you are not working on ${va} (its 2 hours may have run out; ask for it again with next)`);

@@ -61,6 +61,13 @@ class SiteStatsTests(unittest.TestCase):
 
 
 class IntakeSwitchTests(unittest.TestCase):
+    def test_invite_notices_follow_the_invite_list(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+        import build_site
+        page = '# Guide\n\n{{#invite}}Invite-only.{{/invite}}\n\nWrite C++.\n'
+        self.assertEqual(build_site.invite_blocks(page, True), '# Guide\n\nInvite-only.\n\nWrite C++.\n')
+        self.assertEqual(build_site.invite_blocks(page, False), '# Guide\n\nWrite C++.\n')
+
     def test_pause_notices_follow_the_service_gate(self):
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
         import build_site

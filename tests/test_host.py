@@ -187,4 +187,46 @@ class SourceLimitTests(unittest.TestCase):
             record=json.loads((Path(td)/'work/host/0x00401000-r1/verdict.json').read_text())
             self.assertEqual(record['host']['status'],'NO_MARKER')
 
+class TrustedLocalRunnerTests(unittest.TestCase):
+    def test_trusted_local_needs_an_invite_list(self):
+        with patch.dict('os.environ', {'IBLIS_RUNNER': 'trusted-local'}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, 'IBLIS_TRUSTED_GITHUB'):
+                host.load_runner({'image': {'sha256': 'x'}})
+
+    def test_trusted_local_checks_game_and_compiler_hashes(self):
+        import trusted_runner
+        with tempfile.TemporaryDirectory() as td:
+            game, cl, settings = Path(td, 'Game.exe'), Path(td, 'cl.exe'), Path(td, 'settings.json')
+            game.write_bytes(b'game'); cl.write_bytes(b'cl')
+            settings.write_text(json.dumps({'image': str(game), 'cl': str(cl), 'runner': 'wine'}))
+            good = hashlib.sha256(b'game').hexdigest()
+            with self.assertRaisesRegex(RuntimeError, 'Game.exe'):
+                trusted_runner.TrustedLocalRunner('0' * 64, trusted='a', settings_path=str(settings))
+            with self.assertRaisesRegex(RuntimeError, 'cl.exe'):
+                trusted_runner.TrustedLocalRunner(good, cl_sha256='0' * 64, trusted='a', settings_path=str(settings))
+            r = trusted_runner.TrustedLocalRunner(good, cl_sha256=hashlib.sha256(b'cl').hexdigest(), trusted='Alice, 42', settings_path=str(settings))
+            self.assertTrue(r.allows({'login': 'alice'}))
+            self.assertTrue(r.allows({'login': 'x', 'github_id': 42}))
+            self.assertFalse(r.allows({'login': 'mallory', 'github_id': 7}))
+
+    def test_uninvited_work_is_never_compiled_and_goes_to_review(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo = type('Repo', (), {'root': td, 'flags': lambda s, va: ['/c']})()
+            compiled = []
+            class Runner:
+                def allows(self, item):
+                    return item.get('login') == 'alice'
+                def compile(self, va, length, flags, source):
+                    compiled.append(source)
+                    return {'status': 'RAW_EQUAL', 'compiled_body_sha256': 'ab' * 32}
+            posted = []
+            items = [dict(id=1, va='0x00401000', source='int a;', login='mallory', github_id=7),
+                     dict(id=2, va='0x00401000', source='int b;', login='alice', github_id=8)]
+            with patch.object(host, 'api', side_effect=lambda method, path, body=None: posted.append(body) or {}):
+                host.process_items(repo, Runner(), {'0x00401000': 1}, items)
+            self.assertEqual(compiled, ['int b;'])
+            self.assertEqual([(p['id'], p['verdict']) for p in posted], [(1, 'review'), (2, 'verified')])
+            self.assertIn('not a strike', posted[0]['note'])
+
+
 if __name__ == '__main__': unittest.main()
