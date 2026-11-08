@@ -192,6 +192,19 @@ class HostContextTests(unittest.TestCase):
         self.assertEqual(fs[0]['note'], 'near')
         self.assertFalse({'best_source', 'context', 'source'} & set(fs[0]))
 
+    def test_claimed_and_submitted_functions_are_held_back(self):
+        import host
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            (root / 'docs/rulings').mkdir(parents=True)
+            (root / 'config.json').write_text(json.dumps({'profile': {'flags': ['/O2']}, 'rules': {}}))
+            (root / 'names.json').write_text('{}')
+            for state, va in (('open', '00401000'), ('claimed', '00402000'), ('submitted', '00403000'), ('parked', '00404000')):
+                (root / 'queue' / state).mkdir(parents=True, exist_ok=True)
+                (root / 'queue' / state / (va + '.json')).write_text(json.dumps({'va': '0x' + va, 'length': 8}))
+            states = {f['va']: f['state'] for f in host.Repo(t).queue()}
+        self.assertEqual(states, {'0x00401000': 'open', '0x00402000': 'excluded', '0x00403000': 'excluded', '0x00404000': 'open'})
+
 
 class CompilerEnvironmentTests(unittest.TestCase):
     @unittest.skipIf(os.name == 'nt', 'Wine environment')
