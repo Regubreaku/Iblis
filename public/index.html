@@ -167,10 +167,6 @@ footer .wrap { display: flex; justify-content: space-between; gap: .6rem 1.4rem;
 .waffle { display: grid; grid-template-columns: repeat(10, 7px); gap: 2px; }
 .waffle i { width: 7px; height: 7px; background: var(--cinder); }
 .waffle .g { background: var(--gold); } .waffle .p { background: var(--pending); } .waffle .e { background: var(--ember); }
-.thanks-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr)); gap: 1rem; }
-.thanks-grid h3 { font: 700 1.15rem var(--display); text-transform: none; letter-spacing: .03em; }
-.thanks-grid p { color: var(--ash); }
-.thanks-grid small { display: block; color: var(--ash); }
 .log { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--seam); }
 .log li { position: relative; padding: 0 0 1.1rem 1.3rem; }
 .log li::before { content: ""; position: absolute; left: -5px; top: .5rem; width: 9px; height: 9px; transform: rotate(45deg); background: var(--stone); border: 1px solid var(--gold); }
@@ -244,33 +240,6 @@ footer .wrap { display: flex; justify-content: space-between; gap: .6rem 1.4rem;
     <ul class="log read" id="log"></ul>
   </section>
 
-  <div class="rule"></div>
-  <section id="thanks" aria-labelledby="thanks-title">
-    <div class="head"><span class="tag">Acknowledgements</span><h2 id="thanks-title">Special thanks</h2></div>
-    <p class="sub">To the people who made their research and code available for others to build on: thank you. These MIT-licensed projects have helped us understand Diablo II's functions, names and structure.</p>
-    <div class="thanks-grid">
-      <article class="slab">
-        <h3><a href="https://github.com/ThePhrozenKeep/D2MOO">D2MOO</a></h3>
-        <p>Thank you to The Phrozen Keep community for the reconstructed game libraries, function shapes, names and structures that have guided our work.</p>
-        <small>The Phrozen Keep community · <a href="https://github.com/ThePhrozenKeep/D2MOO/blob/master/LICENSE">MIT licence</a></small>
-      </article>
-      <article class="slab">
-        <h3><a href="https://github.com/jaenster/redivivus">Redivivus</a></h3>
-        <p>Thank you to Jaenster and the Redivivus contributors for the 1.14d reconstruction, source references and address maps used throughout our matching work.</p>
-        <small>The Redivivus contributors · <a href="https://github.com/jaenster/redivivus/blob/main/LICENSE">MIT licence</a></small>
-      </article>
-      <article class="slab">
-        <h3><a href="https://github.com/jaenster/libd2">Libd2</a></h3>
-        <p>Thank you to Jaenster and the Libd2 contributors for documenting 1.14d functions and addresses that helped us identify and name the game's routines.</p>
-        <small>Jaenster and contributors · <a href="https://github.com/jaenster/libd2/blob/main/LICENSE">Source code: MIT licence</a></small>
-      </article>
-      <article class="slab">
-        <h3><a href="https://github.com/dschu012/d2lootfilter">D2LootFilter</a></h3>
-        <p>Thank you to Dschu012 and the D2LootFilter contributors for the community function names and address references used in our research.</p>
-        <small>Dschu012 and contributors · <a href="https://github.com/dschu012/d2lootfilter/blob/master/LICENSE">MIT licence</a></small>
-      </article>
-    </div>
-  </section>
 </main>
 <footer>
   <div class="wrap">

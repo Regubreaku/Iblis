@@ -380,7 +380,7 @@ async function mcp(env, req) {
   if (msg.method === "tools/call") {
     const user = await userFromKey(env, req);
     if (!user) return err(-32001, "connect first: your key is missing or revoked");
-    const fn = tools[msg.params?.name];
+    const fn = Object.hasOwn(tools, msg.params?.name) ? tools[msg.params.name] : null;
     if (!fn) return err(-32602, "unknown tool");
     try {
       const out = await fn(env, user, msg.params.arguments || {});
@@ -596,7 +596,7 @@ export default {
             await env.DB.prepare("UPDATE keys SET revoked_utc = ? WHERE hash = ?").bind(iso(), await sha256(keyFrom(env, req))).run();
           return json({ ok: true });
         }
-        const fn = tools[name];
+        const fn = Object.hasOwn(tools, name) ? tools[name] : null;
         if (!fn || m !== "POST") return json({ error: "no such tool; use status, bands, next, packet, submit or giveup" }, 404);
         return json(await fn(env, user, await readJson(req)));
       }
