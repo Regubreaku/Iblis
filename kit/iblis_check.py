@@ -513,7 +513,11 @@ FORBIDDEN = [r"\b__asm\b", r"\basm\b", r"\b_emit\b", r"\bnaked\b", r"#pragma\s+(
 
 
 def parse_markers(src):
+    """Markers in the source: defs (the `// <VA>` line above a definition) and decls (a trailing `// 0x...` on a
+    declaration). A declaration inside `struct S { ... };` is recorded as `S::name`, so a member function's scoped
+    symbol resolves to its own marker and never borrows an unqualified one."""
     defs, decls, pending = {}, {}, None
+    scopes, pending_scope = [], None  # one entry per open brace: a struct/class name, or None for any other block
     for ln in src.splitlines():
         t = ln.strip()
         m = re.match(r"//\s*(0x[0-9A-Fa-f]{8})\s*$", t)
@@ -521,17 +525,26 @@ def parse_markers(src):
             pending = int(m.group(1), 16); continue
         code = t.split("//")[0]
         m2 = re.search(r"//\s*(0x[0-9A-Fa-f]{8})\s*$", t)
+        sm = re.match(r"^(?:typedef\s+)?(?:struct|class|union)\s+([A-Za-z_]\w*)\b(?![^{]*;)", code)
+        if sm:
+            pending_scope = sm.group(1)
         if m2 and code.strip():
-            fn = re.findall(r"([A-Za-z_~]\w*)\s*\(", code)
-            nm = fn[0] if fn else (re.findall(r"([A-Za-z_]\w*)\s*(?:\[|;|=)", code) or [None])[-1]
+            nm = decl_name(code)
             if nm:
+                names = [x for x in scopes if x]
+                key = "::".join(names + [nm]) if names else nm
                 addr = int(m2.group(1), 16)
-                decls[nm] = addr if nm not in decls or decls[nm] == addr else None
+                decls[key] = addr if key not in decls or decls[key] == addr else None
         if pending is not None and code.strip():
-            fn = re.findall(r"([A-Za-z_~]\w*)\s*\(", code)
+            fn = [w for w in re.findall(r"([A-Za-z_~]\w*)\s*\(", code) if w not in KEYWORDS]
             if fn:
                 defs[fn[0]] = pending
             pending = None
+        for ch in code:
+            if ch == "{":
+                scopes.append(pending_scope); pending_scope = None
+            elif ch == "}" and scopes:
+                scopes.pop()
     return defs, decls
 
 
@@ -547,12 +560,20 @@ def undec(n):
 
 
 def external_marker_name(symbol):
-    """Only map simple global ABI spellings. Scoped/template symbols need a
-    full declaration parser; guessing from their leaf name is unsound.
+    """The declaration a relocation symbol must carry a marker on, or None when it cannot be named soundly.
+    Imports (`__imp__Name@4`, `__imp_Name`) map to the dllimport declaration of Name; scoped C++ symbols
+    (`?Leaf@Class@Outer@@...`) map to `Outer::Class::Leaf`, which only a declaration inside those structs provides.
+    Special members, operators and templates (`??...`, `?$...`) still need a full declaration parser.
     """
+    m = re.fullmatch(r"__imp_(_?[A-Za-z_]\w*?)(?:@\d+)?", symbol)
+    if m:
+        return external_marker_name(m.group(1)) if m.group(1).startswith("_") else m.group(1)
     if symbol.startswith("?"):
-        m = re.match(r"^\?([A-Za-z_]\w*)@@", symbol)
-        return m.group(1) if m else None
+        m = re.match(r"^\?([A-Za-z_]\w*)@((?:[A-Za-z_]\w*@)*)@", symbol)
+        if not m:
+            return None
+        scope = [x for x in m.group(2).split("@") if x]
+        return "::".join(list(reversed(scope)) + [m.group(1)])
     if re.fullmatch(r"_[A-Za-z_]\w*(?:@\d+)?|@[A-Za-z_]\w*@\d+", symbol):
         return undec(symbol)
     return None
@@ -788,7 +809,7 @@ def compile_and_compare(s, va, length, flags, src, wd, image=None):
             return res
         addend = struct.unpack_from("<I", body, off)[0]
         actual = struct.unpack_from("<I", orig, off)[0] if off + 4 <= len(orig) else None
-        nm = undec(sy["name"])
+        nm = external_marker_name(sy["name"]) or undec(sy["name"])
         marker = decls.get(nm)
         if nm in decls and marker is None:
             problems.append("%s has conflicting address markers" % nm)
@@ -892,7 +913,9 @@ def score(res):
     if st != "DIFF":
         return (3, 0, 0)
     off = abs(res.get("compiled_length", 0) - res.get("length", 0))
-    return (1 if not off else 2, res.get("unmasked_diff_bytes", 0) + len(res.get("target_problems", [])) * 4, off)
+    # Bytes only one side has count as differing: otherwise a near-empty stub, compared over its few bytes, looks closer
+    # than a real body that is a few bytes long.
+    return (1 if not off else 2, res.get("unmasked_diff_bytes", 0) + off + len(res.get("target_problems", [])) * 4, off)
 
 
 def describe(res):

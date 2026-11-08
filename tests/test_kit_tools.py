@@ -226,3 +226,15 @@ class CompilerEnvironmentTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class BestScoreTests(unittest.TestCase):
+    def test_near_match_body_beats_a_stub_of_another_length(self):
+        stub = {"status": "DIFF", "compiled_length": 5, "length": 85, "unmasked_diff_bytes": 3, "target_problems": []}
+        body = {"status": "DIFF", "compiled_length": 78, "length": 85, "unmasked_diff_bytes": 40, "target_problems": []}
+        self.assertLess(ck.score(body), ck.score(stub))
+
+    def test_same_length_still_ranks_first(self):
+        same = {"status": "DIFF", "compiled_length": 85, "length": 85, "unmasked_diff_bytes": 60, "target_problems": []}
+        near = {"status": "DIFF", "compiled_length": 84, "length": 85, "unmasked_diff_bytes": 1, "target_problems": []}
+        self.assertLess(ck.score(same), ck.score(near))

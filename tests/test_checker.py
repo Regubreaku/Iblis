@@ -88,6 +88,25 @@ class CheckerTests(unittest.TestCase):
     def test_scoped_cpp_symbol_does_not_borrow_an_unqualified_marker(self):
         self.assert_rejected(self.check(symbol='?wrong@Other@@YAXXZ', decl='extern void wrong(); // 0x00402000'))
 
+    def test_import_symbol_resolves_to_its_dllimport_declaration(self):
+        decl = 'extern "C" __declspec(dllimport) void __stdcall wrong(int n); // 0x00402000'
+        self.assertEqual(self.check(symbol='__imp__wrong@4', decl=decl)['status'], 'RELOCATION_RESOLVED_EQUAL')
+
+    def test_import_symbol_needs_its_own_marker(self):
+        self.assert_rejected(self.check(symbol='__imp__wrong@4', decl='extern void other(); // 0x00402000'))
+
+    def test_member_symbol_resolves_to_the_marker_inside_its_struct(self):
+        decl = 'struct Other\n{\n    void wrong(); // 0x00402000\n};'
+        self.assertEqual(self.check(symbol='?wrong@Other@@QAEXXZ', decl=decl)['status'], 'RELOCATION_RESOLVED_EQUAL')
+
+    def test_member_symbol_does_not_borrow_a_marker_from_another_struct(self):
+        decl = 'struct Elsewhere\n{\n    void wrong(); // 0x00402000\n};'
+        self.assert_rejected(self.check(symbol='?wrong@Other@@QAEXXZ', decl=decl))
+
+    def test_dllimport_declaration_is_named_by_its_function_not_declspec(self):
+        defs, decls = checker.parse_markers('extern "C" __declspec(dllimport) void __stdcall Enter(void* p); // 0x006CC218')
+        self.assertEqual(decls, {'Enter': 0x006CC218})
+
     def test_explicit_simple_global_cpp_symbol_is_supported(self):
         self.assertEqual(self.check(symbol='?wrong@@YAXXZ', decl='extern void wrong(); // 0x00402000')['status'], 'RELOCATION_RESOLVED_EQUAL')
 
