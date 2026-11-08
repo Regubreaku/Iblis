@@ -148,46 +148,31 @@
  ],
  "leaderboard": [
   {
-   "who": "lead",
-   "functions": 12436,
-   "bytes": 1614773
+   "who": "Legbreak",
+   "functions": 13161,
+   "bytes": 1902653
   },
   {
-   "who": "leg",
-   "functions": 700,
-   "bytes": 179633
-  },
-  {
-   "who": "fable",
-   "functions": 25,
-   "bytes": 108247
-  },
-  {
-   "who": "esk",
+   "who": "Esk",
    "functions": 116,
    "bytes": 40172
   },
   {
-   "who": "codex",
+   "who": "Nathan",
    "functions": 13,
    "bytes": 4377
   },
   {
-   "who": "angel",
+   "who": "Angel",
    "functions": 16,
    "bytes": 927
   }
  ],
  "by_model": [
   {
-   "model": "lead",
-   "functions": 12436,
-   "bytes": 1614773
-  },
-  {
    "model": "claude-opus-5-5",
-   "functions": 480,
-   "bytes": 261944
+   "functions": 12916,
+   "bytes": 1876717
   },
   {
    "model": "codex",

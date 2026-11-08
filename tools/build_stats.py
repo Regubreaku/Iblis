@@ -8,6 +8,7 @@ state, who), queue/matched/*.json (the model that produced each match) and the g
 each function first became matched). Publishes counts and sizes only: no names, no code, no game bytes.
 """
 import collections, datetime, glob, json, os, subprocess, sys
+from site_stats import normalize_stats
 
 TEXT_BYTES = None  # read from tools/board.py so the site and the board agree
 
@@ -120,11 +121,12 @@ def main(repo, out):
         "trend": trend,
         "left_by_size": left,
     }
+    normalize_stats(stats)
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     json.dump(stats, open(out, "w"), indent=1)
     print("matched %d fn, %d B = %.2f%% of .text; %d trend days; %d contributors; %d models" % (
-        stats["matched_functions"], matched_bytes, stats["matched_pct_text"], len(trend), len(leaderboard),
-        len(by_model)))
+        stats["matched_functions"], matched_bytes, stats["matched_pct_text"], len(trend), len(stats["leaderboard"]),
+        len(stats["by_model"])))
 
 
 if __name__ == "__main__":

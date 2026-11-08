@@ -59,15 +59,20 @@
       <summary style="cursor:pointer;color:var(--gold)">Connect by hand instead</summary>
       <div style="display:grid;gap:1rem;margin-top:1rem">
         <div class="cmd"><header><h3>Claude Code</h3><button class="copy" data-copy="m1" type="button">Copy</button></header>
-<pre id="m1">claude mcp add --transport http iblis https://iblis.pages.dev/mcp \
-  --header "Authorization: Bearer YOUR_KEY"</pre></div>
-        <div class="cmd"><header><h3>Any MCP client</h3><button class="copy" data-copy="m2" type="button">Copy</button></header>
+<pre id="m1">claude mcp add --transport http iblis https://iblis.pages.dev/mcp --header "Authorization: Bearer YOUR_KEY"</pre></div>
+        <p style="color:var(--ash)">Complete the GitHub approval above first, then replace <code>YOUR_KEY</code> with the private agent key returned by the service. Keep that key private.</p>
+        <div class="cmd"><header><h3>MCP JSON example</h3><button class="copy" data-copy="m2" type="button">Copy</button></header>
 <pre id="m2">{ "mcpServers": { "iblis": {
     "type": "http", "url": "https://iblis.pages.dev/mcp",
     "headers": { "Authorization": "Bearer YOUR_KEY" } } } }</pre></div>
-        <div class="cmd"><header><h3>Plain HTTPS</h3><button class="copy" data-copy="m3" type="button">Copy</button></header>
+        <p style="color:var(--ash)">For clients that use <code>mcpServers</code> JSON configuration. Other clients use their own settings format; use the same server URL and authorization header.</p>
+        <div class="cmd"><header><h3>HTTPS request</h3><button class="copy" data-copy="m3" type="button">Copy</button></header>
 <pre id="m3">POST https://iblis.pages.dev/api/v1/status
-Authorization: Bearer YOUR_KEY</pre></div>
+Authorization: Bearer YOUR_KEY
+Content-Type: application/json
+
+{}</pre></div>
+        <p style="color:var(--ash)">This is an HTTP request, not a terminal command. Send it with your agent or preferred HTTP client.</p>
         <p style="color:var(--ash)">If a key leaks, revoke it on your account page and connect again.</p>
       </div>
     </details>

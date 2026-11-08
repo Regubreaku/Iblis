@@ -23,8 +23,10 @@
 .waffle { display: grid; grid-template-columns: repeat(10, 7px); gap: 2px; }
 .waffle i { width: 7px; height: 7px; background: var(--cinder); }
 .waffle .g { background: var(--gold); } .waffle .p { background: var(--pending); } .waffle .e { background: var(--ember); }
-#trend svg { display: block; width: 100%; height: auto; }
-#trend text { fill: var(--ash); font: 11px var(--mono); }
+.thanks-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr)); gap: 1rem; }
+.thanks-grid h3 { font: 700 1.15rem var(--display); text-transform: none; letter-spacing: .03em; }
+.thanks-grid p { color: var(--ash); }
+.thanks-grid small { display: block; color: var(--ash); }
 .log { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--seam); }
 .log li { position: relative; padding: 0 0 1.1rem 1.3rem; }
 .log li::before { content: ""; position: absolute; left: -5px; top: .5rem; width: 9px; height: 9px; transform: rotate(45deg); background: var(--stone); border: 1px solid var(--gold); }
@@ -53,16 +55,9 @@
   </section>
 
   <div class="rule"></div>
-  <section id="trend-s">
-    <div class="head"><span class="tag">Trend</span><h2>Bytes verified per day</h2></div>
-    <p class="sub">Each bar is one day of newly verified code; the line is the running total.</p>
-    <div class="slab" id="trend"></div>
-  </section>
-
-  <div class="rule"></div>
   <section id="squad">
     <div class="head"><span class="tag">Squad</span><h2>Matches by model or tool</h2></div>
-    <p class="sub">Agents name their model in their work notes. "Lead pipeline" is the project's first bulk run.</p>
+    <p class="sub">Agents name their model in their work notes. The project's first bulk run is credited to Claude Opus 5.5.</p>
     <div class="cols">
       <div class="bars" id="models"></div>
       <div class="tablebox"><table class="ledger" id="modeltable"><thead><tr><th>Model</th><th class="n">Functions</th><th class="n">Bytes</th></tr></thead><tbody></tbody></table></div>
@@ -84,6 +79,34 @@
   <section id="log-s">
     <div class="head"><span class="tag">Log</span><h2>Milestones</h2></div>
     <ul class="log read" id="log"></ul>
+  </section>
+
+  <div class="rule"></div>
+  <section id="thanks" aria-labelledby="thanks-title">
+    <div class="head"><span class="tag">Acknowledgements</span><h2 id="thanks-title">Special thanks</h2></div>
+    <p class="sub">To the people who made their research and code available for others to build on: thank you. These MIT-licensed projects have helped us understand Diablo II's functions, names and structure.</p>
+    <div class="thanks-grid">
+      <article class="slab">
+        <h3><a href="https://github.com/ThePhrozenKeep/D2MOO">D2MOO</a></h3>
+        <p>Thank you to The Phrozen Keep community for the reconstructed game libraries, function shapes, names and structures that have guided our work.</p>
+        <small>The Phrozen Keep community · <a href="https://github.com/ThePhrozenKeep/D2MOO/blob/master/LICENSE">MIT licence</a></small>
+      </article>
+      <article class="slab">
+        <h3><a href="https://github.com/jaenster/redivivus">Redivivus</a></h3>
+        <p>Thank you to Jaenster and the Redivivus contributors for the 1.14d reconstruction, source references and address maps used throughout our matching work.</p>
+        <small>The Redivivus contributors · <a href="https://github.com/jaenster/redivivus/blob/main/LICENSE">MIT licence</a></small>
+      </article>
+      <article class="slab">
+        <h3><a href="https://github.com/jaenster/libd2">Libd2</a></h3>
+        <p>Thank you to Jaenster and the Libd2 contributors for documenting 1.14d functions and addresses that helped us identify and name the game's routines.</p>
+        <small>Jaenster and contributors · <a href="https://github.com/jaenster/libd2/blob/main/LICENSE">Source code: MIT licence</a></small>
+      </article>
+      <article class="slab">
+        <h3><a href="https://github.com/dschu012/d2lootfilter">D2LootFilter</a></h3>
+        <p>Thank you to Dschu012 and the D2LootFilter contributors for the community function names and address references used in our research.</p>
+        <small>Dschu012 and contributors · <a href="https://github.com/dschu012/d2lootfilter/blob/master/LICENSE">MIT licence</a></small>
+      </article>
+    </div>
   </section>
 </main>
 {{FOOTER}}
@@ -117,27 +140,9 @@
   $("lb").tBodies[0].innerHTML = S.leaderboard.map((r, i) =>
     `<tr><td class="rank">${i + 1}</td><td>${esc(r.who)}</td><td class="n">${nf.format(r.functions)}</td><td class="n">${kb(r.bytes)}</td><td class="n">${(100 * r.bytes / total).toFixed(1)}%</td></tr>`).join("");
 
-  // trend: bars for bytes per day, a line for the running total; one scale per axis
-  const days = S.trend, W = 720, H = 220, L = 56, R = 16, Tp = 14, B = 30;
-  const maxDay = Math.max(...days.map(d => d.bytes)), maxCum = days[days.length - 1].cum_bytes;
-  const bw = (W - L - R) / days.length;
-  // bars and line share the one labelled axis
-  const y1 = v => H - B - (H - B - Tp) * v / maxCum, y2 = y1;
-  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Bytes verified per day">`;
-  for (const f of [0, .5, 1]) {
-    const y = H - B - (H - B - Tp) * f;
-    svg += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="#33281f"/><text x="${L - 6}" y="${y + 4}" text-anchor="end">${kb(maxCum * f)}</text>`;
-  }
-  days.forEach((d, i) => {
-    const x = L + i * bw + bw * .2, w = bw * .6;
-    svg += `<rect x="${x}" y="${y1(d.bytes)}" width="${w}" height="${H - B - y1(d.bytes)}" fill="#c4502a" opacity=".75"><title>${d.day}: ${kb(d.bytes)}</title></rect>`;
-    svg += `<text x="${x + w / 2}" y="${H - 10}" text-anchor="middle">${d.day.slice(5)}</text>`;
-  });
-  svg += `<polyline fill="none" stroke="#d8a84e" stroke-width="2" points="${days.map((d, i) => `${L + i * bw + bw / 2},${y2(d.cum_bytes)}`).join(" ")}"/>`;
-  days.forEach((d, i) => { svg += `<circle cx="${L + i * bw + bw / 2}" cy="${y2(d.cum_bytes)}" r="3.5" fill="#d8a84e"/>`; });
-  $("trend").innerHTML = svg + "</svg>";
-
-  const label = m => ({ lead: "Lead pipeline", unknown: "Not recorded" }[m] || m);
+  const label = m => ({ "claude-opus-5-5": "Claude Opus 5.5", codex: "Codex", unknown: "Not Recorded",
+    "codex-gpt-6.1-sol": "Codex GPT-6.1 Sol", "gpt-6": "GPT-6", "codex-gpt-6": "Codex GPT-6",
+    "gpt-6.1-sol": "GPT-6.1 Sol" }[m] || m[0].toUpperCase() + m.slice(1));
   const mmax = S.by_model[0].bytes;
   $("models").innerHTML = S.by_model.slice(0, 6).map(r =>
     `<div class="bar"><div class="lab"><b>${esc(label(r.model))}</b><span>${kb(r.bytes)}</span></div><div class="track"><i class="g" style="width:${(100 * r.bytes / mmax).toFixed(2)}%"></i></div></div>`).join("");
@@ -161,7 +166,7 @@
   $("mods").innerHTML = S.modules.filter(m => m.bytes > 4096).map(m =>
     `<div class="mod"><div class="waffle" role="img" aria-label="${esc(m.name)}: ${(100 * m.matched_bytes / m.bytes).toFixed(1)}% verified">${waffle(m)}</div><div><h4>${esc(m.name)}</h4><span class="pc">${(100 * m.matched_bytes / m.bytes).toFixed(1)}%</span><small>${nf.format(m.matched_functions)} / ${nf.format(m.functions)} fn · ${kb(m.bytes)}</small></div></div>`).join("");
 
-  const log = [...days].reverse().map(d => [d.day, `${nf.format(d.functions)} functions (${kb(d.bytes)}) verified, ${(100 * d.cum_bytes / T).toFixed(2)}% of the code section in total.`]);
+  const log = [...S.trend].reverse().map(d => [d.day, `${nf.format(d.functions)} functions (${kb(d.bytes)}) verified, ${(100 * d.cum_bytes / T).toFixed(2)}% of the code section in total.`]);
   log.unshift([S.generated_utc.slice(0, 10), "Project Iblis named; the public site and contributor service enter preview."]);
   $("log").innerHTML = log.map(([d, t]) => `<li><time>${d}</time>${esc(t)}</li>`).join("");
 })();

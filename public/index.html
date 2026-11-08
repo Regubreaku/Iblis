@@ -167,14 +167,16 @@ footer .wrap { display: flex; justify-content: space-between; gap: .6rem 1.4rem;
 .waffle { display: grid; grid-template-columns: repeat(10, 7px); gap: 2px; }
 .waffle i { width: 7px; height: 7px; background: var(--cinder); }
 .waffle .g { background: var(--gold); } .waffle .p { background: var(--pending); } .waffle .e { background: var(--ember); }
-#trend svg { display: block; width: 100%; height: auto; }
-#trend text { fill: var(--ash); font: 11px var(--mono); }
+.thanks-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr)); gap: 1rem; }
+.thanks-grid h3 { font: 700 1.15rem var(--display); text-transform: none; letter-spacing: .03em; }
+.thanks-grid p { color: var(--ash); }
+.thanks-grid small { display: block; color: var(--ash); }
 .log { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--seam); }
 .log li { position: relative; padding: 0 0 1.1rem 1.3rem; }
 .log li::before { content: ""; position: absolute; left: -5px; top: .5rem; width: 9px; height: 9px; transform: rotate(45deg); background: var(--stone); border: 1px solid var(--gold); }
 .log time { display: block; font: .8rem var(--mono); color: var(--ash); }
 </style>
-<script>document.body.dataset.page = "index"; window.IBLIS = {"generated_utc":"2026-11-08T10:42Z","commit":"7eacb70ff","text_bytes":2928640,"functions_total":14845,"bytes_total":2609016,"matched_functions":13306,"matched_bytes":1948129,"matched_pct_text":66.52,"states":{"matched":{"functions":13306,"bytes":1948129},"open":{"functions":1211,"bytes":551674},"claimed":{"functions":73,"bytes":50470},"parked":{"functions":196,"bytes":51165},"submitted":{"functions":57,"bytes":4396},"lead_counted":{"functions":2,"bytes":3182}},"certified":0,"modules":[{"name":"D2Game","functions":4134,"bytes":823715,"matched_functions":3682,"matched_bytes":603318,"review_bytes":17287,"open_bytes":197225,"parked_bytes":5885},{"name":"D2Client","functions":4529,"bytes":771293,"matched_functions":4174,"matched_bytes":600683,"review_bytes":13865,"open_bytes":154536,"parked_bytes":2209},{"name":"D2Common","functions":2298,"bytes":438907,"matched_functions":2120,"matched_bytes":359389,"review_bytes":13118,"open_bytes":63784,"parked_bytes":2616},{"name":"Storm/Fog","functions":1327,"bytes":174608,"matched_functions":1195,"matched_bytes":130628,"review_bytes":3040,"open_bytes":40421,"parked_bytes":519},{"name":"D2Win/D2CMP/gl/Smack/Sound","functions":831,"bytes":132967,"matched_functions":742,"matched_bytes":99396,"review_bytes":3011,"open_bytes":30424,"parked_bytes":136},{"name":"Storm/Fog/Bnclient tail","functions":598,"bytes":117814,"matched_functions":352,"matched_bytes":34792,"review_bytes":2687,"open_bytes":41275,"parked_bytes":39060},{"name":"Bnclient/D2MCPClient","functions":483,"bytes":73852,"matched_functions":446,"matched_bytes":61733,"review_bytes":370,"open_bytes":11213,"parked_bytes":536},{"name":"D2CMP","functions":415,"bytes":55420,"matched_functions":377,"matched_bytes":38856,"review_bytes":4138,"open_bytes":12222,"parked_bytes":204},{"name":"Storm","functions":169,"bytes":12790,"matched_functions":166,"matched_bytes":12338,"review_bytes":0,"open_bytes":452,"parked_bytes":0},{"name":"Unattributed","functions":53,"bytes":7220,"matched_functions":52,"matched_bytes":6996,"review_bytes":224,"open_bytes":0,"parked_bytes":0},{"name":"D2Hell","functions":8,"bytes":430,"matched_functions":0,"matched_bytes":0,"review_bytes":308,"open_bytes":122,"parked_bytes":0}],"leaderboard":[{"who":"lead","functions":12436,"bytes":1614773},{"who":"leg","functions":700,"bytes":179633},{"who":"fable","functions":25,"bytes":108247},{"who":"esk","functions":116,"bytes":40172},{"who":"codex","functions":13,"bytes":4377},{"who":"angel","functions":16,"bytes":927}],"by_model":[{"model":"lead","functions":12436,"bytes":1614773},{"model":"claude-opus-5-5","functions":480,"bytes":261944},{"model":"codex","functions":276,"bytes":56652},{"model":"unknown","functions":82,"bytes":8853},{"model":"codex-gpt-6.1-sol","functions":13,"bytes":4377},{"model":"gpt-6","functions":4,"bytes":656},{"model":"codex-gpt-6","functions":11,"bytes":565},{"model":"gpt-6.1-sol","functions":4,"bytes":309}],"trend":[{"day":"2026-11-06","functions":12559,"bytes":1618097,"cum_functions":12559,"cum_bytes":1618097},{"day":"2026-11-07","functions":756,"bytes":330032,"cum_functions":13315,"cum_bytes":1948129}],"left_by_size":[{"band":"tiny","range":[0,64],"functions":147,"bytes":4501,"tried":62},{"band":"small","range":[64,256],"functions":452,"bytes":73602,"tried":86},{"band":"medium","range":[256,512],"functions":520,"bytes":190997,"tried":20},{"band":"large","range":[512,1024],"functions":298,"bytes":212093,"tried":17},{"band":"huge","range":[1024,null],"functions":122,"bytes":179694,"tried":11}]}; window.IBLIS_KIT = {
+<script>document.body.dataset.page = "index"; window.IBLIS = {"generated_utc":"2026-11-08T10:42Z","commit":"7eacb70ff","text_bytes":2928640,"functions_total":14845,"bytes_total":2609016,"matched_functions":13306,"matched_bytes":1948129,"matched_pct_text":66.52,"states":{"matched":{"functions":13306,"bytes":1948129},"open":{"functions":1211,"bytes":551674},"claimed":{"functions":73,"bytes":50470},"parked":{"functions":196,"bytes":51165},"submitted":{"functions":57,"bytes":4396},"lead_counted":{"functions":2,"bytes":3182}},"certified":0,"modules":[{"name":"D2Game","functions":4134,"bytes":823715,"matched_functions":3682,"matched_bytes":603318,"review_bytes":17287,"open_bytes":197225,"parked_bytes":5885},{"name":"D2Client","functions":4529,"bytes":771293,"matched_functions":4174,"matched_bytes":600683,"review_bytes":13865,"open_bytes":154536,"parked_bytes":2209},{"name":"D2Common","functions":2298,"bytes":438907,"matched_functions":2120,"matched_bytes":359389,"review_bytes":13118,"open_bytes":63784,"parked_bytes":2616},{"name":"Storm/Fog","functions":1327,"bytes":174608,"matched_functions":1195,"matched_bytes":130628,"review_bytes":3040,"open_bytes":40421,"parked_bytes":519},{"name":"D2Win/D2CMP/gl/Smack/Sound","functions":831,"bytes":132967,"matched_functions":742,"matched_bytes":99396,"review_bytes":3011,"open_bytes":30424,"parked_bytes":136},{"name":"Storm/Fog/Bnclient tail","functions":598,"bytes":117814,"matched_functions":352,"matched_bytes":34792,"review_bytes":2687,"open_bytes":41275,"parked_bytes":39060},{"name":"Bnclient/D2MCPClient","functions":483,"bytes":73852,"matched_functions":446,"matched_bytes":61733,"review_bytes":370,"open_bytes":11213,"parked_bytes":536},{"name":"D2CMP","functions":415,"bytes":55420,"matched_functions":377,"matched_bytes":38856,"review_bytes":4138,"open_bytes":12222,"parked_bytes":204},{"name":"Storm","functions":169,"bytes":12790,"matched_functions":166,"matched_bytes":12338,"review_bytes":0,"open_bytes":452,"parked_bytes":0},{"name":"Unattributed","functions":53,"bytes":7220,"matched_functions":52,"matched_bytes":6996,"review_bytes":224,"open_bytes":0,"parked_bytes":0},{"name":"D2Hell","functions":8,"bytes":430,"matched_functions":0,"matched_bytes":0,"review_bytes":308,"open_bytes":122,"parked_bytes":0}],"leaderboard":[{"who":"Legbreak","functions":13161,"bytes":1902653},{"who":"Esk","functions":116,"bytes":40172},{"who":"Nathan","functions":13,"bytes":4377},{"who":"Angel","functions":16,"bytes":927}],"by_model":[{"model":"claude-opus-5-5","functions":12916,"bytes":1876717},{"model":"codex","functions":276,"bytes":56652},{"model":"unknown","functions":82,"bytes":8853},{"model":"codex-gpt-6.1-sol","functions":13,"bytes":4377},{"model":"gpt-6","functions":4,"bytes":656},{"model":"codex-gpt-6","functions":11,"bytes":565},{"model":"gpt-6.1-sol","functions":4,"bytes":309}],"trend":[{"day":"2026-11-06","functions":12559,"bytes":1618097,"cum_functions":12559,"cum_bytes":1618097},{"day":"2026-11-07","functions":756,"bytes":330032,"cum_functions":13315,"cum_bytes":1948129}],"left_by_size":[{"band":"tiny","range":[0,64],"functions":147,"bytes":4501,"tried":62},{"band":"small","range":[64,256],"functions":452,"bytes":73602,"tried":86},{"band":"medium","range":[256,512],"functions":520,"bytes":190997,"tried":20},{"band":"large","range":[512,1024],"functions":298,"bytes":212093,"tried":17},{"band":"huge","range":[1024,null],"functions":122,"bytes":179694,"tried":11}]}; window.IBLIS_KIT = {
  "file": "iblis-check-2026-11-08.zip",
  "sha256": "e9323aa40e54ec1e4dd466382029f4124de749d5f3de74532d11f7ae9b2b8972",
  "bytes": 141910
@@ -216,16 +218,9 @@ footer .wrap { display: flex; justify-content: space-between; gap: .6rem 1.4rem;
   </section>
 
   <div class="rule"></div>
-  <section id="trend-s">
-    <div class="head"><span class="tag">Trend</span><h2>Bytes verified per day</h2></div>
-    <p class="sub">Each bar is one day of newly verified code; the line is the running total.</p>
-    <div class="slab" id="trend"></div>
-  </section>
-
-  <div class="rule"></div>
   <section id="squad">
     <div class="head"><span class="tag">Squad</span><h2>Matches by model or tool</h2></div>
-    <p class="sub">Agents name their model in their work notes. "Lead pipeline" is the project's first bulk run.</p>
+    <p class="sub">Agents name their model in their work notes. The project's first bulk run is credited to Claude Opus 5.5.</p>
     <div class="cols">
       <div class="bars" id="models"></div>
       <div class="tablebox"><table class="ledger" id="modeltable"><thead><tr><th>Model</th><th class="n">Functions</th><th class="n">Bytes</th></tr></thead><tbody></tbody></table></div>
@@ -247,6 +242,34 @@ footer .wrap { display: flex; justify-content: space-between; gap: .6rem 1.4rem;
   <section id="log-s">
     <div class="head"><span class="tag">Log</span><h2>Milestones</h2></div>
     <ul class="log read" id="log"></ul>
+  </section>
+
+  <div class="rule"></div>
+  <section id="thanks" aria-labelledby="thanks-title">
+    <div class="head"><span class="tag">Acknowledgements</span><h2 id="thanks-title">Special thanks</h2></div>
+    <p class="sub">To the people who made their research and code available for others to build on: thank you. These MIT-licensed projects have helped us understand Diablo II's functions, names and structure.</p>
+    <div class="thanks-grid">
+      <article class="slab">
+        <h3><a href="https://github.com/ThePhrozenKeep/D2MOO">D2MOO</a></h3>
+        <p>Thank you to The Phrozen Keep community for the reconstructed game libraries, function shapes, names and structures that have guided our work.</p>
+        <small>The Phrozen Keep community · <a href="https://github.com/ThePhrozenKeep/D2MOO/blob/master/LICENSE">MIT licence</a></small>
+      </article>
+      <article class="slab">
+        <h3><a href="https://github.com/jaenster/redivivus">Redivivus</a></h3>
+        <p>Thank you to Jaenster and the Redivivus contributors for the 1.14d reconstruction, source references and address maps used throughout our matching work.</p>
+        <small>The Redivivus contributors · <a href="https://github.com/jaenster/redivivus/blob/main/LICENSE">MIT licence</a></small>
+      </article>
+      <article class="slab">
+        <h3><a href="https://github.com/jaenster/libd2">Libd2</a></h3>
+        <p>Thank you to Jaenster and the Libd2 contributors for documenting 1.14d functions and addresses that helped us identify and name the game's routines.</p>
+        <small>Jaenster and contributors · <a href="https://github.com/jaenster/libd2/blob/main/LICENSE">Source code: MIT licence</a></small>
+      </article>
+      <article class="slab">
+        <h3><a href="https://github.com/dschu012/d2lootfilter">D2LootFilter</a></h3>
+        <p>Thank you to Dschu012 and the D2LootFilter contributors for the community function names and address references used in our research.</p>
+        <small>Dschu012 and contributors · <a href="https://github.com/dschu012/d2lootfilter/blob/master/LICENSE">MIT licence</a></small>
+      </article>
+    </div>
   </section>
 </main>
 <footer>
@@ -300,27 +323,9 @@ footer .wrap { display: flex; justify-content: space-between; gap: .6rem 1.4rem;
   $("lb").tBodies[0].innerHTML = S.leaderboard.map((r, i) =>
     `<tr><td class="rank">${i + 1}</td><td>${esc(r.who)}</td><td class="n">${nf.format(r.functions)}</td><td class="n">${kb(r.bytes)}</td><td class="n">${(100 * r.bytes / total).toFixed(1)}%</td></tr>`).join("");
 
-  // trend: bars for bytes per day, a line for the running total; one scale per axis
-  const days = S.trend, W = 720, H = 220, L = 56, R = 16, Tp = 14, B = 30;
-  const maxDay = Math.max(...days.map(d => d.bytes)), maxCum = days[days.length - 1].cum_bytes;
-  const bw = (W - L - R) / days.length;
-  // bars and line share the one labelled axis
-  const y1 = v => H - B - (H - B - Tp) * v / maxCum, y2 = y1;
-  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Bytes verified per day">`;
-  for (const f of [0, .5, 1]) {
-    const y = H - B - (H - B - Tp) * f;
-    svg += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="#33281f"/><text x="${L - 6}" y="${y + 4}" text-anchor="end">${kb(maxCum * f)}</text>`;
-  }
-  days.forEach((d, i) => {
-    const x = L + i * bw + bw * .2, w = bw * .6;
-    svg += `<rect x="${x}" y="${y1(d.bytes)}" width="${w}" height="${H - B - y1(d.bytes)}" fill="#c4502a" opacity=".75"><title>${d.day}: ${kb(d.bytes)}</title></rect>`;
-    svg += `<text x="${x + w / 2}" y="${H - 10}" text-anchor="middle">${d.day.slice(5)}</text>`;
-  });
-  svg += `<polyline fill="none" stroke="#d8a84e" stroke-width="2" points="${days.map((d, i) => `${L + i * bw + bw / 2},${y2(d.cum_bytes)}`).join(" ")}"/>`;
-  days.forEach((d, i) => { svg += `<circle cx="${L + i * bw + bw / 2}" cy="${y2(d.cum_bytes)}" r="3.5" fill="#d8a84e"/>`; });
-  $("trend").innerHTML = svg + "</svg>";
-
-  const label = m => ({ lead: "Lead pipeline", unknown: "Not recorded" }[m] || m);
+  const label = m => ({ "claude-opus-5-5": "Claude Opus 5.5", codex: "Codex", unknown: "Not Recorded",
+    "codex-gpt-6.1-sol": "Codex GPT-6.1 Sol", "gpt-6": "GPT-6", "codex-gpt-6": "Codex GPT-6",
+    "gpt-6.1-sol": "GPT-6.1 Sol" }[m] || m[0].toUpperCase() + m.slice(1));
   const mmax = S.by_model[0].bytes;
   $("models").innerHTML = S.by_model.slice(0, 6).map(r =>
     `<div class="bar"><div class="lab"><b>${esc(label(r.model))}</b><span>${kb(r.bytes)}</span></div><div class="track"><i class="g" style="width:${(100 * r.bytes / mmax).toFixed(2)}%"></i></div></div>`).join("");
@@ -344,7 +349,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: .6rem 1.4rem;
   $("mods").innerHTML = S.modules.filter(m => m.bytes > 4096).map(m =>
     `<div class="mod"><div class="waffle" role="img" aria-label="${esc(m.name)}: ${(100 * m.matched_bytes / m.bytes).toFixed(1)}% verified">${waffle(m)}</div><div><h4>${esc(m.name)}</h4><span class="pc">${(100 * m.matched_bytes / m.bytes).toFixed(1)}%</span><small>${nf.format(m.matched_functions)} / ${nf.format(m.functions)} fn · ${kb(m.bytes)}</small></div></div>`).join("");
 
-  const log = [...days].reverse().map(d => [d.day, `${nf.format(d.functions)} functions (${kb(d.bytes)}) verified, ${(100 * d.cum_bytes / T).toFixed(2)}% of the code section in total.`]);
+  const log = [...S.trend].reverse().map(d => [d.day, `${nf.format(d.functions)} functions (${kb(d.bytes)}) verified, ${(100 * d.cum_bytes / T).toFixed(2)}% of the code section in total.`]);
   log.unshift([S.generated_utc.slice(0, 10), "Project Iblis named; the public site and contributor service enter preview."]);
   $("log").innerHTML = log.map(([d, t]) => `<li><time>${d}</time>${esc(t)}</li>`).join("");
 })();

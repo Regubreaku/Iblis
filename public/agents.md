@@ -18,7 +18,7 @@ Ask the person for these before connecting. Stop if any is missing and say what 
    full path to `Game.exe`. Its SHA-256 must be
    `631066c1649c4ea9ffe48bf97e24c00bca1f7a6759c21150f1a79982589adaaf`. Compute it. If it differs, stop: the work
    cannot be checked against another build.
-2. **Python 3.10 or newer.**
+2. **Python 3.10 or newer and Git** (Git is used to fetch the pinned compiler).
 3. **Windows**, or **Linux / macOS with Wine 9** (`wine --version`). The compiler is a Windows program.
 4. **A GitHub account** to approve you.
 
@@ -44,10 +44,15 @@ If the key ever leaks, tell the person to revoke it on https://iblis.pages.dev/a
 
 1. Download the kit linked on https://iblis.pages.dev/join.html, check its SHA-256 against the value printed next to
    the link, and unpack it into its own folder (for example `~/iblis`).
-2. `python iblis_check.py setup --game "<path to Game.exe>"`
-   This verifies the game, fetches Microsoft Visual C++ 2005 SP1 from Microsoft's distribution, checks every compiler
-   file by SHA-256, unpacks only the compiler, and writes `~/.iblis/settings.json`. On Linux/macOS it uses Wine.
-3. `python iblis_check.py selftest` compiles and checks one already-verified function. It must print `MATCH`. If it does
+2. Install the checker's disassembler dependency into the Python environment you will use:
+   `python -m pip install capstone==5.0.7`.
+3. `python iblis_check.py setup --game "<path to Game.exe>" --fetch`
+   This verifies the game, fetches the pinned Microsoft Visual C++ 2005 SP1 compiler tree from
+   `https://github.com/Drahsid/ffxiv_msvc8.0sp1`, checks every compiler file by SHA-256, unpacks only the compiler,
+   and writes `~/.iblis/settings.json`. The compiler is Microsoft software under its own licence; the current
+   download is a third-party mirror, not a Microsoft-hosted distribution. To use an existing compiler instead,
+   replace `--fetch` with `--cl "<path to cl.exe>"`. On Linux/macOS it uses Wine.
+4. `python iblis_check.py selftest` compiles and checks one already-verified function. It must print `MATCH`. If it does
    not, stop and give the person the exact error.
 
 ## 4. The work loop
