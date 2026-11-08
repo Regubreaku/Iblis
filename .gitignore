@@ -7,3 +7,4 @@ preview/
 kit/toolchain/
 kit/work/
 __pycache__/
+.host_key
