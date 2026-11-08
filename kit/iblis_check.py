@@ -12,6 +12,7 @@
   python iblis_check.py decl VA [VA ...]                        the declaration verified sources use for an address
   python iblis_check.py fields STRUCT [OFFSET]                  members verified sources place at each offset
   python iblis_check.py layout STRUCT OFFSET [OFFSET ...]       a padded struct with just those members, ready to paste
+  python iblis_check.py callers VA                              who calls VA and how they set up its arguments (terminal only)
 
 Nothing this tool reads from the game is ever written anywhere but work/, and work/ is never submitted. Submit only
 candidate.cpp and your notes, through the service.
@@ -513,7 +514,11 @@ FORBIDDEN = [r"\b__asm\b", r"\basm\b", r"\b_emit\b", r"\bnaked\b", r"#pragma\s+(
 
 
 def parse_markers(src):
+    """Markers in the source: defs (the `// <VA>` line above a definition) and decls (a trailing `// 0x...` on a
+    declaration). A declaration inside `struct S { ... };` is recorded as `S::name`, so a member function's scoped
+    symbol resolves to its own marker and never borrows an unqualified one."""
     defs, decls, pending = {}, {}, None
+    scopes, pending_scope = [], None  # one entry per open brace: a struct/class name, or None for any other block
     for ln in src.splitlines():
         t = ln.strip()
         m = re.match(r"//\s*(0x[0-9A-Fa-f]{8})\s*$", t)
@@ -521,17 +526,26 @@ def parse_markers(src):
             pending = int(m.group(1), 16); continue
         code = t.split("//")[0]
         m2 = re.search(r"//\s*(0x[0-9A-Fa-f]{8})\s*$", t)
+        sm = re.match(r"^(?:typedef\s+)?(?:struct|class|union)\s+([A-Za-z_]\w*)\b(?![^{]*;)", code)
+        if sm:
+            pending_scope = sm.group(1)
         if m2 and code.strip():
-            fn = re.findall(r"([A-Za-z_~]\w*)\s*\(", code)
-            nm = fn[0] if fn else (re.findall(r"([A-Za-z_]\w*)\s*(?:\[|;|=)", code) or [None])[-1]
+            nm = decl_name(code)
             if nm:
+                names = [x for x in scopes if x]
+                key = "::".join(names + [nm]) if names else nm
                 addr = int(m2.group(1), 16)
-                decls[nm] = addr if nm not in decls or decls[nm] == addr else None
+                decls[key] = addr if key not in decls or decls[key] == addr else None
         if pending is not None and code.strip():
-            fn = re.findall(r"([A-Za-z_~]\w*)\s*\(", code)
+            fn = [w for w in re.findall(r"([A-Za-z_~]\w*)\s*\(", code) if w not in KEYWORDS]
             if fn:
                 defs[fn[0]] = pending
             pending = None
+        for ch in code:
+            if ch == "{":
+                scopes.append(pending_scope); pending_scope = None
+            elif ch == "}" and scopes:
+                scopes.pop()
     return defs, decls
 
 
@@ -547,12 +561,20 @@ def undec(n):
 
 
 def external_marker_name(symbol):
-    """Only map simple global ABI spellings. Scoped/template symbols need a
-    full declaration parser; guessing from their leaf name is unsound.
+    """The declaration a relocation symbol must carry a marker on, or None when it cannot be named soundly.
+    Imports (`__imp__Name@4`, `__imp_Name`) map to the dllimport declaration of Name; scoped C++ symbols
+    (`?Leaf@Class@Outer@@...`) map to `Outer::Class::Leaf`, which only a declaration inside those structs provides.
+    Special members, operators and templates (`??...`, `?$...`) still need a full declaration parser.
     """
+    m = re.fullmatch(r"__imp_(_?[A-Za-z_]\w*?)(?:@\d+)?", symbol)
+    if m:
+        return external_marker_name(m.group(1)) if m.group(1).startswith("_") else m.group(1)
     if symbol.startswith("?"):
-        m = re.match(r"^\?([A-Za-z_]\w*)@@", symbol)
-        return m.group(1) if m else None
+        m = re.match(r"^\?([A-Za-z_]\w*)@((?:[A-Za-z_]\w*@)*)@", symbol)
+        if not m:
+            return None
+        scope = [x for x in m.group(2).split("@") if x]
+        return "::".join(list(reversed(scope)) + [m.group(1)])
     if re.fullmatch(r"_[A-Za-z_]\w*(?:@\d+)?|@[A-Za-z_]\w*@\d+", symbol):
         return undec(symbol)
     return None
@@ -788,7 +810,7 @@ def compile_and_compare(s, va, length, flags, src, wd, image=None):
             return res
         addend = struct.unpack_from("<I", body, off)[0]
         actual = struct.unpack_from("<I", orig, off)[0] if off + 4 <= len(orig) else None
-        nm = undec(sy["name"])
+        nm = external_marker_name(sy["name"]) or undec(sy["name"])
         marker = decls.get(nm)
         if nm in decls and marker is None:
             problems.append("%s has conflicting address markers" % nm)
@@ -812,6 +834,14 @@ def compile_and_compare(s, va, length, flags, src, wd, image=None):
         elif sy["scn"] == 0 and sy["value"] == 0 and sy["cls"] == 2:
             key = external_marker_name(sy["name"])
             want = decls.get(key) if key and len(external_names.get(key, ())) == 1 else None
+        elif (sy["scn"] > 0 and sy["value"] == 0 and secs[sy["scn"] - 1]["name"].startswith(".text")
+              and defs.get(undec(sy["name"])) not in (None, start)
+              and sum(1 for y in funcs if undec(y["name"]) == undec(sy["name"])) == 1):
+            # A helper defined in this file (typically a `static` function, which MSVC may give a register
+            # convention its callers then follow) carries its own `// 0x...` line above its definition: the call
+            # must land exactly there, the same rule as for an external callee's marker. Its body is a dependency,
+            # not part of this compare.
+            want = defs[undec(sy["name"])]
         else:
             want = None
             problems.append("%s has an unverified internal/common/absolute dependency" % sy["name"])
@@ -892,7 +922,9 @@ def score(res):
     if st != "DIFF":
         return (3, 0, 0)
     off = abs(res.get("compiled_length", 0) - res.get("length", 0))
-    return (1 if not off else 2, res.get("unmasked_diff_bytes", 0) + len(res.get("target_problems", [])) * 4, off)
+    # Bytes only one side has count as differing: otherwise a near-empty stub, compared over its few bytes, looks closer
+    # than a real body that is a few bytes long.
+    return (1 if not off else 2, res.get("unmasked_diff_bytes", 0) + off + len(res.get("target_problems", [])) * 4, off)
 
 
 def describe(res):
@@ -1010,6 +1042,48 @@ def align_rows(a, b, body, orig, mask):
     return rows
 
 
+def call_sites(pe, va):
+    """Addresses of every direct `call va` in .text (E8 rel32)."""
+    sec = next(x for x in pe.sections if x["name"] == ".text")
+    lo = sec["rawptr"]; code = pe.data[lo:lo + sec["rawsize"]]; base = pe.base + sec["va"]
+    out, i = [], code.find(b"\xe8")
+    while i != -1 and i + 5 <= len(code):
+        if (base + i + 5 + struct.unpack_from("<i", code, i + 1)[0]) & 0xFFFFFFFF == va:
+            out.append(base + i)
+        i = code.find(b"\xe8", i + 1)
+    return out
+
+
+def cmd_callers(va):
+    """Who calls VA, with the instructions leading up to each call, read from YOUR Game.exe (terminal only: never
+    paste it anywhere). Use it for a function that takes values in EAX/EBX/ESI/EDI: write it as a `static` function
+    and put a caller in the same file, with its own `// 0x...` line, that sets those values up the same way."""
+    import capstone
+    va = norm_va(va); s = settings(); pe = PE(s["image"]); t = int(va, 16)
+    names = json.load(open(os.path.join(KIT, "names.json")))
+    sites = call_sites(pe, t)
+    if not sites:
+        print("no direct calls to %s (it may be reached through a pointer or a jump table)" % va); return
+    md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+    for site in sites[:8]:
+        # walk back to the nearest preceding padding or return to find the start of the calling function
+        # The profile keeps frame pointers, so a function starts `push ebp; mov ebp, esp` right after padding or
+        # the previous function's return.
+        win = pe.read(site - 0x800, 0x800) or b""
+        start, j = None, win.rfind(b"\x55\x8b\xec")
+        while j > 0:
+            if win[j - 1] in (0xCC, 0x90, 0xC3) or (j >= 3 and win[j - 3] == 0xC2):
+                start = site - 0x800 + j; break
+            j = win.rfind(b"\x55\x8b\xec", 0, j)
+        start = start or site - 0x40
+        print("call at 0x%08X, in the function starting near 0x%08X %s" % (site, start, names.get("0x%08X" % start, "")))
+        ins = list(md.disasm(pe.read(start, site - start + 5), start))
+        for i in ins[-14:]:
+            print("    %08X  %s %s" % (i.address, i.mnemonic, i.op_str))
+    if len(sites) > 8:
+        print("... %d more call sites" % (len(sites) - 8))
+
+
 def cmd_selftest():
     s = settings(); t = CFG["selftest"]
     wd = os.path.join(WORK, "_selftest")
@@ -1041,6 +1115,8 @@ def main(argv):
         cmd_fields(argv[2:])
     elif c == "layout":
         cmd_layout(argv[2:])
+    elif c == "callers" and len(argv) >= 3:
+        cmd_callers(argv[2])
     else:
         print(__doc__); sys.exit(2)
 

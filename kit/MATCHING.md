@@ -31,6 +31,23 @@ Use `python iblis_check.py sxs <VA>` to inspect differences locally. Judge the c
 - **Globals and qualifiers:** `static` or `volatile` can change reloads, stores and register allocation. Use them only when the function's behavior and context justify them, not as blanket fixes.
 - **Helpers:** the compiler's knowledge of a real same-file callee can affect its caller. Explain necessary helper context in your notes; do not fabricate stand-in bodies or add alternate target versions to trick the check. Report a rejected context body rather than padding it to evade detection.
 
+## Register arguments (EAX, EBX, ESI, EDI)
+
+A function that reads EAX, EBX, ESI or EDI before setting it, or a callee that receives a value in one of them, is
+not a dead end. With this profile MSVC gives a `static` function whose every call it can see a register convention of
+its own, and the original was built the same way. So:
+
+- **The target takes register values:** write it as a `static` function, and add one caller in the same file, with
+  that caller's own `// 0x...` line above it, that sets the values up as the original caller does.
+  `python iblis_check.py callers <VA>` lists the call sites and the instructions leading up to each one.
+- **A callee takes register values:** define that callee as a `static` function in your file, with its own
+  `// 0x...` line, and write a real attempt at its body (its closest source if it has one). The checker verifies that
+  your call lands on that address; the helper's body is context, not part of your compare.
+- Start from `__stdcall` with the parameter order the reference uses; the compiler chooses the registers. If it picks
+  different ones, the helper's body or parameter types decide it: change those, not the target's call.
+
+Verified examples: `0x0064D060` (calls two such statics, grid in EAX, box in ECX).
+
 Small algebraic rewrites, added scopes or declaration reordering have often produced identical bodies. Check the result instead of cycling through cosmetic variants.
 
 ## When to hand it back

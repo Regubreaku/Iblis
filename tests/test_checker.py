@@ -88,6 +88,40 @@ class CheckerTests(unittest.TestCase):
     def test_scoped_cpp_symbol_does_not_borrow_an_unqualified_marker(self):
         self.assert_rejected(self.check(symbol='?wrong@Other@@YAXXZ', decl='extern void wrong(); // 0x00402000'))
 
+    def test_import_symbol_resolves_to_its_dllimport_declaration(self):
+        decl = 'extern "C" __declspec(dllimport) void __stdcall wrong(int n); // 0x00402000'
+        self.assertEqual(self.check(symbol='__imp__wrong@4', decl=decl)['status'], 'RELOCATION_RESOLVED_EQUAL')
+
+    def test_import_symbol_needs_its_own_marker(self):
+        self.assert_rejected(self.check(symbol='__imp__wrong@4', decl='extern void other(); // 0x00402000'))
+
+    def test_member_symbol_resolves_to_the_marker_inside_its_struct(self):
+        decl = 'struct Other\n{\n    void wrong(); // 0x00402000\n};'
+        self.assertEqual(self.check(symbol='?wrong@Other@@QAEXXZ', decl=decl)['status'], 'RELOCATION_RESOLVED_EQUAL')
+
+    def test_member_symbol_does_not_borrow_a_marker_from_another_struct(self):
+        decl = 'struct Elsewhere\n{\n    void wrong(); // 0x00402000\n};'
+        self.assert_rejected(self.check(symbol='?wrong@Other@@QAEXXZ', decl=decl))
+
+    def test_dllimport_declaration_is_named_by_its_function_not_declspec(self):
+        defs, decls = checker.parse_markers('extern "C" __declspec(dllimport) void __stdcall Enter(void* p); // 0x006CC218')
+        self.assertEqual(decls, {'Enter': 0x006CC218})
+
+    def helper_check(self, marker):
+        # the call goes to a helper defined in this object (its own .text section), as a `static` function would
+        extra = (b'.text$h', b'\xc3', ())
+        decl = (('// %s\n' % marker) if marker else '') + 'static void wrong() {}'
+        return self.check(decl=decl, scn=2, extra=extra)
+
+    def test_call_into_a_marked_helper_in_the_same_file_resolves(self):
+        self.assertEqual(self.helper_check('0x00402000')['status'], 'RELOCATION_RESOLVED_EQUAL')
+
+    def test_helper_marked_at_another_address_is_rejected(self):
+        self.assert_rejected(self.helper_check('0x00403000'))
+
+    def test_unmarked_helper_is_still_an_unverified_dependency(self):
+        self.assert_rejected(self.helper_check(None))
+
     def test_explicit_simple_global_cpp_symbol_is_supported(self):
         self.assertEqual(self.check(symbol='?wrong@@YAXXZ', decl='extern void wrong(); // 0x00402000')['status'], 'RELOCATION_RESOLVED_EQUAL')
 
