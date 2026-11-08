@@ -49,6 +49,18 @@ function requireIntake(env) {
 function invitedSet(env) {
   return new Set(String(env.INVITED_GITHUB || "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean));
 }
+// UNLIMITED_GITHUB lists GitHub logins or numeric ids, comma-separated: those accounts have no tier limits (functions at
+// once, submissions per day, function size) and are never paused by strikes or expired leases. Verification still decides.
+function isUnlimited(env, user) {
+  const set = new Set(String(env.UNLIMITED_GITHUB || "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean));
+  return !!user && set.size > 0 && (set.has(String(user.login || "").toLowerCase()) || set.has(String(user.id)));
+}
+const UNLIMITED = { name: "unlimited", leases: 1000000000, perDay: 1000000000, maxBytes: null };
+const NEVER = "9999-12-31T23:59:59Z";   // a pause check against this time is never true
+function tierOf(env, user, rec) { return isUnlimited(env, user) ? UNLIMITED : tierFor(rec); }
+function pausedNow(env, user) { return !isUnlimited(env, user) && user.paused_until && user.paused_until > iso() ? user.paused_until : null; }
+function pauseClock(env, user) { return isUnlimited(env, user) ? NEVER : iso(); }
+
 function requireInvited(env, user) {
   const allowed = invitedSet(env);
   if (allowed.size && !allowed.has(String(user.login || "").toLowerCase()) && !allowed.has(String(user.id)))
@@ -205,6 +217,8 @@ async function expireLeases(env) {
   for (const uid of new Set(stale.map((l) => l.user_id))) {
     const e = (await env.DB.prepare("SELECT COUNT(*) AS n FROM expired WHERE user_id = ? AND expired_utc > ?").bind(uid, dayAgo).first()).n;
     const done = (await env.DB.prepare("SELECT COUNT(*) AS n FROM results WHERE user_id = ? AND created_utc > ?").bind(uid, dayAgo).first()).n;
+    const u = await env.DB.prepare("SELECT id, login FROM users WHERE id = ?").bind(uid).first();
+    if (isUnlimited(env, u)) continue;
     if (e > 6 && e > (e + done) / 4)
       await env.DB.prepare("UPDATE users SET paused_until = MAX(COALESCE(paused_until, ''), ?) WHERE id = ?").bind(hoursFromNow(3), uid).run();
   }
@@ -212,6 +226,7 @@ async function expireLeases(env) {
 
 // Three failed verifications in a week pause submissions for a week, if they are at least 1 in 20 of that week's verdicts.
 async function applyStrikes(env, uid) {
+  if (isUnlimited(env, await env.DB.prepare("SELECT id, login FROM users WHERE id = ?").bind(uid).first())) return;
   const weekAgo = iso(Date.now() - 7 * 864e5);
   const r = await env.DB.prepare(
     `SELECT SUM(status = 'failed') AS failed, SUM(status IN ('verified', 'failed')) AS decided,
@@ -256,7 +271,7 @@ const tools = {
   async status(env, user) {
     await expireLeases(env);
     const rec = await record(env, user);
-    const tier = tierFor(rec);
+    const tier = tierOf(env, user, rec);
     const working = (await env.DB.prepare(
       `SELECT l.va, f.length, f.module, l.expires_utc FROM leases l JOIN functions f ON f.va = l.va
         WHERE l.user_id = ? ORDER BY l.leased_utc`).bind(user.id).all()).results;
@@ -272,16 +287,17 @@ const tools = {
         ORDER BY id DESC LIMIT 10`).bind(user.id).all()).results;
     return {
       login: user.login, shown_on_board_as: user.show_name ? user.login : "anonymous",
-      tier: tier.name, limits: { at_once: tier.leases, submissions_per_day: tier.perDay, max_function_bytes: tier.maxBytes },
+      tier: tier.name, limits: tier === UNLIMITED ? { at_once: null, submissions_per_day: null, max_function_bytes: null, unlimited: true }
+        : { at_once: tier.leases, submissions_per_day: tier.perDay, max_function_bytes: tier.maxBytes },
       submitted_last_24h: today, verified: rec.verified, failed: rec.failed, strikes_this_week: strikes,
-      paused_until: user.paused_until && user.paused_until > iso() ? user.paused_until : null,
+      paused_until: pausedNow(env, user),
       working_on: working, recent_verdicts: recent,
     };
   },
 
   async bands(env, user) {
     await expireLeases(env);
-    const tier = tierFor(await record(env, user));
+    const tier = tierOf(env, user, await record(env, user));
     const rows = (await env.DB.prepare(
       `SELECT f.length FROM functions f LEFT JOIN leases l ON l.va = f.va WHERE f.state = 'open' AND l.va IS NULL`
     ).all()).results;
@@ -296,8 +312,8 @@ const tools = {
     requireIntake(env);
     requireInvited(env, user);
     await expireLeases(env);
-    if (user.paused_until && user.paused_until > iso()) bad(429, `new work is paused until ${user.paused_until}`);
-    const tier = tierFor(await record(env, user));
+    if (pausedNow(env, user)) bad(429, `new work is paused until ${user.paused_until}`);
+    const tier = tierOf(env, user, await record(env, user));
     const held = (await env.DB.prepare("SELECT COUNT(*) AS n FROM leases WHERE user_id = ?").bind(user.id).first()).n;
     if (held >= tier.leases) bad(409, `your tier (${tier.name}) works on ${tier.leases} at once; submit or give up one first`);
     const max = tier.maxBytes ?? 1 << 30;
@@ -331,7 +347,7 @@ const tools = {
             AND (SELECT COUNT(*) FROM leases WHERE user_id = ?) < ?
             AND NOT EXISTS (SELECT 1 FROM users WHERE id = ? AND paused_until > ?)
           ON CONFLICT(va) DO NOTHING RETURNING va`)
-          .bind(user.id, t, hoursFromNow(LEASE_HOURS), pick.va, user.id, tier.leases, user.id, t),
+          .bind(user.id, t, hoursFromNow(LEASE_HOURS), pick.va, user.id, tier.leases, user.id, pauseClock(env, user)),
         env.DB.prepare("UPDATE functions SET tries = tries + 1 WHERE va = ? AND changes() > 0").bind(pick.va),
       ]);
       if (!claimed.results.length) bad(409, 'function or lease capacity is no longer available; ask again');
@@ -354,10 +370,10 @@ const tools = {
     const va = normVa(args.va) || bad(400, "va is required");
     const l = await env.DB.prepare("SELECT 1 FROM leases WHERE va = ? AND user_id = ? AND expires_utc > ?").bind(va, user.id, iso()).first();
     if (!l) bad(404, `you are not working on ${va} (its 2 hours may have run out; ask for it again with next)`);
-    if (user.paused_until && user.paused_until > iso()) bad(429, `submissions are paused until ${user.paused_until}`);
+    if (pausedNow(env, user)) bad(429, `submissions are paused until ${user.paused_until}`);
     if (!["RAW_EQUAL", "RELOCATION_RESOLVED_EQUAL"].includes(args.local_status))
       bad(400, "submit only what the local checker reported as RAW_EQUAL or RELOCATION_RESOLVED_EQUAL; otherwise giveup");
-    const tier = tierFor(await record(env, user));
+    const tier = tierOf(env, user, await record(env, user));
     const today = (await env.DB.prepare(
       "SELECT COUNT(*) AS n FROM results WHERE user_id = ? AND kind = 'match' AND created_utc > ?"
     ).bind(user.id, iso(Date.now() - 864e5)).first()).n;
@@ -378,7 +394,7 @@ const tools = {
          RETURNING id`
       ).bind(String(args.model || "").slice(0, 80), args.source, args.notes || null,
              args.local_status, String(args.body_sha256 || "").slice(0, 64), va, user.id, iso(),
-             user.id, iso(), user.id, iso(Date.now() - 864e5), tier.perDay),
+             user.id, pauseClock(env, user), user.id, iso(Date.now() - 864e5), tier.perDay),
       env.DB.prepare("DELETE FROM leases WHERE va = ? AND user_id = ? AND changes() > 0").bind(va, user.id),
       env.DB.prepare("UPDATE functions SET state = 'pending' WHERE va = ? AND changes() > 0").bind(va),
     ]);
