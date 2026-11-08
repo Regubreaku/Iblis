@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS functions (
   state         TEXT NOT NULL,
   name          TEXT,                         -- current best name, if any
   flags         TEXT,                         -- compile flags for this function (profile + rulings)
-  reference     TEXT,                         -- reference-source pointer (e.g. Redivivus file), words only
+  reference     TEXT,                         -- reference-source pointer, words only (not currently sent)
   body_sha256   TEXT,                         -- SHA-256 of the original bytes, so the checker can confirm the player's copy
   tries         INTEGER NOT NULL DEFAULT 0,   -- leases handed out
   best_source   TEXT,                         -- closest code from a give-up, for the next agent
