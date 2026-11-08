@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """iblis-check: the Project Iblis checker. Everything happens on this machine, against YOUR copy of Game.exe.
 
-  python iblis_check.py setup --game PATH --cl PATH             verify the game and your licensed compiler
-  python iblis_check.py setup --game PATH --fetch               or download the pinned compiler from a third-party
-                                                                mirror (needs Git; only with a licence for VC++ 2005 SP1)
+  python iblis_check.py setup --game PATH --fetch               verify the game, download and verify the pinned compiler
+  python iblis_check.py setup --game PATH --cl PATH             or use a Visual C++ 2005 SP1 cl.exe you already have
   python iblis_check.py selftest                                compile one verified function; must print MATCH
   python iblis_check.py brief VA                                work/<VA>/BRIEF.md and starter.cpp from packet.json
   python iblis_check.py check VA                                compile work/<VA>/candidate.cpp and compare
@@ -48,7 +47,7 @@ def norm_va(v):
 
 def settings():
     if not os.path.exists(SETTINGS):
-        die("run setup first: python iblis_check.py setup --game PATH --cl PATH")
+        die("run setup first: python iblis_check.py setup --game PATH --fetch")
     s = json.load(open(SETTINGS))
     if sha256_file(s["image"]) != CFG["image_sha256"]:
         die("Game.exe no longer hashes to the 1.14d value; run setup again")
@@ -135,7 +134,7 @@ def cmd_setup(args):
         root = os.path.join(KIT, "toolchain")
         if not os.path.exists(os.path.join(root, "bin", "cl.exe")):
             print("fetching the compiler from %s, a third-party mirror that Project Iblis does not run.\n"
-                  "Visual C++ 2005 SP1 is Microsoft software: use this only if you hold a licence for it." % tc["repo"])
+                  "Visual C++ 2005 SP1 is Microsoft software; Project Iblis does not host it." % tc["repo"])
             if os.path.exists(root):
                 shutil.rmtree(root)
             for step in (["git", "clone", "--quiet", "--filter=blob:none", "--no-checkout", tc["repo"], root],
@@ -145,7 +144,7 @@ def cmd_setup(args):
                     die("fetching the compiler failed:\n" + r.stderr[-800:])
         cl = os.path.join(root, "bin", "cl.exe")
     else:
-        die("give --cl PATH: the cl.exe of your licensed Visual C++ 2005 SP1 installation")
+        die("give --fetch (download the pinned compiler) or --cl PATH (a Visual C++ 2005 SP1 cl.exe you already have)")
     bad = [rel for rel, want in tc["files"].items() if not os.path.exists(os.path.join(root, *rel.split("/")))
            or sha256_file(os.path.join(root, *rel.split("/"))) != want]
     if bad:

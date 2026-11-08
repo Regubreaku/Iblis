@@ -14,11 +14,11 @@ Download `/kit/latest.json`, then `/kit/<file>` from the base URL. Verify the ZI
 
 ```text
 python -m pip install capstone==5.0.7
-python iblis_check.py setup --game "<path to Game.exe>" --cl "<path to licensed cl.exe>"
+python iblis_check.py setup --game "<path to Game.exe>" --fetch
 python iblis_check.py selftest
 ```
 
-Use a Microsoft Visual C++ 2005 SP1 installation the contributor is licensed to use. If the person holds a Visual C++ 2005 SP1 licence but has no installation, `python iblis_check.py setup --game "<path to Game.exe>" --fetch` downloads the pinned compiler files from a third-party mirror (it needs Git). Ask them first, and tell them it is Microsoft software they need a licence for. Continue only when selftest prints `MATCH`. Matching file hashes does not establish a software licence.
+`--fetch` downloads the pinned Microsoft Visual C++ 2005 SP1 compiler files (about 7 MB) from a third-party mirror and checks every hash; it needs Git. If the person already has a Visual C++ 2005 SP1 installation, use `--cl "<path to its cl.exe>"` instead. Continue only when selftest prints `MATCH`.
 
 ## 2. Connect once
 

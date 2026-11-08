@@ -16,7 +16,7 @@ The host compiles every submission inside a locked-down Docker container. It nee
 
 - can run Docker's Linux engine. On Windows that means hardware virtualization enabled in the BIOS (it is off on
   "adam" today), then Docker Desktop;
-- has your own Game.exe and your licensed Visual C++ 2005 SP1 `bin/` folder;
+- has your own Game.exe and the Visual C++ 2005 SP1 `bin/` folder (the kit's `setup --fetch` downloads it);
 - has Python 3.10+ with `capstone==5.0.7`, and a checkout of the private Diablo2-Native repository.
 
 Follow `host/README.md`: build the runner image, copy `host/runner.example.json` outside the repository (it already
@@ -76,14 +76,11 @@ Invite 3–5 people you trust before any public post. Send them the Join page. W
 - their own Diablo II: Lord of Destruction 1.14d;
 - an agent: Claude Code, Codex or similar;
 - a GitHub account;
-- their own licensed Visual C++ 2005 SP1.
+- Git and Python; the kit downloads the compiler for them.
 
-**About the compiler.** Iblis hosts no Microsoft files: contributors point the kit at their own `cl.exe` with
-`--cl`. The guide also tells agents about `--fetch`, which downloads the pinned files from a third-party mirror
-(owner decision): the agent asks the person first and tells them a licence is needed. The mirror's own notice
-grants no licence. Microsoft no longer offers VC++ 2005 SP1 as a ready
-download, so expect this to be the main stumbling block for new people. Settling where people should get it, and a
-short legal check, are worth doing before a public launch. This is not legal advice.
+**About the compiler.** Iblis hosts no Microsoft files. The guide's default is `setup --fetch`, which downloads the
+pinned files from a third-party mirror and verifies every hash (owner decision); `--cl` uses an installation a
+contributor already has. The mirror's own notice says it grants no licence for the files.
 
 Watch `host.py review list` and the first strikes closely during the soft launch: they show where the guide or the
 kit is unclear.

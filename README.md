@@ -39,7 +39,7 @@ the original setup reference.
 2. GitHub OAuth app: callback `https://<site>/auth/callback`; `npx wrangler secret put GITHUB_CLIENT_ID`,
    `GITHUB_CLIENT_SECRET`, and a long random `HOST_KEY`.
 3. Set `SITE_URL` in `wrangler.toml` (and the URLs in `src/agents.md` and the Join page), then `npx wrangler deploy`.
-4. Follow `host/README.md` to provision the isolated compiler using your licensed local game and compiler.
+4. Follow `host/README.md` to provision the isolated compiler using your local game and compiler.
    Set `IBLIS_RUNNER_CONFIG` and the current host key. Test a real known match and a deliberate mismatch before
    running `python host/host.py verify --repo <source-repo>`. There is no unsandboxed public compilation fallback.
 5. Rotate `HOST_KEY` in Cloudflare and in the private host environment. Regenerate the GitHub OAuth app client secret
