@@ -150,7 +150,8 @@ def load_runner(cfg):
         # Invite-only soft launch: compile invited contributors' work here, without Docker (host/trusted_runner.py).
         from trusted_runner import TrustedLocalRunner
         r = TrustedLocalRunner(cfg["image"]["sha256"], cfg.get("toolchain", {}).get("cl_sha256"))
-        print("runner: trusted-local, without Docker isolation; compiling only for %s" % ", ".join(sorted(r.trusted)), file=sys.stderr)
+        who = "everyone (use only on a disposable, isolated machine)" if "*" in r.trusted else "only " + ", ".join(sorted(r.trusted))
+        print("runner: trusted-local, without Docker isolation; compiling for %s" % who, file=sys.stderr)
         return r
     path = os.environ.get("IBLIS_RUNNER_CONFIG")
     if not path:

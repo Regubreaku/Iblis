@@ -208,6 +208,8 @@ class TrustedLocalRunnerTests(unittest.TestCase):
             self.assertTrue(r.allows({'login': 'alice'}))
             self.assertTrue(r.allows({'login': 'x', 'github_id': 42}))
             self.assertFalse(r.allows({'login': 'mallory', 'github_id': 7}))
+            everyone = trusted_runner.TrustedLocalRunner(good, trusted='*', settings_path=str(settings))
+            self.assertTrue(everyone.allows({'login': 'mallory', 'github_id': 7}))
 
     def test_uninvited_work_is_never_compiled_and_goes_to_review(self):
         with tempfile.TemporaryDirectory() as td:

@@ -16,9 +16,9 @@ database_id = "31ccab53-4d94-472e-a727-c2035cea1b2d"
 
 [vars]
 # Enable only after secret rotation and a real isolated host submission test.
-CONTRIBUTIONS_ENABLED = "false"
+CONTRIBUTIONS_ENABLED = "true"
 # Keep old potentially exposed host/OAuth credentials unusable until the owner rotates both secrets.
-CREDENTIALS_ROTATED = "false"
+CREDENTIALS_ROTATED = "true"
 # Soft launch: only these GitHub logins (or numeric ids), comma-separated, may take work or submit. "" = open to all.
 INVITED_GITHUB = ""
 # SITE_URL = "https://your.domain"   (unset: the service uses the address it is served from)

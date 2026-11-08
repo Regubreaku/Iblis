@@ -1,12 +1,14 @@
 """Trusted-local runner: compiles submissions directly on the host machine, without the Docker boundary.
 
-For an invite-only soft launch only. Opt in with both:
+For an invite-only soft launch, or for any contributor on a disposable isolated machine. Opt in with both:
   IBLIS_RUNNER=trusted-local
   IBLIS_TRUSTED_GITHUB=login1,login2,12345     GitHub logins or numeric ids whose work this host compiles
 Everyone else's submissions are not compiled: they go to review, to be rechecked later by the isolated Docker runner.
+IBLIS_TRUSTED_GITHUB=* compiles everyone's work. Use it only where the machine itself is the isolation: a disposable
+cloud container or VM with nothing else on it, never a personal computer.
 The compiler, game and settings are the kit's own: run `python kit/iblis_check.py setup --game ... --fetch` and
-`selftest` on this machine first. The kit's compile step bounds time and output, but it is not a sandbox: switch back
-to IBLIS_RUNNER_CONFIG (the Docker runner) before opening to the public.
+`selftest` on this machine first. The kit's compile step bounds time and output, but it is not a sandbox: on a
+personal computer, list trusted accounts, or use IBLIS_RUNNER_CONFIG (the Docker runner) for public work.
 """
 import hashlib, importlib.util, json, os, shutil, tempfile
 
@@ -42,6 +44,8 @@ class TrustedLocalRunner:
             raise RuntimeError("cl.exe in the kit settings does not hash to the repository's pinned compiler")
 
     def allows(self, item):
+        if "*" in self.trusted:
+            return True
         return str(item.get("login") or "").lower() in self.trusted or str(item.get("github_id") or "") in self.trusted
 
     def compile(self, va, length, flags, source):
