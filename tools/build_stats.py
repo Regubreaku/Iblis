@@ -63,7 +63,7 @@ def main(repo, out):
     bm = collections.defaultdict(lambda: {"functions": 0, "bytes": 0})
     for f in glob.glob(os.path.join(repo, "queue", "matched", "*.json")):
         d = json.load(open(f))
-        model = d.get("model") or "unknown"
+        model = str(d.get("model") or "unknown").strip().lower()  # "Codex" and "codex" are one model
         bm[model]["functions"] += 1
         bm[model]["bytes"] += d.get("length", 0)
     by_model = sorted(({"model": k, **v} for k, v in bm.items()), key=lambda x: -x["bytes"])
