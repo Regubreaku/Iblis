@@ -553,7 +553,9 @@ async function board(env) {
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
-    env = { ...env, SITE_URL: (env.SITE_URL || url.origin).replace(/\/$/, "") };
+    // Pass every binding and secret through untouched; only SITE_URL falls back to the address we are served from.
+    const site = (env.SITE_URL || url.origin).replace(/\/$/, "");
+    env = new Proxy(env, { get: (t, k) => (k === "SITE_URL" ? site : Reflect.get(t, k)) });
     const p = url.pathname, m = req.method;
     try {
       if (p === "/mcp" && m === "POST") return await mcp(env, req);
