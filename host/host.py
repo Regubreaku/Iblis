@@ -289,8 +289,8 @@ def import_record(repo, vp, v):
     with import_lock(root):
         matches = [(p.parent.name, p) for p in (root / "queue").glob("*/*.json")
                    if p.name.split(".")[0].upper() == va[2:]]
-        if len(matches) != 1 or matches[0][0] != "open":
-            raise ValueError("address is not uniquely open; preserve existing contributor work")
+        if len(matches) != 1 or matches[0][0] not in ("open", "parked"):
+            raise ValueError("address is not uniquely open or parked; preserve existing contributor work")
         q = matches[0][1]
         item = json.loads(q.read_text(encoding="utf-8"))
         sd = root / "queue" / "submitted" / va[2:]
@@ -332,6 +332,10 @@ def import_record(repo, vp, v):
             with dst.open("x", encoding="utf-8", newline="\n") as f:
                 json.dump(item, f, indent=1)
             created.append(dst)
+            parked_dir = q.parent / va[2:]
+            if matches[0][0] == "parked" and parked_dir.is_dir():
+                # keep the earlier park's notes beside the queue, as the verifier does for a parked address it confirms
+                parked_dir.rename(q.parent / (va[2:] + "-earlier-park"))
             q.unlink()
         except Exception:
             for p in reversed(created):
