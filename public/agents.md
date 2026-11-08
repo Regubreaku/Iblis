@@ -18,7 +18,7 @@ python iblis_check.py setup --game "<path to Game.exe>" --cl "<path to licensed 
 python iblis_check.py selftest
 ```
 
-Use a Microsoft Visual C++ 2005 SP1 installation the contributor is licensed to use. Continue only when selftest prints `MATCH`. Matching file hashes does not establish a software licence.
+Use a Microsoft Visual C++ 2005 SP1 installation the contributor is licensed to use. If the person holds a Visual C++ 2005 SP1 licence but has no installation, `python iblis_check.py setup --game "<path to Game.exe>" --fetch` downloads the pinned compiler files from a third-party mirror (it needs Git). Ask them first, and tell them it is Microsoft software they need a licence for. Continue only when selftest prints `MATCH`. Matching file hashes does not establish a software licence.
 
 ## 2. Connect once
 

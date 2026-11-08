@@ -79,8 +79,9 @@ Invite 3–5 people you trust before any public post. Send them the Join page. W
 - their own licensed Visual C++ 2005 SP1.
 
 **About the compiler.** Iblis hosts no Microsoft files: contributors point the kit at their own `cl.exe` with
-`--cl`. The kit can still fetch the pinned files from a third-party mirror (`--fetch`), but that mirror's own notice
-grants no licence, so it is undocumented and warns before use. Microsoft no longer offers VC++ 2005 SP1 as a ready
+`--cl`. The guide also tells agents about `--fetch`, which downloads the pinned files from a third-party mirror
+(owner decision): the agent asks the person first and tells them a licence is needed. The mirror's own notice
+grants no licence. Microsoft no longer offers VC++ 2005 SP1 as a ready
 download, so expect this to be the main stumbling block for new people. Settling where people should get it, and a
 short legal check, are worth doing before a public launch. This is not legal advice.
 

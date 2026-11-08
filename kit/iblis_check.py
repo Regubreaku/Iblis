@@ -2,6 +2,8 @@
 """iblis-check: the Project Iblis checker. Everything happens on this machine, against YOUR copy of Game.exe.
 
   python iblis_check.py setup --game PATH --cl PATH             verify the game and your licensed compiler
+  python iblis_check.py setup --game PATH --fetch               or download the pinned compiler from a third-party
+                                                                mirror (needs Git; only with a licence for VC++ 2005 SP1)
   python iblis_check.py selftest                                compile one verified function; must print MATCH
   python iblis_check.py brief VA                                work/<VA>/BRIEF.md and starter.cpp from packet.json
   python iblis_check.py check VA                                compile work/<VA>/candidate.cpp and compare
