@@ -4,8 +4,9 @@
 usage: build_kit.py <repo> <out-dir>
        build_kit.py --package-only <out-dir>
 
-Writes kit.json (game and compiler hashes, selftest), names.json (address -> name), headers/, CONVENTIONS.md and the
-selftest source next to iblis_check.py, then zips it as public/kit/iblis-check-<date>.zip with a .sha256 beside it.
+Writes kit.json (game and compiler hashes, selftest), names.json (address -> name), headers/, context.json
+(declarations and struct layouts mined from verified sources, see build_context.py) with NOTICES/ (the licence notices
+of the MIT/zlib code those sources adapt), CONVENTIONS.md and the selftest source next to iblis_check.py, then zips it as public/kit/iblis-check-<date>.zip with a .sha256 beside it.
 The kit carries hashes, names and one verified function's source; never any bytes from the game.
 """
 import datetime, glob, hashlib, io, json, os, re, shutil, sys, zipfile
@@ -22,6 +23,13 @@ def package_kit(kit, out):
             raise FileNotFoundError(path)
     paths.extend(p for p in (kit / 'headers').rglob('*')
                  if p.is_file() and p.suffix.lower() in {'.h', '.hpp', '.hh', '.hxx', '.inl', '.inc'})
+    # The context index is mined from verified sources that adapt MIT/zlib-licensed code: it ships only with those notices.
+    notices = sorted(p for p in (kit / 'NOTICES').glob('*.txt') if p.is_file()) if (kit / 'NOTICES').is_dir() else []
+    if (kit / 'context.json').is_file():
+        if not notices:
+            raise FileNotFoundError(kit / 'NOTICES' / '*.txt')
+        paths.append(kit / 'context.json')
+    paths.extend(notices)
     archive = io.BytesIO()
     with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z:
         for path in sorted(paths):
@@ -56,7 +64,8 @@ def main(repo, out):
         toolchain=dict(cl_version=cfg["toolchain"]["cl_version"], repo=m.group(1), commit=m.group(2), files=files),
         selftest=st,
     )
-    json.dump(kitcfg, open(os.path.join(kit, "kit.json"), "w"), indent=1)
+    with open(os.path.join(kit, "kit.json"), "w") as f:
+        json.dump(kitcfg, f, indent=1); f.write("\n")
     json.dump(dict(sorted(r.names.items())), open(os.path.join(kit, "names.json"), "w"), separators=(",", ":"))
     # Keep the service's own contributor notes; source-repo notes describe the old workflow.
     headers = Path(kit, 'headers').resolve()
@@ -66,6 +75,20 @@ def main(repo, out):
     shutil.rmtree(headers)
     shutil.copytree(os.path.join(repo, 'headers'), headers)
     (headers / 'README.md').write_text(header_note, encoding='utf-8')
+
+    # Declarations and layouts from verified sources, with the licence notices of the code they adapt.
+    import build_context
+    idx = build_context.build(repo)
+    with open(os.path.join(kit, "context.json"), "w", encoding="utf-8") as f:
+        json.dump(idx, f, separators=(",", ":"), sort_keys=True)
+    nd = Path(kit, "NOTICES")
+    if nd.exists():
+        shutil.rmtree(nd)
+    nd.mkdir()
+    for p in sorted(glob.glob(os.path.join(repo, "NOTICE-*.txt"))):
+        shutil.copyfile(p, nd / os.path.basename(p))
+    print("context: %d declarations, %d structs; notices: %s" % (len(idx["decls"]), len(idx["fields"]),
+                                                               ", ".join(sorted(os.listdir(nd))) or "NONE"))
 
     package_kit(kit, out)
 

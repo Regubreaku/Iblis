@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS functions (
   body_sha256   TEXT,                         -- SHA-256 of the original bytes, so the checker can confirm the player's copy
   tries         INTEGER NOT NULL DEFAULT 0,   -- leases handed out
   best_source   TEXT,                         -- closest code from a give-up, for the next agent
-  best_note     TEXT                          -- what was tried, in words
+  best_note     TEXT,                         -- what was tried, in words
+  context       TEXT                          -- JSON from the build host: verified example sources for this function
 );
 CREATE INDEX IF NOT EXISTS functions_band ON functions(state, length);
 

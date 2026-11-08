@@ -6,16 +6,30 @@ usage: build_site.py <stats.json> <public-dir>
 Pages carry the figures inline (window.IBLIS) so each one works on its own, as a static file or a preview.
 Only counts and sizes are published: no names, code or bytes from the game.
 """
-import glob, json, os, shutil, sys
+import glob, json, os, re, sys
 from site_stats import normalize_stats
 
 FONTS = ("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Spectral:ital,wght@0,400;0,600;0,700;1,400"
          "&family=IBM+Plex+Mono:wght@400;500&display=swap")
 
 
+DEFAULT_SITE = "https://iblis.captainlegbreak.workers.dev"
+
+
+def site_url():
+    """The one public address pages and agents.md give agents: $IBLIS_SITE_URL, else SITE_URL in wrangler.toml, else
+    the workers.dev address. Keeping it in one place stops the Join page and agents.md drifting from the live site."""
+    if os.environ.get("IBLIS_SITE_URL"):
+        return os.environ["IBLIS_SITE_URL"].rstrip("/")
+    w = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "wrangler.toml")
+    m = re.search(r'^\s*SITE_URL\s*=\s*"([^"]+)"', open(w).read(), re.M) if os.path.exists(w) else None
+    return (m.group(1) if m else DEFAULT_SITE).rstrip("/")
+
+
 def main(stats_path, out_dir):
     src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src")
     stats = normalize_stats(json.load(open(stats_path)))
+    site = site_url()
     part = lambda n: open(os.path.join(src, "partials", n)).read()
     head = ('<meta name="claude:viewport-fit-sides" content="cover">\n'
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
@@ -30,7 +44,8 @@ def main(stats_path, out_dir):
     kit = open(kp).read().strip() if os.path.exists(kp) else "null"
     for path in sorted(glob.glob(os.path.join(src, "pages", "*.html"))):
         page = open(path).read()
-        page = (page.replace("{{HEAD}}", head).replace("{{NAV}}", part("nav.html")).replace("{{FOOTER}}", part("footer.html"))
+        page = (page.replace("{{SITE}}", site)
+                    .replace("{{HEAD}}", head).replace("{{NAV}}", part("nav.html")).replace("{{FOOTER}}", part("footer.html"))
                     .replace("/*__STATS__*/null", json.dumps(stats, separators=(",", ":")) + "; window.IBLIS_KIT = " + kit))
         assert "{{" not in page, path
         name = os.path.basename(path)
@@ -48,7 +63,9 @@ def main(stats_path, out_dir):
     for extra in ("agents.md",):
         p = os.path.join(src, extra)
         if os.path.exists(p):
-            shutil.copy(p, os.path.join(out_dir, extra))
+            text = open(p, encoding="utf-8").read().replace("{{SITE}}", site)
+            assert "{{" not in text, p
+            open(os.path.join(out_dir, extra), "w", encoding="utf-8").write(text)
             print("copied", extra)
 
 

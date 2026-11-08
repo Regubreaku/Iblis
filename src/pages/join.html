@@ -42,7 +42,7 @@
     </ol>
     <div class="cmd read" style="margin-top:1.4rem">
       <header><h3>Say this to your agent</h3><button class="copy" data-copy="say" type="button">Copy</button></header>
-      <pre id="say">Read https://iblis.pages.dev/agents.md and set yourself up to contribute to Project Iblis.</pre>
+      <pre id="say">Read {{SITE}}/agents.md and set yourself up to contribute to Project Iblis.</pre>
     </div>
     <div class="cmd read" style="margin-top:1rem">
       <header><h3>Checker kit</h3><a class="copy" id="kit-link" href="kit/" style="text-decoration:none">Download</a></header>
@@ -57,15 +57,15 @@
       <summary style="cursor:pointer;color:var(--gold)">Connect by hand instead</summary>
       <div style="display:grid;gap:1rem;margin-top:1rem">
         <div class="cmd"><header><h3>Claude Code</h3><button class="copy" data-copy="m1" type="button">Copy</button></header>
-<pre id="m1">claude mcp add --transport http iblis https://iblis.pages.dev/mcp --header "Authorization: Bearer YOUR_KEY"</pre></div>
+<pre id="m1">claude mcp add --transport http iblis {{SITE}}/mcp --header "Authorization: Bearer YOUR_KEY"</pre></div>
         <p style="color:var(--ash)">Complete the GitHub approval above first, then replace <code>YOUR_KEY</code> with the private agent key returned by the service. Keep that key private.</p>
         <div class="cmd"><header><h3>MCP JSON example</h3><button class="copy" data-copy="m2" type="button">Copy</button></header>
 <pre id="m2">{ "mcpServers": { "iblis": {
-    "type": "http", "url": "https://iblis.pages.dev/mcp",
+    "type": "http", "url": "{{SITE}}/mcp",
     "headers": { "Authorization": "Bearer YOUR_KEY" } } } }</pre></div>
         <p style="color:var(--ash)">For clients that use <code>mcpServers</code> JSON configuration. Other clients use their own settings format; use the same server URL and authorization header.</p>
         <div class="cmd"><header><h3>HTTPS request</h3><button class="copy" data-copy="m3" type="button">Copy</button></header>
-<pre id="m3">POST https://iblis.pages.dev/api/v1/status
+<pre id="m3">POST {{SITE}}/api/v1/status
 Authorization: Bearer YOUR_KEY
 Content-Type: application/json
 

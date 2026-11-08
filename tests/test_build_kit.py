@@ -44,6 +44,24 @@ class BuildKitTests(unittest.TestCase):
                 build_kit.package_kit(kit, root / 'release')
             self.assertFalse((root / 'release' / 'latest.json').exists())
 
+    def test_context_index_ships_only_with_licence_notices(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            kit = root / 'kit'
+            for name in ['README.md', 'LICENSE', 'CONVENTIONS.md', 'MATCHING.md', 'iblis_check.py', 'kit.json', 'names.json',
+                         'headers/README.md', 'selftest/candidate.cpp', 'selftest/fixture.json', 'context.json']:
+                (kit / name).parent.mkdir(parents=True, exist_ok=True)
+                (kit / name).write_text(name, encoding='utf-8')
+            with self.assertRaises(FileNotFoundError):
+                build_kit.package_kit(kit, root / 'release')
+            (kit / 'NOTICES').mkdir()
+            (kit / 'NOTICES' / 'NOTICE-D2MOO.txt').write_text('MIT', encoding='utf-8')
+            release = Path(build_kit.package_kit(kit, root / 'release'))
+            with zipfile.ZipFile(release) as archive:
+                names = set(archive.namelist())
+            self.assertIn('iblis-check/context.json', names)
+            self.assertIn('iblis-check/NOTICES/NOTICE-D2MOO.txt', names)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -364,3 +364,29 @@ test('credential rotation gate defaults closed for host and OAuth while account 
   assert.equal((await f.request('/api/v1/host/pending',{}, {method:'GET',host:true})).status,200);
   assert.equal((await f.request('/auth/github?account=1',{}, {method:'GET'})).status,302);
 });
+
+test('host sync carries the closest parked source and examples into packets; a give-up source is kept', async t => {
+  const f=await fixture(t); f.lease();
+  const example={va:'0x00402000',length:12,why:'same module, 12 B',source:'// 0x00402000\nint g(){return 1;}'};
+  const synced=await f.request('/api/v1/host/sync',{functions:[{va,length:16,module:'fixture',state:'open',note:'parked: 2 bytes off',
+    best_source:'// 0x00401220\nint foo(){return 1;}',context:{examples:[example,{va:'bad',source:'x'}]}}]},{host:true});
+  assert.equal(synced.status,200);
+  let pk=(await f.request('/api/v1/packet',{va})).body;
+  assert.equal(pk.previous_attempt.note,'parked: 2 bytes off');
+  assert.equal(pk.previous_attempt.closest_source,'// 0x00401220\nint foo(){return 1;}');
+  assert.deepEqual(pk.context.examples,[example]);
+  assert.equal((await f.request('/api/v1/giveup',{va,reason:'stuck at 1 byte',source:'// 0x00401220\nint foo(){return 2;}'})).status,200);
+  await f.request('/api/v1/host/sync',{functions:[{va,length:16,module:'fixture',state:'open',best_source:'// 0x00401220\nint foo(){return 1;}'}]},{host:true});
+  const row=f.sql.prepare('SELECT best_note,best_source,context FROM functions WHERE va=?').get(va);
+  assert.equal(row.best_source,'// 0x00401220\nint foo(){return 2;}');
+  assert.equal(row.context,null);
+});
+
+test('host sync drops oversized sources and contexts instead of storing them', async t => {
+  const f=await fixture(t);
+  const big='x'.repeat(70000);
+  await f.request('/api/v1/host/sync',{functions:[{va,length:16,module:'fixture',state:'open',best_source:big,
+    context:{examples:[{va:'0x00402000',source:'y'.repeat(60000)}]}}]},{host:true});
+  const row=f.sql.prepare('SELECT best_source,context FROM functions WHERE va=?').get(va);
+  assert.equal(row.best_source,null); assert.equal(row.context,null);
+});

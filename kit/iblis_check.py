@@ -3,14 +3,19 @@
 
   python iblis_check.py setup --game PATH [--cl PATH | --fetch]   verify the game, find or fetch the compiler
   python iblis_check.py selftest                                compile one verified function; must print MATCH
-  python iblis_check.py brief VA                                work/<VA>/BRIEF.md from work/<VA>/packet.json
+  python iblis_check.py brief VA                                work/<VA>/BRIEF.md and starter.cpp from packet.json
   python iblis_check.py check VA                                compile work/<VA>/candidate.cpp and compare
-  python iblis_check.py sxs VA                                  side-by-side of the last check (terminal only)
+  python iblis_check.py sxs VA [--all]                          aligned side-by-side of the last check (terminal only)
+  python iblis_check.py best VA [--restore]                     your closest checks so far; --restore puts the best back
+  python iblis_check.py sweep VA                                check every work/<VA>/variants/*.cpp, ranked by closeness
+  python iblis_check.py decl VA [VA ...]                        the declaration verified sources use for an address
+  python iblis_check.py fields STRUCT [OFFSET]                  members verified sources place at each offset
+  python iblis_check.py layout STRUCT OFFSET [OFFSET ...]       a padded struct with just those members, ready to paste
 
 Nothing this tool reads from the game is ever written anywhere but work/, and work/ is never submitted. Submit only
 candidate.cpp and your notes, through the service.
 """
-import difflib, hashlib, json, os, re, shutil, signal, struct, subprocess, sys, threading, time
+import difflib, glob, hashlib, json, os, re, shutil, signal, struct, subprocess, sys, threading, time
 
 KIT = os.path.dirname(os.path.abspath(__file__))
 CFG = json.load(open(os.path.join(KIT, "kit.json"))) if os.path.exists(os.path.join(KIT, "kit.json")) else {}
@@ -155,6 +160,226 @@ def cmd_setup(args):
     print("settings written to", SETTINGS, "\nnext: python iblis_check.py selftest")
 
 
+# ---------------------------------------------------------------- context (declarations and layouts from verified C++)
+
+_CTX = None
+POINTER = 4
+TYPE_SIZES = {"char": 1, "signed char": 1, "unsigned char": 1, "bool": 1, "short": 2, "unsigned short": 2, "int": 4,
+              "unsigned int": 4, "unsigned": 4, "long": 4, "unsigned long": 4, "float": 4, "double": 8, "__int64": 8,
+              "unsigned __int64": 8, "wchar_t": 2, "BYTE": 1, "WORD": 2, "DWORD": 4, "BOOL": 4}
+KEYWORDS = {"void", "char", "short", "int", "long", "float", "double", "bool", "signed", "unsigned", "const", "volatile",
+            "struct", "class", "union", "enum", "__int8", "__int16", "__int32", "__int64", "wchar_t", "static", "extern",
+            "inline", "__forceinline", "__declspec", "dllimport", "noreturn", "__cdecl", "__stdcall", "__fastcall",
+            "__thiscall", "virtual", "operator", "C", "__w64", "__unaligned", "__restrict"}
+
+
+def context(path=None):
+    """kit/context.json: what verified sources declare at each address, and the struct members they use."""
+    global _CTX
+    if path:
+        return json.load(open(path, encoding="utf-8"))
+    if _CTX is None:
+        p = os.path.join(KIT, "context.json")
+        _CTX = json.load(open(p, encoding="utf-8")) if os.path.exists(p) else dict(decls={}, fields={}, sizes={}, typedefs={}, enums={})
+    return _CTX
+
+
+def decl_of(ctx, va):
+    return ctx["decls"].get(norm_va(va) if isinstance(va, str) else "0x%08X" % va)
+
+
+def type_closure(ctx, texts):
+    """Typedef/enum lines and forward declarations so the given declarations compile on their own."""
+    seen, typedefs, enums, forward = set(), [], [], []
+    todo = [w for t in texts for w in re.findall(r"\b[A-Za-z_]\w*\b", t)]
+    while todo:
+        w = todo.pop(0)
+        if w in seen or w in KEYWORDS or w in TYPE_SIZES and w not in ctx["typedefs"]:
+            continue
+        seen.add(w)
+        if w in ctx["typedefs"]:
+            line = ctx["typedefs"][w]
+            typedefs.append(line); todo += re.findall(r"\b[A-Za-z_]\w*\b", line)
+        elif w in ctx["enums"]:
+            enums.append(ctx["enums"][w])
+        elif w in ctx["fields"] or w in ctx["sizes"] or re.match(r"^D2\w+(Strc|Txt|Tbl|Rec)$", w):
+            forward.append(w)
+    for t in texts:
+        # anything in a type position: `X*`, `X&`, `X name` inside a parameter list, `struct X`
+        params = t[t.find("("):] if "(" in t else ""
+        cands = re.findall(r"\b([A-Za-z_]\w*)\s*[*&]", t)
+        cands += re.findall(r"[(,]\s*(?:const\s+)?([A-Za-z_]\w*)\s+[A-Za-z_]\w*\s*(?:\[[^\]]*\])?\s*(?=[,)])", params)
+        cands += re.findall(r"[(,]\s*(?:const\s+)?([A-Za-z_]\w*)\s*(?=[,)])", params)  # unnamed parameters
+        cands += re.findall(r"\b(?:struct|class|union)\s+([A-Za-z_]\w*)", t)
+        m = re.match(r"^\s*(?:extern\s+(?:\"C\"\s+)?)?(?:const\s+)?([A-Za-z_]\w*)\s+", t)
+        if m:
+            cands.append(m.group(1))
+        for w in cands:
+            if w not in KEYWORDS and w not in TYPE_SIZES and w not in ctx["typedefs"] and w not in ctx["enums"] and w not in forward:
+                forward.append(w)
+    return typedefs, enums, sorted(set(forward) - set(ctx["typedefs"]) - set(ctx["enums"]))
+
+
+def by_value_unknowns(ctx, text, forward):
+    """Forward-declared names a definition takes or returns by value: a struct forward declaration cannot serve there."""
+    out = []
+    for w in forward:
+        if w in ctx["fields"] or w in ctx.get("sizes", {}):
+            continue
+        if re.search(r"\b%s\b(?!\s*[*&])" % re.escape(w), text) and not re.search(r"\b(?:struct|class|union)\s+%s\b" % re.escape(w), text):
+            out.append(w)
+    return out
+
+
+def decl_name(text):
+    """The declared name: the first identifier before '(' that is not a keyword, else the last identifier."""
+    fn = [w for w in re.findall(r"([A-Za-z_~]\w*)\s*\(", text) if w not in KEYWORDS]
+    if fn:
+        return fn[0]
+    ids = re.findall(r"([A-Za-z_]\w*)\s*(?:\[[^\]]*\])?\s*;?\s*$", text)
+    return ids[-1] if ids else None
+
+
+def starter_source(va, pk, calls, dref, ctx, hints):
+    """A first candidate: every callee and global declared from verified sources, the target's signature when a
+    verified caller declares it, and TODO lines for the rest. It is a scaffold, not a match."""
+    known, members, todo, used, taken = [], {}, [], [], {}
+    tdecl = decl_of(ctx, va)
+    if tdecl:
+        if decl_name(tdecl["decl"]):
+            taken[decl_name(tdecl["decl"])] = int(va, 16)
+    for a in sorted(set(calls) | set(k for k, v in dref.items() if not str(v).startswith("import "))):
+        if a == int(va, 16):
+            continue
+        d = decl_of(ctx, a)
+        if not d:
+            label = calls.get(a) or dref.get(a)
+            todo.append("// TODO declare %s at 0x%08X (no verified declaration yet)" % (label, a)); continue
+        text = re.sub(r"\s*//.*$", "", d["decl"])
+        fname = decl_name(text)
+        if fname and fname in taken:
+            todo.append("// TODO 0x%08X is declared as %s, a name already used above for 0x%08X; rename one" % (a, fname, taken[fname]))
+            continue
+        if fname:
+            taken[fname] = a
+        if d.get("struct"):
+            members.setdefault(d["struct"], []).append("    %s // 0x%08X" % (text, a))
+        else:
+            known.append("%s // 0x%08X" % (text, a))
+        used.append(text)
+    target = decl_of(ctx, va)
+    if target and not target.get("struct"):
+        head = target["decl"].rstrip().rstrip(";")
+        head = re.sub(r"^\s*extern\s+(\"C\"\s+)?", "", head)
+    else:
+        conv = "__fastcall" if any("ECX/EDX" in h for h in hints) else "__cdecl"
+        head = "int %s %s()" % (conv, pk.get("name") or "sub_%s_Todo" % va[2:])
+    used.append(head)
+    typedefs, enums, forward = type_closure(ctx, used + [s for s in members])
+    out = ["// starter for %s, generated by `iblis_check.py brief`: declarations come from verified sources." % va,
+           "// It compiles as a scaffold, not a match. Check each declaration against your brief before relying on it.", ""]
+    opaque = by_value_unknowns(ctx, head, forward)
+    out += ["struct %s;" % s for s in forward if s not in members and s not in opaque]
+    out += ["typedef void* %s; // TODO: unknown type, used by value; replace with its real definition" % s for s in opaque]
+    out += typedefs + enums
+    for s, ms in sorted(members.items()):
+        out += ["struct %s" % s, "{"] + ms + ["};"]
+    out += [""] + known + todo + ["", "// %s" % va, head, "{",
+            "    // TODO: the body. Start from previous.cpp or examples/ when the packet supplied them."]
+    if not re.match(r"^(?:static\s+)?void\b", head):
+        out.append("    return 0;")
+    out += ["}", ""]
+    return "\n".join(out)
+
+
+def field_rows(ctx, struct):
+    f = ctx["fields"].get(struct)
+    if f is None:
+        close = difflib.get_close_matches(struct, list(ctx["fields"]), n=5)
+        die("no verified layout for %s%s" % (struct, ("; did you mean " + ", ".join(close)) if close else ""))
+    return sorted(((int(k[1:], 16), v) for k, v in f.items()), key=lambda x: x[0])
+
+
+def size_of(ctx, ty):
+    ty = ty.strip()
+    if ty.endswith("*"):
+        return POINTER
+    base = re.sub(r"^const\s+", "", ty)
+    if base in TYPE_SIZES:
+        return TYPE_SIZES[base]
+    if base in ctx["enums"]:
+        return 4
+    if base in ctx["typedefs"]:
+        m = re.match(r"typedef\s+(.+?)\s+[A-Za-z_]\w*;$", ctx["typedefs"][base])
+        return size_of(ctx, m.group(1)) if m else None
+    if base in ctx.get("sizes", {}):
+        return int(ctx["sizes"][base], 16)
+    return None
+
+
+def layout_source(ctx, struct, offsets):
+    """A struct with the most-used member at each requested offset and char padding between them."""
+    rows = dict(field_rows(ctx, struct))
+    lines, at, need = ["struct %s" % struct, "{"], 0, set()
+    for off in sorted(set(offsets)):
+        if off < at:
+            lines.append("    // +0x%X overlaps the member before it; pick one" % off); continue
+        if off > at:
+            lines.append("    char _pad_0x%X[0x%X];%s// +0x%X" % (at, off - at, " " * 8, at))
+        if off not in rows:
+            lines.append("    int _unknown_0x%X;%s// +0x%X  (no verified member here; check the size)" % (off, " " * 8, off))
+            at = off + 4; continue
+        ty, nm, n = rows[off][0]
+        m = re.match(r"^([A-Za-z_]\w*)((?:\[[^\]]+\])*)$", nm)
+        base, arr = (m.group(1), m.group(2)) if m else (nm, "")
+        size = size_of(ctx, ty)
+        count = 1
+        for a in re.findall(r"\[([^\]]+)\]", arr):
+            try:
+                count *= int(a, 0)
+            except ValueError:
+                count = None
+        lines.append("    %s %s%s;%s// +0x%X  (%d verified sources)" % (ty, base, arr, " " * 8, off, n))
+        need.update(w for w in re.findall(r"\b[A-Za-z_]\w*\b", ty) if w not in KEYWORDS)
+        if size is None or count is None:
+            lines.append("    // size of %s unknown: the next padding assumes it ends at the next requested offset" % ty)
+            nxt = [o for o in sorted(set(offsets)) if o > off]
+            at = nxt[0] if nxt else off + 4
+        else:
+            at = off + size * count
+    lines.append("};")
+    fwd = ["struct %s;" % w for w in sorted(need) if w not in TYPE_SIZES and w not in ctx["typedefs"] and w not in ctx["enums"] and w != struct]
+    return "\n".join(fwd + lines) + "\n"
+
+
+def cmd_decl(vas):
+    ctx = context()
+    for v in vas:
+        va = norm_va(v); d = decl_of(ctx, va)
+        if not d:
+            print("%s  no verified declaration (name: %s)" % (va, json.load(open(os.path.join(KIT, "names.json"))).get(va, "unknown")))
+            continue
+        print("%s  %s // %s\n    %s, %d source(s)%s" % (va, d["decl"], va, d["how"], d["sources"], (", member of " + d["struct"]) if d.get("struct") else ""))
+        for alt in d.get("alternatives", []):
+            print("    also seen: %s" % alt)
+
+
+def cmd_fields(args):
+    ctx = context(); struct = args[0]
+    want = int(args[1], 16) if len(args) > 1 else None
+    size = ctx.get("sizes", {}).get(struct)
+    print("%s%s" % (struct, ("  (largest complete layout seen: %s B)" % size) if size else ""))
+    for off, cands in field_rows(ctx, struct):
+        if want is None or off == want:
+            print("  +0x%-5X %s" % (off, "   |   ".join("%s %s (%d)" % (t, n, c) for t, n, c in cands)))
+
+
+def cmd_layout(args):
+    if len(args) < 2:
+        die("usage: layout STRUCT OFFSET [OFFSET ...]   e.g. layout D2UnitStrc 0x0 0x14 0x60")
+    print(layout_source(context(), args[0], [int(a, 16) for a in args[1:]]), end="")
+
+
 # ---------------------------------------------------------------- brief
 
 def load_packet(va):
@@ -247,10 +472,43 @@ def cmd_brief(va):
         f.write("## Strings\n" + "".join("- 0x%08X %r\n" % kv for kv in sorted(strings.items())) + "\n")
         f.write("## Float constants\n" + "".join("- 0x%08X %r\n" % kv for kv in sorted(floats.items())) + "\n")
         f.write("## Disassembly (from your Game.exe; never paste it anywhere)\n```\n" + "\n".join(lines) + "\n```\n\n")
+        ctx = context(); known = 0
+        f.write("## Known declarations (what verified sources declare at these addresses)\n")
+        for a in sorted(set(calls) | set(dref)):
+            if str(dref.get(a, "")).startswith("import "):
+                continue
+            d = decl_of(ctx, a)
+            known += bool(d)
+            f.write("- 0x%08X %s\n" % (a, ("`%s` (%s, %d source(s))" % (d["decl"], d["how"], d["sources"])) if d else "no verified declaration yet"))
+        tdecl = decl_of(ctx, va)
+        f.write("\nThis function, as its verified callers declare it: %s\n\n" % (("`%s`" % tdecl["decl"]) if tdecl else "not declared by any verified source"))
         f.write("## Declarations\nDeclare every callee and global above with a trailing `// 0x...` marker, e.g.\n"
                 "`int __fastcall SOME_Func(int a); // 0x0052E510` and `extern int gnGlobal_007A285C; // 0x007A285C`.\n"
-                "Put `// %s` on its own line directly above your function's definition.\n" % va)
-    print("wrote %s: %d calls, %d globals, %d strings" % (out, len(calls), len(dref), len(strings)))
+                "Put `// %s` on its own line directly above your function's definition.\n"
+                "`starter.cpp` has every known declaration filled in. Struct members: `python iblis_check.py fields STRUCT`\n"
+                "and `python iblis_check.py layout STRUCT 0x14 0x60` (the offsets your disassembly uses).\n" % va)
+    wd = os.path.join(WORK, va)
+    with open(os.path.join(wd, "starter.cpp"), "w", encoding="latin-1", errors="replace") as f:
+        f.write(starter_source(va, pk, calls, dref, ctx, conv))
+    made = ["starter.cpp"]
+    prev = (pk.get("previous_attempt") or {}).get("closest_source")
+    if prev:
+        with open(os.path.join(wd, "previous.cpp"), "w", encoding="latin-1", errors="replace") as f:
+            f.write(prev)
+        made.append("previous.cpp")
+    for ex in (pk.get("context") or {}).get("examples", []) or []:
+        if re.match(r"^0x[0-9A-F]{8}$", str(ex.get("va", ""))) and ex.get("source"):
+            os.makedirs(os.path.join(wd, "examples"), exist_ok=True)
+            with open(os.path.join(wd, "examples", ex["va"][2:] + ".cpp"), "w", encoding="latin-1", errors="replace") as f:
+                f.write("// verified example %s (%s B): %s\n%s" % (ex["va"], ex.get("length", "?"), ex.get("why", "similar function"), ex["source"]))
+            made.append("examples/%s.cpp" % ex["va"][2:])
+    cand = os.path.join(wd, "candidate.cpp")
+    if not os.path.exists(cand):
+        shutil.copyfile(os.path.join(wd, "previous.cpp" if prev else "starter.cpp"), cand)
+        made.append("candidate.cpp (copied from %s)" % ("previous.cpp" if prev else "starter.cpp"))
+    print("wrote %s: %d calls, %d globals, %d strings; %d of %d declarations known" % (
+        out, len(calls), len(dref), len(strings), known, len([a for a in set(calls) | set(dref) if not str(dref.get(a, "")).startswith("import ")])))
+    print("also wrote: " + ", ".join(made))
 
 
 # ---------------------------------------------------------------- check
@@ -359,7 +617,11 @@ def run_compiler(cmd, wd, inc):
     else:
         paths.extend(["/usr/bin", "/bin"])
         env["HOME"] = os.path.expanduser("~")  # local Wine prefix, not host credentials
-    env.update(PATH=os.pathsep.join(paths), INCLUDE=inc, WINEDEBUG="-all", TEMP=wd, TMP=wd, TMPDIR=wd)
+        if os.environ.get("WINEPREFIX"):
+            env["WINEPREFIX"] = os.environ["WINEPREFIX"]  # the isolated runner's image sets one
+    # TEMP/TMP are what the Windows compiler reads. TMPDIR is a Unix variable: Wine 9 (Ubuntu's wine 9.0) crashes at
+    # start-up with it set, so it is left to the runtime.
+    env.update(PATH=os.pathsep.join(paths), INCLUDE=inc, WINEDEBUG="-all", TEMP=wd, TMP=wd)
     captured = bytearray()
     overflow = threading.Event()
     try:
@@ -599,7 +861,11 @@ def cmd_check(va):
     res["seconds"] = round(time.time() - t0, 1)
     log = os.path.join(wd, "checks.json")
     hist = json.load(open(log)) if os.path.exists(log) else []
-    hist.append(dict(res, utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))); json.dump(hist, open(log, "w"), indent=1)
+    prev_best = min((h for h in hist if h.get("snapshot")), key=score, default=None)
+    snap = os.path.join("history", "%03d.cpp" % (len(hist) + 1))
+    os.makedirs(os.path.join(wd, "history"), exist_ok=True)
+    shutil.copyfile(cpp, os.path.join(wd, snap))
+    hist.append(dict(res, utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), snapshot=snap)); json.dump(hist, open(log, "w"), indent=1)
     st = res["status"]
     if st in ("RAW_EQUAL", "RELOCATION_RESOLVED_EQUAL"):
         print("MATCH (%s)  %d B\nbody_sha256 %s\nsubmit candidate.cpp exactly as it is now" % (st, res["compiled_length"], res["compiled_body_sha256"]))
@@ -613,8 +879,75 @@ def cmd_check(va):
         print("REJECTED  other function bodies of about the target's size: %s. One form of the function per check." % ", ".join(res["extra_forms"]))
     else:
         print(st, " ", res.get("detail", ""))
-    print("check %d for %s, %.1fs" % (len(hist), va, res["seconds"]))
+    print("check %d for %s, %.1fs; source kept as %s" % (len(hist), va, res["seconds"], snap))
+    if prev_best is not None and st not in ("RAW_EQUAL", "RELOCATION_RESOLVED_EQUAL"):
+        if score(res) < score(prev_best):
+            print("closest so far (previous best: %s)" % describe(prev_best))
+        else:
+            print("not closer than %s: %s  (python iblis_check.py best %s --restore)" % (prev_best["snapshot"], describe(prev_best), va))
     sys.exit(0 if st in ("RAW_EQUAL", "RELOCATION_RESOLVED_EQUAL") else 1)
+
+
+def score(res):
+    """Smaller is closer: a match, then same length with fewest differing bytes, then nearest length. Errors last."""
+    st = res.get("status")
+    if st in ("RAW_EQUAL", "RELOCATION_RESOLVED_EQUAL"):
+        return (0, 0, 0)
+    if st != "DIFF":
+        return (3, 0, 0)
+    off = abs(res.get("compiled_length", 0) - res.get("length", 0))
+    return (1 if not off else 2, res.get("unmasked_diff_bytes", 0) + len(res.get("target_problems", [])) * 4, off)
+
+
+def describe(res):
+    st = res.get("status")
+    if st == "DIFF":
+        return "%d B vs %d B, %d bytes differ%s" % (res.get("compiled_length", 0), res.get("length", 0), res.get("unmasked_diff_bytes", 0),
+                                                 (", %d target problem(s)" % len(res["target_problems"])) if res.get("target_problems") else "")
+    return st
+
+
+def cmd_best(va, restore=False):
+    va = norm_va(va); wd = os.path.join(WORK, va); log = os.path.join(wd, "checks.json")
+    hist = [dict(h, n=i + 1) for i, h in enumerate(json.load(open(log)) if os.path.exists(log) else []) if h.get("snapshot")]
+    if not hist:
+        die("no kept checks for %s yet; run check first" % va)
+    ranked = sorted(hist, key=lambda h: (score(h), -h["n"]))
+    for h in ranked[:8]:
+        print("check %3d  %-48s %s" % (h["n"], describe(h), h["snapshot"]))
+    if restore:
+        best = ranked[0]; cpp = os.path.join(wd, "candidate.cpp")
+        if os.path.exists(cpp) and hashlib.sha256(open(cpp, "rb").read()).hexdigest() not in {h.get("source_sha256") for h in hist}:
+            keep = os.path.join(wd, "history", "unchecked-%s.cpp" % time.strftime("%Y%m%dT%H%M%S"))
+            shutil.copyfile(cpp, keep); print("kept your unchecked candidate.cpp as", os.path.relpath(keep, wd))
+        shutil.copyfile(os.path.join(wd, best["snapshot"]), cpp)
+        print("candidate.cpp is now check %d (%s)" % (best["n"], describe(best)))
+
+
+def cmd_sweep(va):
+    """Check every variants/*.cpp in its own folder; candidate.cpp is left alone. Rank them by closeness."""
+    va = norm_va(va); s = settings(); pk = load_packet(va)
+    vdir = os.path.join(WORK, va, "variants")
+    files = sorted(glob.glob(os.path.join(vdir, "*.cpp")))
+    if not files:
+        die("put alternative spellings as %s/*.cpp first (each a complete candidate)" % vdir)
+    rows = []
+    for p in files:
+        name = os.path.splitext(os.path.basename(p))[0]
+        res = compile_and_compare(s, va, pk["length"], pk["flags"].split(), open(p, encoding="latin-1").read(), os.path.join(vdir, ".build", name))
+        rows.append(dict(variant=os.path.basename(p), status=res["status"], score=list(score(res)), summary=describe(res),
+                         compiled_body_sha256=res.get("compiled_body_sha256"), first_diff=res.get("first_diff")))
+        print("  %-28s %s" % (os.path.basename(p), describe(res)))
+    rows.sort(key=lambda r: r["score"])
+    json.dump(rows, open(os.path.join(vdir, "SWEEP.json"), "w"), indent=1)
+    print("closest: %s (%s). Copy it to candidate.cpp and run check before submitting." % (rows[0]["variant"], rows[0]["summary"]))
+    same = {}
+    for r in rows:
+        if r["compiled_body_sha256"]:
+            same.setdefault(r["compiled_body_sha256"], []).append(r["variant"])
+    for group in same.values():
+        if len(group) > 1:
+            print("  same code: %s (the change between them does not matter to the compiler)" % ", ".join(group))
 
 
 def cmd_sxs(va):
@@ -626,17 +959,59 @@ def cmd_sxs(va):
     last = json.load(open(p)); body = bytes.fromhex(last["body"]); mask = bytes.fromhex(last["mask"])
     orig = PE(s["image"]).read(start, pk["length"])
     md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
-    a = [(i.address - start, i.size, "%s %s" % (i.mnemonic, i.op_str)) for i in md.disasm(body, start)]
-    b = [(i.address - start, i.size, "%s %s" % (i.mnemonic, i.op_str)) for i in md.disasm(orig, start)]
-    print("%-6s %-44s | %s" % ("off", "yours", "original"))
-    for k in range(max(len(a), len(b))):
-        x = a[k] if k < len(a) else (None, 0, "")
-        y = b[k] if k < len(b) else (None, 0, "")
-        same = x[0] == y[0] and body[x[0]:x[0] + x[1]] == orig[y[0]:y[0] + y[1]] if x[0] is not None and y[0] is not None else False
-        masked = x[0] is not None and any(mask[x[0]:x[0] + x[1]])
-        flag = " " if same else ("~" if masked and x[2].split()[0] == y[2].split()[0] else "!")
-        print("%s+%-5x %-44s | %s" % (flag, x[0] if x[0] is not None else y[0], x[2][:44], y[2]))
-    print("! differs   ~ differs only in a relocated address")
+    a = [(i.address - start, i.size, i.mnemonic, i.op_str) for i in md.disasm(body, start)]
+    b = [(i.address - start, i.size, i.mnemonic, i.op_str) for i in md.disasm(orig, start)]
+    rows = align_rows(a, b, body, orig, mask)
+    show_all = "--all" in sys.argv
+    keep = set(range(len(rows))) if show_all else {j for i, r in enumerate(rows) if r[0] not in " ~" for j in range(i - 3, i + 4)}
+    print("%-7s %-44s | %s" % ("yours", "", "original"))
+    last = -1
+    for i, (flag, x, y) in enumerate(rows):
+        if i not in keep:
+            continue
+        if last >= 0 and i != last + 1:
+            print("   ...")
+        last = i
+        print("%s %-6s %-44s | %-6s %s" % (flag, "+%x" % x[0] if x else "", ("%s %s" % (x[2], x[3]))[:44] if x else "",
+                                         "+%x" % y[0] if y else "", "%s %s" % (y[2], y[3]) if y else ""))
+    tally = {}
+    for flag, x, y in rows:
+        tally[flag] = tally.get(flag, 0) + 1
+    print("\n! different instruction  r same instruction, different registers  ~ only a relocated address differs  "
+          "< only in yours  > only in the original")
+    print("totals: " + (", ".join("%s %d" % (k, v) for k, v in sorted(tally.items()) if k != " ") or "no differences") +
+          ("" if show_all else "   (--all shows every line, including relocation-only ones)"))
+
+
+REGS = re.compile(r"\b(?:e?[abcd]x|[abcd][lh]|e?(?:si|di|bp|sp)|[sd]il|st\(\d\)|xmm\d)\b")
+
+
+def align_rows(a, b, body, orig, mask):
+    """Pair your instructions with the original's by edit distance over mnemonics, so one extra instruction does not
+    shift every later line. Rows are (flag, yours, original); instructions are (offset, size, mnemonic, operands)."""
+    key = lambda i: i[2]
+    sm = difflib.SequenceMatcher(None, [key(x) for x in a], [key(y) for y in b], autojunk=False)
+    rows = []
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag == "equal" or tag == "replace" and i2 - i1 == j2 - j1:
+            for x, y in zip(a[i1:i2], b[j1:j2]):
+                xb, yb = body[x[0]:x[0] + x[1]], orig[y[0]:y[0] + y[1]]
+                if xb == yb:
+                    flag = " "
+                elif x[2] == y[2] and x[1] == y[1] and any(mask[x[0]:x[0] + x[1]]) and \
+                        all(xb[k] == yb[k] or mask[x[0] + k] for k in range(x[1])):
+                    flag = "~"
+                elif x[2] == y[2] and REGS.sub("R", x[3]) == REGS.sub("R", y[3]):
+                    flag = "r"
+                else:
+                    flag = "!"
+                rows.append((flag, x, y))
+        else:
+            for k in range(max(i2 - i1, j2 - j1)):
+                x = a[i1 + k] if i1 + k < i2 else None
+                y = b[j1 + k] if j1 + k < j2 else None
+                rows.append(("!" if x and y else "<" if x else ">", x, y))
+    return rows
 
 
 def cmd_selftest():
@@ -660,8 +1035,16 @@ def main(argv):
         cmd_setup(argv[2:])
     elif c == "selftest":
         cmd_selftest()
-    elif c in ("brief", "check", "sxs") and len(argv) >= 3:
-        {"brief": cmd_brief, "check": cmd_check, "sxs": cmd_sxs}[c](argv[2])
+    elif c in ("brief", "check", "sxs", "sweep") and len(argv) >= 3:
+        {"brief": cmd_brief, "check": cmd_check, "sxs": cmd_sxs, "sweep": cmd_sweep}[c](argv[2])
+    elif c == "best" and len(argv) >= 3:
+        cmd_best(argv[2], restore="--restore" in argv)
+    elif c == "decl" and len(argv) >= 3:
+        cmd_decl(argv[2:])
+    elif c == "fields" and len(argv) >= 3:
+        cmd_fields(argv[2:])
+    elif c == "layout":
+        cmd_layout(argv[2:])
     else:
         print(__doc__); sys.exit(2)
 

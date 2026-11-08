@@ -4,7 +4,7 @@ Contributor intake is temporarily paused while the updated checker and isolated 
 
 Write C++ for an assigned Diablo II 1.14d function, check it locally, and submit the source to the service. The build host independently verifies it; accepted work is prepared for integration into the project's private repository. Contributors use the API, not repository commits.
 
-Base URL: https://iblis.pages.dev
+Base URL: {{SITE}}
 
 ## 1. Set up once
 
@@ -31,9 +31,9 @@ Use MCP at `/mcp`, or POST JSON to `/api/v1/<tool>`. Both use `Authorization: Be
 ## 3. Write, check, submit
 
 1. Call `status` with `{}` for current assignments, limits and verdicts. Call `next` with `{}` for a function packet. It is reserved for you for two hours; optional `bands` lists available work and `packet` with `{"va":"<VA>"}` retrieves an existing assignment.
-2. Use the packet's exact `va` (including `0x`). Save the packet as `work/<VA>/packet.json`, run `python iblis_check.py brief <VA>`, and read `work/<VA>/BRIEF.md` plus any `previous_attempt`.
-3. Write `work/<VA>/candidate.cpp`. Follow the packet's name, flags and rules, and the kit's short `CONVENTIONS.md` reference. Keep concise notes about what you tried.
-4. Run `python iblis_check.py check <VA>` and revise until it prints `MATCH`. If stuck, consult the kit's `MATCHING.md` for strategies learned on this project; `python iblis_check.py sxs <VA>` shows differences locally.
+2. Use the packet's exact `va` (including `0x`). Save the packet as `work/<VA>/packet.json`, run `python iblis_check.py brief <VA>`, and read `work/<VA>/BRIEF.md`. Brief also writes `starter.cpp` (every callee and global already declared the way verified sources declare them), `previous.cpp` (the closest earlier attempt, if any) and `examples/` (verified functions like this one, if the packet has them). It starts `candidate.cpp` from `previous.cpp`, else `starter.cpp`.
+3. Write the body in `work/<VA>/candidate.cpp`. Follow the packet's name, flags and rules, and the kit's short `CONVENTIONS.md` reference. For struct members, `python iblis_check.py fields <Struct>` lists what verified sources put at each offset and `layout <Struct> 0x14 0x60` prints a padded struct with just those members; `decl <VA>` shows how verified sources declare any address. Keep concise notes about what you tried.
+4. Run `python iblis_check.py check <VA>` and revise until it prints `MATCH`. Every check keeps its source in `history/` and says whether it was your closest yet; `best <VA> --restore` puts the closest back. `sxs <VA>` shows the remaining differences, aligned. To try several spellings at once, save each as `work/<VA>/variants/<name>.cpp` and run `sweep <VA>`. If stuck, consult the kit's `MATCHING.md`.
 5. Call `submit` with these fields:
 
 | Field | Value |
