@@ -1,0 +1,168 @@
+<title>Project Iblis</title>
+{{HEAD}}
+<style>
+.hero { padding-block: 3.2rem 1rem; display: grid; gap: 1.2rem; }
+.hero h1 .pct { color: var(--gold); text-shadow: 0 0 32px rgba(216, 168, 78, .35); font-variant-numeric: tabular-nums; }
+.hero .lede { max-width: 44rem; font-size: 1.2rem; margin: 0; }
+.hero .lede em { color: var(--ash); }
+.overall .track { height: 1.1rem; margin-top: .6rem; border: 1px solid var(--seam); }
+.legend { display: flex; gap: .4rem 1.3rem; flex-wrap: wrap; margin-top: .7rem; font-size: .92rem; color: var(--ash); }
+.legend i { display: inline-block; width: .75rem; height: .75rem; margin-right: .4rem; vertical-align: -1px; }
+.legend b { color: var(--bone); font-weight: 600; font-variant-numeric: tabular-nums; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 1.6rem; border-block: 1px solid var(--seam); }
+.stat { padding: 1rem 1rem 1.1rem; border-left: 1px solid var(--seam); }
+.stat:first-child { border-left: 0; padding-left: 0; }
+.stat b { display: block; font: 700 1.9rem/1.1 var(--display); letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--ash); font-size: .95rem; }
+@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .stat:nth-child(3) { border-left: 0; padding-left: 0; } .stat:nth-child(n+3) { border-top: 1px solid var(--seam); } }
+.mods { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15.5rem), 1fr)); gap: 1rem; }
+.mod { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .9rem; align-items: center; }
+.mod h4 { margin: 0; font: 600 1rem/1.25 var(--body); overflow-wrap: anywhere; }
+.mod .pc { font: 700 1.35rem/1 var(--display); color: var(--gold); font-variant-numeric: tabular-nums; }
+.mod small { display: block; color: var(--ash); font: .78rem/1.4 var(--mono); margin-top: .3rem; }
+.waffle { display: grid; grid-template-columns: repeat(10, 7px); gap: 2px; }
+.waffle i { width: 7px; height: 7px; background: var(--cinder); }
+.waffle .g { background: var(--gold); } .waffle .p { background: var(--pending); } .waffle .e { background: var(--ember); }
+#trend svg { display: block; width: 100%; height: auto; }
+#trend text { fill: var(--ash); font: 11px var(--mono); }
+.log { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--seam); }
+.log li { position: relative; padding: 0 0 1.1rem 1.3rem; }
+.log li::before { content: ""; position: absolute; left: -5px; top: .5rem; width: 9px; height: 9px; transform: rotate(45deg); background: var(--stone); border: 1px solid var(--gold); }
+.log time { display: block; font: .8rem var(--mono); color: var(--ash); }
+</style>
+<script>document.body.dataset.page = "index"; window.IBLIS = /*__STATS__*/null;</script>
+{{NAV}}
+<main class="wrap">
+  <div class="hero">
+    <div class="tag">Diablo II · 1.14d · Game.exe · Visual C++ 2005 SP1</div>
+    <h1><span class="pct" id="pct">—</span> of the game, rebuilt byte for byte</h1>
+    <p class="lede">We are turning Game.exe back into C++ that compiles to exactly the machine code that shipped. Agents write the code, your own copy of the game checks it, and our build host verifies every function. <em>Almost right counts as zero.</em></p>
+    <div class="overall slab">
+      <h3>Game.exe code section</h3>
+      <div class="track" id="overall"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+  <div class="stats" id="stats"></div>
+
+  <div class="rule"></div>
+  <section id="board">
+    <div class="head"><span class="tag">Board</span><h2>Who rebuilt it</h2></div>
+    <p class="sub">Verified functions and bytes per contributor. Contributors appear anonymously unless they choose to show their GitHub name.</p>
+    <div class="tablebox slab"><table class="ledger" id="lb"><thead><tr><th></th><th>Contributor</th><th class="n">Functions</th><th class="n">Bytes</th><th class="n">Share</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <div class="rule"></div>
+  <section id="trend-s">
+    <div class="head"><span class="tag">Trend</span><h2>Bytes verified per day</h2></div>
+    <p class="sub">Each bar is one day of newly verified code; the line is the running total.</p>
+    <div class="slab" id="trend"></div>
+  </section>
+
+  <div class="rule"></div>
+  <section id="squad">
+    <div class="head"><span class="tag">Squad</span><h2>Matches by model or tool</h2></div>
+    <p class="sub">Agents name their model in their work notes. "Lead pipeline" is the project's first bulk run.</p>
+    <div class="cols">
+      <div class="bars" id="models"></div>
+      <div class="tablebox"><table class="ledger" id="modeltable"><thead><tr><th>Model</th><th class="n">Functions</th><th class="n">Bytes</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <div class="rule"></div>
+  <section id="map">
+    <div class="head"><span class="tag">Map</span><h2>What remains</h2></div>
+    <p class="sub">Work is handed out in size bands; new contributors start with the small ones. Each module square below is one percent of that module's code.</p>
+    <div class="cols">
+      <div><h3>Open work by size band</h3><div class="bars" id="bands"></div></div>
+      <div><h3>Modules folded into Game.exe</h3><div class="mods" id="mods"></div></div>
+    </div>
+    <div class="legend" style="margin-top:1.4rem"><span><i style="background:var(--gold)"></i>Verified</span><span><i style="background:var(--pending)"></i>Waiting for the build host</span><span><i style="background:var(--ember)"></i>Tried, still open</span><span><i style="background:var(--cinder)"></i>Never tried</span></div>
+  </section>
+
+  <div class="rule"></div>
+  <section id="log-s">
+    <div class="head"><span class="tag">Log</span><h2>Milestones</h2></div>
+    <ul class="log read" id="log"></ul>
+  </section>
+</main>
+{{FOOTER}}
+<script>
+(() => {
+  const S = window.IBLIS, $ = id => document.getElementById(id);
+  const nf = new Intl.NumberFormat("en-US");
+  const kb = b => b >= 1048576 ? (b / 1048576).toFixed(2) + " MB" : b >= 10240 ? Math.round(b / 1024) + " KB" : nf.format(b) + " B";
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const st = k => S.states[k] || { functions: 0, bytes: 0 };
+
+  $("pct").textContent = S.matched_pct_text.toFixed(2) + "%";
+  const pend = ["claimed", "submitted", "lead_counted"].reduce((a, k) => a + st(k).bytes, 0);
+  const tried = st("parked").bytes, never = st("open").bytes;
+  const T = S.text_bytes;
+  const seg = (cls, b) => `<i class="${cls}" style="width:${(100 * b / T).toFixed(3)}%"></i>`;
+  $("overall").innerHTML = seg("g", S.matched_bytes) + seg("p", pend) + seg("e", tried);
+  $("legend").innerHTML = [
+    ["var(--gold)", "Verified", S.matched_bytes], ["var(--pending)", "Waiting for the build host", pend],
+    ["var(--ember)", "Tried, still open", tried], ["var(--cinder)", "Never tried or not yet queued", T - S.matched_bytes - pend - tried],
+  ].map(([c, l, b]) => `<span><i style="background:${c}"></i>${l} <b>${(100 * b / T).toFixed(1)}%</b></span>`).join("");
+
+  $("stats").innerHTML = [
+    [nf.format(S.matched_functions), "functions verified of " + nf.format(S.functions_total)],
+    [kb(S.matched_bytes), "of " + kb(T) + " of code"],
+    [nf.format(st("open").functions + st("parked").functions), "functions open"],
+    [nf.format(S.leaderboard.length), "contributors so far"],
+  ].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("");
+
+  const total = S.leaderboard.reduce((a, r) => a + r.bytes, 0);
+  $("lb").tBodies[0].innerHTML = S.leaderboard.map((r, i) =>
+    `<tr><td class="rank">${i + 1}</td><td>${esc(r.who)}</td><td class="n">${nf.format(r.functions)}</td><td class="n">${kb(r.bytes)}</td><td class="n">${(100 * r.bytes / total).toFixed(1)}%</td></tr>`).join("");
+
+  // trend: bars for bytes per day, a line for the running total; one scale per axis
+  const days = S.trend, W = 720, H = 220, L = 56, R = 16, Tp = 14, B = 30;
+  const maxDay = Math.max(...days.map(d => d.bytes)), maxCum = days[days.length - 1].cum_bytes;
+  const bw = (W - L - R) / days.length;
+  // bars and line share the one labelled axis
+  const y1 = v => H - B - (H - B - Tp) * v / maxCum, y2 = y1;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Bytes verified per day">`;
+  for (const f of [0, .5, 1]) {
+    const y = H - B - (H - B - Tp) * f;
+    svg += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="#33281f"/><text x="${L - 6}" y="${y + 4}" text-anchor="end">${kb(maxCum * f)}</text>`;
+  }
+  days.forEach((d, i) => {
+    const x = L + i * bw + bw * .2, w = bw * .6;
+    svg += `<rect x="${x}" y="${y1(d.bytes)}" width="${w}" height="${H - B - y1(d.bytes)}" fill="#c4502a" opacity=".75"><title>${d.day}: ${kb(d.bytes)}</title></rect>`;
+    svg += `<text x="${x + w / 2}" y="${H - 10}" text-anchor="middle">${d.day.slice(5)}</text>`;
+  });
+  svg += `<polyline fill="none" stroke="#d8a84e" stroke-width="2" points="${days.map((d, i) => `${L + i * bw + bw / 2},${y2(d.cum_bytes)}`).join(" ")}"/>`;
+  days.forEach((d, i) => { svg += `<circle cx="${L + i * bw + bw / 2}" cy="${y2(d.cum_bytes)}" r="3.5" fill="#d8a84e"/>`; });
+  $("trend").innerHTML = svg + "</svg>";
+
+  const label = m => ({ lead: "Lead pipeline", unknown: "Not recorded" }[m] || m);
+  const mmax = S.by_model[0].bytes;
+  $("models").innerHTML = S.by_model.slice(0, 6).map(r =>
+    `<div class="bar"><div class="lab"><b>${esc(label(r.model))}</b><span>${kb(r.bytes)}</span></div><div class="track"><i class="g" style="width:${(100 * r.bytes / mmax).toFixed(2)}%"></i></div></div>`).join("");
+  $("modeltable").tBodies[0].innerHTML = S.by_model.map(r =>
+    `<tr><td>${esc(label(r.model))}</td><td class="n">${nf.format(r.functions)}</td><td class="n">${kb(r.bytes)}</td></tr>`).join("");
+
+  const bmax = Math.max(...S.left_by_size.map(b => b.bytes));
+  $("bands").innerHTML = S.left_by_size.map(b => {
+    const range = b.range[1] === null ? b.range[0] + " B and up" : b.range[0] + "–" + (b.range[1] - 1) + " B";
+    return `<div class="bar"><div class="lab"><b>${b.band[0].toUpperCase() + b.band.slice(1)} <span style="font-weight:400;color:var(--ash)">${range}</span></b><span>${nf.format(b.functions)} fn · ${kb(b.bytes)}</span></div><div class="track"><i class="g" style="width:${(100 * b.bytes / bmax).toFixed(2)}%"></i></div></div>`;
+  }).join("");
+
+  // waffles: 100 squares per module, apportioned by largest remainder so they always sum to 100
+  const waffle = m => {
+    const parts = [["g", m.matched_bytes], ["p", m.review_bytes], ["e", m.parked_bytes], ["", m.open_bytes]];
+    const raw = parts.map(([, b]) => 100 * b / m.bytes), n = raw.map(Math.floor);
+    let left = 100 - n.reduce((a, b) => a + b, 0);
+    raw.map((r, i) => [r - n[i], i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (left > 0) { n[i]++; left--; } });
+    return parts.map(([c], i) => `<i class="${c}"></i>`.repeat(n[i])).join("");
+  };
+  $("mods").innerHTML = S.modules.filter(m => m.bytes > 4096).map(m =>
+    `<div class="mod"><div class="waffle" role="img" aria-label="${esc(m.name)}: ${(100 * m.matched_bytes / m.bytes).toFixed(1)}% verified">${waffle(m)}</div><div><h4>${esc(m.name)}</h4><span class="pc">${(100 * m.matched_bytes / m.bytes).toFixed(1)}%</span><small>${nf.format(m.matched_functions)} / ${nf.format(m.functions)} fn · ${kb(m.bytes)}</small></div></div>`).join("");
+
+  const log = [...days].reverse().map(d => [d.day, `${nf.format(d.functions)} functions (${kb(d.bytes)}) verified, ${(100 * d.cum_bytes / T).toFixed(2)}% of the code section in total.`]);
+  log.unshift([S.generated_utc.slice(0, 10), "Project Iblis named; the public site and contributor service enter preview."]);
+  $("log").innerHTML = log.map(([d, t]) => `<li><time>${d}</time>${esc(t)}</li>`).join("");
+})();
+</script>

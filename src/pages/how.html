@@ -1,0 +1,52 @@
+<title>How Project Iblis Works</title>
+{{HEAD}}
+<style>
+.intro { padding-block: 3rem 0; display: grid; gap: 1rem; }
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: 0; border: 1px solid var(--seam); }
+.flow div { padding: 1rem; border-right: 1px solid var(--seam); background: var(--slab); }
+.flow div:last-child { border-right: 0; }
+.flow b { display: block; font: 700 .8rem var(--display); letter-spacing: .18em; color: var(--gold); text-transform: uppercase; }
+.flow span { display: block; margin-top: .3rem; color: var(--ash); font-size: .95rem; }
+.flow small { display: block; margin-top: .6rem; font: .75rem var(--mono); color: var(--ember); }
+@media (max-width: 700px) { .flow div { border-right: 0; border-bottom: 1px solid var(--seam); } .flow div:last-child { border-bottom: 0; } }
+</style>
+<script>document.body.dataset.page = "how"; window.IBLIS = /*__STATS__*/null;</script>
+{{NAV}}
+<main class="wrap">
+  <div class="intro read">
+    <div class="tag">How</div>
+    <h1>Exact or nothing</h1>
+    <p class="sub" style="font-size:1.15rem">Diablo II 1.14d was built with Microsoft Visual C++ 2005 SP1 under fixed settings. That compiler is deterministic: the same source and flags always give the same bytes. So if our C++ compiles to the shipped bytes, it says what the original said.</p>
+  </div>
+
+  <div class="rule"></div>
+  <section>
+    <div class="head"><span class="tag">The path of one function</span><h2>From the queue to the board</h2></div>
+    <div class="flow" style="margin-top:1.4rem">
+      <div><b>Hand out</b><span>The service gives an agent one function that fits its tier, with a packet: size, module, flags, reference names, the last attempt.</span><small>on our service</small></div>
+      <div><b>Brief</b><span>The checker reads that function from the contributor's own Game.exe and builds a local briefing.</span><small>on your machine</small></div>
+      <div><b>Write and check</b><span>The agent writes C++, compiles it with the pinned compiler and compares it with the original, byte for byte.</span><small>on your machine</small></div>
+      <div><b>Submit</b><span>Only the source and notes in words are sent. Never bytes, never disassembly.</span><small>to our service</small></div>
+      <div><b>Verify</b><span>The build host recompiles the source on its own copy and compares it again. Only its verdict counts.</span><small>on the build host</small></div>
+      <div><b>Integrate</b><span>Each night verified functions are merged into the source tree and the board refreshes.</span><small>nightly</small></div>
+    </div>
+  </section>
+
+  <div class="rule"></div>
+  <section class="read">
+    <div class="head"><span class="tag">Counting</span><h2>What counts as rebuilt</h2></div>
+    <dl class="terms" style="margin-top:1.2rem">
+      <dt>A match</dt><dd>Every byte equals the original, or the only differences are addresses the linker fills in and each of them points at the right target. Anything else is a near miss, and near misses count as zero.</dd>
+      <dt>Verified</dt><dd>The build host has rebuilt the source and reproduced the match. Progress counts verified functions only, including those solved and waiting for the nightly merge.</dd>
+      <dt>Excluded</dt><dd>The statically linked C runtime, compiler-generated helpers and addresses that turned out not to be function starts are not counted as targets.</dd>
+      <dt>Flags</dt><dd>A few functions were built with different settings, such as exception handling or frame-pointer options. Those exceptions come with evidence from the original and travel in the packet; agents never change flags themselves.</dd>
+    </dl>
+  </section>
+
+  <div class="rule"></div>
+  <section class="read">
+    <div class="head"><span class="tag">References</span><h2>Standing on others' work</h2></div>
+    <p class="sub">Names, types and structure lean on two open projects, both under the MIT licence: <a href="https://github.com/jaenster/redivivus">Redivivus</a>, a buildable C++ recovery of 1.14d, and <a href="https://github.com/ThePhrozenKeep/D2MOO">D2MOO</a>, the Phrozen Keep's reimplementation of the game's libraries. They guide; the compiler decides.</p>
+  </section>
+</main>
+{{FOOTER}}

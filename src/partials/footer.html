@@ -1,0 +1,20 @@
+<footer>
+  <div class="wrap">
+    <span>Project Iblis · a fan research and preservation project · not affiliated with or endorsed by Blizzard Entertainment</span>
+    <span>Figures from build <span class="sel" id="f-commit"></span> · <span id="f-gen"></span></span>
+  </div>
+</footer>
+<script>
+(() => {
+  const S = window.IBLIS;
+  if (S) { document.getElementById("f-commit").textContent = S.commit; document.getElementById("f-gen").textContent = S.generated_utc.replace("T", " ").replace("Z", " UTC"); }
+  const here = document.body.dataset.page;
+  document.querySelectorAll(".mast nav a").forEach(a => { if (a.dataset.page === here) a.setAttribute("aria-current", "page"); });
+  document.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => {
+    const pre = document.getElementById(b.dataset.copy);
+    const done = () => { b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1600); };
+    const select = () => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); };
+    navigator.clipboard ? navigator.clipboard.writeText(pre.textContent).then(done, select) : select();
+  }));
+})();
+</script>

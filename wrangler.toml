@@ -1,0 +1,25 @@
+# Project Iblis: one Worker serves the static site (public/) and the service (/mcp, /api/*, /auth/*, /approve).
+name = "iblis"
+main = "worker/index.js"
+compatibility_date = "2025-09-01"
+
+[assets]
+directory = "public"
+binding = "ASSETS"
+run_worker_first = ["/mcp", "/api/*", "/auth/*", "/approve"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "iblis"
+database_id = "REPLACE_WITH_ID_FROM_wrangler_d1_create"
+
+[vars]
+SITE_URL = "https://iblis.pages.dev"
+REPO_URL = "https://github.com/OWNER/iblis"
+DEFAULT_FLAGS = "/nologo /c /TP /Zl /Z7 /Gy /MT /O2 /Oy- /Ob2 /Gd"
+MAX_SOURCE_BYTES = "262144"
+
+# Secrets (set with `wrangler secret put NAME`, never committed):
+#   GITHUB_CLIENT_ID      GitHub OAuth app client id
+#   GITHUB_CLIENT_SECRET  GitHub OAuth app secret
+#   HOST_KEY              bearer key the build host uses for /api/v1/host/*
