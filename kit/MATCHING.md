@@ -44,8 +44,13 @@ its own, including EBX, ESI and EDI parameters, and the original was built the s
   line and a real attempt at its body. The checker verifies that your call lands on that address; the helper's body
   is context, not part of your compare. A real body is usually enough for the caller's setup to line up.
 - **Only the static's body decides its registers.** `__stdcall`, `__fastcall` or `__cdecl` on it, its parameter
-  order, and what the caller looks like made no difference in testing. To move a parameter to another register,
-  change how the body uses it.
+  order, and what the caller looks like made no difference to the static's own code. Small body changes do move them:
+  writing through a struct field instead of a pointer local, or one result variable through a switch instead of
+  several returns.
+- **Parameter order still matters to the caller:** it sets the order the arguments are evaluated at the call site.
+  When only the caller's setup differs, sweep the permutations of the static's parameters.
+- A static with its own convention can come out without `push ebp` even under `/Oy-`, so a missing frame pointer
+  alone does not mean a function needs a different profile.
 - The compiler also knows which registers a static leaves alone: ECX and EDX can stay live across a call to a static
   that only uses EAX, as in the original.
 - `/Ob2` inlines a small static into its caller; mark it `__declspec(noinline)` when the original calls it.
@@ -54,8 +59,10 @@ its own, including EBX, ESI and EDI parameters, and the original was built the s
 - Open problem: a parameter and a local sometimes swap callee-saved registers (the original gives the local the first
   pick). No spelling has flipped it yet; note it in your give-up so the pattern can be studied.
 
-Verified examples: `0x0064D060` (calls two such statics, grid in EAX, box in ECX); `0x004549F0` (target as a static
-with its caller in the file; the text pointer arrives in EBX).
+Examples matched this way: `0x0064D060` (calls two such statics, grid in EAX, box in ECX); `0x004549F0` (target as a
+static, text pointer in EBX); `0x006C3D20`, `0x006C42E0`, `0x006C4980`, `0x0065A710` (targets as statics, values in
+EAX/ECX/EDX/ESI/EDI); `0x006C5A90` (target and callee both statics); `0x004DB2E0` (ordinary target, four static
+callees).
 
 Small algebraic rewrites, added scopes or declaration reordering have often produced identical bodies. Check the result instead of cycling through cosmetic variants.
 
