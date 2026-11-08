@@ -6,6 +6,14 @@ runner response fail closed. Infrastructure failures go to review without a
 contributor strike. Every item has its own error boundary. The service default is
 `https://iblis.captainlegbreak.workers.dev`.
 
+## Soft launch without Docker (trusted-local)
+
+For an invite-only soft launch, `IBLIS_RUNNER=trusted-local` with `IBLIS_TRUSTED_GITHUB=login1,login2` compiles
+invited contributors' submissions directly with the kit (`host/trusted_runner.py`), after checking the kit's
+Game.exe and cl.exe against the repository's hashes. Submissions from anyone else are not compiled: they go to review
+(not a strike). The kit bounds compile time and output but is not a sandbox; use the Docker runner below before the
+service is open to the public.
+
 ## Provisioning (owner machine)
 
 1. Enable Docker's **Linux** engine. Use a dedicated local Docker daemon/VM with

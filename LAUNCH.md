@@ -1,5 +1,8 @@
 # Opening Project Iblis to contributors
 
+**Current plan: invite-only soft launch.** Take the trusted-local route in step 2 (no Docker) and set the invite
+list in step 4.
+
 The owner's checklist, in order. Each step says how to know it worked. Nothing here publishes project source:
 packets carry no project code, and the only code a contributor ever receives is another contributor's give-up.
 
@@ -12,7 +15,21 @@ refusals. While intake is still closed, the guide shows the pause notice.
 
 ## 2. Set up the build host
 
-The host compiles every submission inside a locked-down Docker container. It needs a machine that:
+**Soft launch route: trusted-local, no Docker.** On any machine with your Game.exe, Python 3.10+ with
+`capstone==5.0.7`, Git, Wine 9 or Windows, and a checkout of Diablo2-Native:
+
+```
+python kit/iblis_check.py setup --game <Game.exe> --fetch
+python kit/iblis_check.py selftest                    # must print MATCH
+set IBLIS_RUNNER=trusted-local                        # export ... on Linux/macOS
+set IBLIS_TRUSTED_GITHUB=login1,login2               # the same people as INVITED_GITHUB in step 4
+```
+
+This host compiles only those people's submissions, directly, without Docker. Anyone else's work goes to review
+uncompiled and is not a strike. Switch to the Docker route below before opening to the public.
+
+**Public route: Docker.** The host compiles every submission inside a locked-down Docker container. It needs a
+machine that:
 
 - can run Docker's Linux engine. On Windows that means hardware virtualization enabled in the BIOS (it is off on
   "adam" today), then Docker Desktop;
@@ -35,8 +52,9 @@ then `selftest` prints `MATCH`).
 
 ## 4. Open the gates
 
-In `wrangler.toml`, set `CREDENTIALS_ROTATED = "true"` and `CONTRIBUTIONS_ENABLED = "true"`. Then rebuild the pages
-and push:
+In `wrangler.toml`, set `CREDENTIALS_ROTATED = "true"` and `CONTRIBUTIONS_ENABLED = "true"`. For the soft launch,
+also set `INVITED_GITHUB = "login1,login2"`: only those GitHub accounts can take work or submit, and the Join page and
+guide say "invite-only" while it is set. Then rebuild the pages and push:
 
 ```
 python tools/build_site.py public/data/stats.json public    # drops the "intake paused" notices
@@ -71,7 +89,8 @@ it, and run `python host/host.py verify --once --repo <Diablo2-Native>`. **Done 
 
 ## 7. Soft launch
 
-Invite 3–5 people you trust before any public post. Send them the Join page. What they need:
+Invite 3–5 people you trust before any public post: add their GitHub logins to `INVITED_GITHUB` (step 4) and to
+`IBLIS_TRUSTED_GITHUB` on the host (step 2), then send them the Join page. What they need:
 
 - their own Diablo II: Lord of Destruction 1.14d;
 - an agent: Claude Code, Codex or similar;

@@ -10,6 +10,7 @@
   python host/host.py flags     --repo PATH VA        print the compile flags for one function
 
 Environment: IBLIS_RUNNER_CONFIG, IBLIS_HOST_KEY, IBLIS_URL (default https://iblis.captainlegbreak.workers.dev).
+Soft launch without Docker: IBLIS_RUNNER=trusted-local and IBLIS_TRUSTED_GITHUB=login1,login2 (host/trusted_runner.py).
 Verdicts: verified = the host's compile matches; failed = the submission cannot be right as sent (forbidden construct,
 no marker, does not compile, extra forms); review = it compiles cleanly but the host sees different bytes (not a strike).
 """
@@ -139,10 +140,18 @@ def verdict_for(res):
         return "failed", "COMPILE_ERROR: compilation failed; reproduce locally for diagnostics"
     if st in ("FORBIDDEN", "NO_MARKER", "NO_SYMBOL", "MULTI_FORM", "INVALID_SOURCE", "SOURCE_ERROR"):
         return "failed", "%s: %s" % (st, (res.get("detail") or ", ".join(res.get("extra_forms", [])))[:600])
+    if st == "NOT_INVITED":
+        return "review", "held for the isolated host: this host compiles only invited contributors' work (not a strike)"
     return "review", "%s: owner review/recheck required; diagnostics retained privately" % st
 
 
 def load_runner(cfg):
+    if os.environ.get("IBLIS_RUNNER") == "trusted-local":
+        # Invite-only soft launch: compile invited contributors' work here, without Docker (host/trusted_runner.py).
+        from trusted_runner import TrustedLocalRunner
+        r = TrustedLocalRunner(cfg["image"]["sha256"], cfg.get("toolchain", {}).get("cl_sha256"))
+        print("runner: trusted-local, without Docker isolation; compiling only for %s" % ", ".join(sorted(r.trusted)), file=sys.stderr)
+        return r
     path = os.environ.get("IBLIS_RUNNER_CONFIG")
     if not path:
         raise RunnerError("IBLIS_RUNNER_CONFIG is required; public source compilation is disabled")
@@ -155,6 +164,17 @@ def save_json(path, value):
     temp = path.with_suffix(path.suffix + ".tmp")
     temp.write_bytes((json.dumps(value, indent=1, ensure_ascii=True) + "\n").encode("utf-8"))
     os.replace(temp, path)
+
+
+def compile_item(runner, item, va, length, flags, source):
+    """Compile one submission. A trusted-local runner compiles only invited contributors' work."""
+    if hasattr(runner, "allows") and not runner.allows(item):
+        return dict(status="NOT_INVITED", detail="the trusted-local host compiles only invited contributors' work")
+    try:
+        return runner.compile(va, length, flags, source)
+    except Exception as e:
+        # Runner/transport/parser failures are infrastructure or ambiguous, never strikes.
+        return dict(status="INFRA_ERROR", detail="isolated runner: " + type(e).__name__)
 
 
 def process_items(repo, runner, lengths, items):
@@ -175,11 +195,7 @@ def process_items(repo, runner, lengths, items):
         except (ValueError, TypeError, KeyError, UnicodeError) as e:
             res = dict(status="INVALID_SOURCE", detail=str(e))
         else:
-            try:
-                res = runner.compile(va, lengths[va], repo.flags(va), source)
-            except Exception as e:
-                # Runner/transport/parser failures are infrastructure or ambiguous, never strikes.
-                res = dict(status="INFRA_ERROR", detail="isolated runner: " + type(e).__name__)
+            res = compile_item(runner, p, va, lengths[va], repo.flags(va), source)
         try:
             v, note = verdict_for(res)
             if v == "verified" and p.get("body_sha256") and p["body_sha256"] != res["compiled_body_sha256"]:

@@ -19,6 +19,8 @@ database_id = "31ccab53-4d94-472e-a727-c2035cea1b2d"
 CONTRIBUTIONS_ENABLED = "false"
 # Keep old potentially exposed host/OAuth credentials unusable until the owner rotates both secrets.
 CREDENTIALS_ROTATED = "false"
+# Soft launch: only these GitHub logins (or numeric ids), comma-separated, may take work or submit. "" = open to all.
+INVITED_GITHUB = ""
 # SITE_URL = "https://your.domain"   (unset: the service uses the address it is served from)
 REPO_URL = "https://github.com/Regubreaku/Iblis"
 DEFAULT_FLAGS = "/nologo /c /TP /Zl /Z7 /Gy /MT /O2 /Oy- /Ob2 /Gd"
