@@ -79,5 +79,16 @@ class IntakeSwitchTests(unittest.TestCase):
             self.assertNotIn('paused', build_site.pause_blocks(text, True).split('Two hours per function')[0].lower().replace('pauses new work', ''))
 
 
+class BoardNameTests(unittest.TestCase):
+    def test_site_contributors_are_anonymous_except_the_owner(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+        from site_stats import normalize_stats
+        stats = {'leaderboard': [{'who': 'leg', 'functions': 2, 'bytes': 20}, {'who': 'iblis-120912283', 'functions': 1, 'bytes': 3},
+                                 {'who': 'iblis-555', 'functions': 1, 'bytes': 5}, {'who': 'esk', 'functions': 1, 'bytes': 4}],
+                 'by_model': []}
+        rows = {r['who']: r['functions'] for r in normalize_stats(stats)['leaderboard']}
+        self.assertEqual(rows, {'Legbreak': 3, 'Anonymous': 1, 'Esk': 1})
+
+
 if __name__ == '__main__':
     unittest.main()

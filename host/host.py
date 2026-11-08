@@ -322,8 +322,9 @@ def import_record(repo, vp, v):
             (drop / "candidate.obj").write_bytes(obj)
             if repo.cfg["rules"].get("share_objects"):
                 (sd / "candidate.obj").write_bytes(obj); files.append("candidate.obj")
-            (sd / "SUBMISSION_MANIFEST.sha256").write_text("".join(hashlib.sha256((sd / f).read_bytes()).hexdigest() + "  " + f + "\n" for f in files), encoding="ascii")
             save_json(sd / "IBLIS.json", dict(result_id=v["id"], contributor=v["login"] if v.get("show_name") else who, github_id=v["github_id"], source="iblis", model=v.get("model")))
+            files.append("IBLIS.json")  # provenance is sealed with the source
+            (sd / "SUBMISSION_MANIFEST.sha256").write_text("".join(hashlib.sha256((sd / f).read_bytes()).hexdigest() + "  " + f + "\n" for f in files), encoding="ascii")
             if v.get("notes"):
                 (sd / "NOTES.md").write_text(v["notes"], encoding="utf-8")
             item.update(status="submitted", submitted_by=who, submitted_utc=time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()),
