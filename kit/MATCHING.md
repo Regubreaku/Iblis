@@ -5,7 +5,7 @@ Optional help when a candidate differs. These observations come from the project
 ## Start from evidence
 
 - Read the local brief and the packet's `previous_attempt` first. Preserve a useful candidate and avoid repeating changes its notes already ruled out.
-- Use [Redivivus](https://github.com/jaenster/redivivus) and [D2MOO](https://github.com/ThePhrozenKeep/D2MOO) for established names, types, helper signatures and statement order. Both publish MIT-licensed source. Record the reference and retain applicable attribution when adapting it.
+- Use [D2MOO](https://github.com/ThePhrozenKeep/D2MOO) for established names, types, helper signatures and statement order. It publishes MIT-licensed source. Record the reference and retain applicable attribution when adapting it.
 - Try the reference's literal C++ structure before inventing a new one. Its enum names, conditional expressions and helper parameter order have often mattered.
 - Change one evidence-backed idea per check. `check` keeps every source in `history/` and `best --restore` returns to the closest; `sweep` compiles a folder of variants and names the ones that produce the same body, which is not progress.
 - Look up before guessing: `decl <VA>` for a callee's verified signature (convention, parameter types and order decide registers), `fields <Struct>` and `layout` for offsets. They are what verified functions used, which is evidence, not proof.

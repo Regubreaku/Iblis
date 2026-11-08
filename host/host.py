@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Project Iblis controller. Public compilation requires the isolated Docker runner (host/README.md).
 
-  python host/host.py sync      --repo PATH [--redivivus PATH] [--replace-notes VA,VA | @file]
-                                                      push the queue (state, length, module, name, flags, park note,
-                                                      a Redivivus pointer). Never source: project code stays private.
+  python host/host.py sync      --repo PATH [--replace-notes VA,VA | @file]
+                                                      push the queue (state, length, module, name, flags, park note).
+                                                      Never source: project code stays private.
                                                       --replace-notes overwrites those functions' service notes with
                                                       the repository's (normally a note is only filled when empty).
   python host/host.py verify    --repo PATH [--once]  poll pending submissions, recompile each, post verdicts
@@ -72,8 +72,7 @@ class Repo:
                 f.append(r["flag"])
         return f
 
-    def queue(self, redivivus=None):
-        refs = redivivus_refs(redivivus) if redivivus else {}
+    def queue(self):
         out = []
         for state in ("open", "claimed", "submitted", "parked", "matched"):
             for p in glob.glob(os.path.join(self.root, "queue", state, "*.json")):
@@ -92,27 +91,8 @@ class Repo:
                 f = dict(va=va, length=it["length"], module=it.get("module", "?"), state=st,
                          name=self.names.get(va), flags=" ".join(self.flags(va)), body_sha256=it.get("body_sha256"),
                          note=it.get("previous_park_reason") or it.get("last_park_reason") or it.get("park_reason"))
-                if st == "open" and refs.get(a):
-                    f["reference"] = refs[a]
                 out.append(f)
         return out
-
-
-def redivivus_refs(root):
-    """Address -> 'file (function)' from a Redivivus checkout's Source/**/*.map files. Words only."""
-    out = {}
-    for m in glob.glob(os.path.join(root, "Source", "**", "*.map"), recursive=True):
-        try:
-            d = json.load(open(m, encoding="utf-8"))
-        except Exception:
-            continue
-        rel = (d.get("file") or os.path.relpath(m, root)[:-4]).replace("\\", "/")
-        for fn in d.get("functions", []):
-            try:
-                out[int(str(fn.get("address")), 16)] = "Redivivus %s (%s)" % (rel, fn.get("name", "?"))
-            except (TypeError, ValueError):
-                pass
-    return out
 
 
 def sync_batches(fs, limit=1_500_000, most=500):
@@ -128,8 +108,8 @@ def sync_batches(fs, limit=1_500_000, most=500):
         yield batch
 
 
-def cmd_sync(repo, redivivus=None, replace_notes=()):
-    fs = repo.queue(redivivus)
+def cmd_sync(repo, replace_notes=()):
+    fs = repo.queue()
     replace = {norm(v) for v in replace_notes}
     for f in fs:
         if f["va"] in replace:
@@ -137,7 +117,6 @@ def cmd_sync(repo, redivivus=None, replace_notes=()):
     missing = replace - {f["va"] for f in fs}
     if missing:
         print("not in the queue, skipped:", " ".join(sorted(missing)))
-    print("references %d" % sum(1 for f in fs if f.get("reference")))
     done = written = billed = 0
     for batch in sync_batches(fs):
         r = api("POST", "/api/v1/host/sync", {"functions": batch})
@@ -380,7 +359,7 @@ if __name__ == "__main__":
         rn = arg("--replace-notes", "")
         if rn.startswith("@"):
             rn = open(rn[1:]).read()
-        cmd_sync(repo, arg("--redivivus"), [v for v in re.split(r"[\s,]+", rn) if v])
+        cmd_sync(repo, [v for v in re.split(r"[\s,]+", rn) if v])
     elif c == "verify": cmd_verify(repo, "--once" in sys.argv)
     elif c == "integrate": cmd_integrate(repo)
     elif c == "review": cmd_review(repo, sys.argv[2], arg("--id"), arg("--verdict"), arg("--note"))
