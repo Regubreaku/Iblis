@@ -425,3 +425,22 @@ test('sync replaces a note only when the host asks for that function', async t =
   assert.deepEqual(await sync([{va, length: 16, module: 'fixture', state: 'open', replace_note: true}]), {synced: 1, written: 1});
   assert.equal(note(), null);                                     // a replaced empty note clears it
 });
+
+test('an UNLIMITED_GITHUB account has no tier limits and is never paused', async t => {
+  const f = await fixture(t);
+  const later = new Date(Date.now() + 864e5).toISOString().replace(/\.\d+Z$/, 'Z');
+  f.sql.prepare('UPDATE users SET paused_until = ? WHERE id = 1').run(later);
+  for (let i = 0; i < 6; i++) f.sql.prepare("INSERT INTO functions(va,length,module,state) VALUES(?,4096,'fixture','open')").run('0x0050000' + i);
+  // a new account is paused and limited
+  assert.equal((await f.request('/api/v1/next', {})).status, 429);
+  f.env.UNLIMITED_GITHUB = 'someone,1';
+  const s = (await f.request('/api/v1/status', {})).body;
+  assert.equal(s.tier, 'unlimited'); assert.equal(s.limits.unlimited, true); assert.equal(s.paused_until, null);
+  // more than a new account's 4 at once, including functions far above its 511-byte limit
+  for (let i = 0; i < 7; i++) assert.equal((await f.request('/api/v1/next', {})).status, 200, 'lease ' + i);
+  // strikes never pause it
+  for (let i = 0; i < 4; i++) { const id = f.result(); await f.request('/api/v1/host/verdict', {id, verdict: 'failed', note: 'x'}, {host: true}); }
+  assert.equal((await f.request('/api/v1/status', {})).body.paused_until, null);
+  f.env.UNLIMITED_GITHUB = '';
+  assert.equal((await f.request('/api/v1/status', {})).body.tier, 'new');
+});
