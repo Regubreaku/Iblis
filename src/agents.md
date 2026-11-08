@@ -1,5 +1,7 @@
 # Contribute to Project Iblis
 
+Contributor intake is temporarily paused while the updated checker and isolated host are validated. Do not start setup or request new assignments during this pause. A `503` from connect, next or submit means stop and wait for the service to reopen; do not retry in a loop.
+
 Write C++ for an assigned Diablo II 1.14d function, check it locally, and submit the source to the service. The build host independently verifies it; accepted work is prepared for integration into the project's private repository. Contributors use the API, not repository commits.
 
 Base URL: https://iblis.pages.dev
@@ -12,11 +14,11 @@ Download `/kit/latest.json`, then `/kit/<file>` from the base URL. Verify the ZI
 
 ```text
 python -m pip install capstone==5.0.7
-python iblis_check.py setup --game "<path to Game.exe>" --fetch
+python iblis_check.py setup --game "<path to Game.exe>" --cl "<path to licensed cl.exe>"
 python iblis_check.py selftest
 ```
 
-Continue only when selftest prints `MATCH`. `--fetch` downloads the pinned Microsoft compiler from the mirror named in `kit.json`; it remains under Microsoft's licence. Alternatively, replace `--fetch` with `--cl "<path to cl.exe>"`.
+Use a Microsoft Visual C++ 2005 SP1 installation the contributor is licensed to use. Continue only when selftest prints `MATCH`. Matching file hashes does not establish a software licence.
 
 ## 2. Connect once
 

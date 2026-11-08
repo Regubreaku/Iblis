@@ -1,0 +1,12 @@
+{
+  "container_image": "sha256:REPLACE_WITH_64_HEX_LOCAL_IMAGE_ID",
+  "game": "C:/dedicated-iblis-inputs/Game.exe",
+  "game_sha256": "REPLACE_WITH_AUTHENTICATED_GAME_SHA256",
+  "compiler_dir": "C:/dedicated-iblis-inputs/compiler",
+  "cl": "bin/cl.exe",
+  "compiler_files": {
+    "bin/cl.exe": "REPLACE_WITH_FULL_SHA256",
+    "bin/c1xx.dll": "REPLACE_WITH_FULL_SHA256",
+    "bin/c2.dll": "REPLACE_WITH_FULL_SHA256"
+  }
+}

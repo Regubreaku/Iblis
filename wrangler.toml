@@ -7,7 +7,7 @@ workers_dev = true
 [assets]
 directory = "public"
 binding = "ASSETS"
-run_worker_first = ["/mcp", "/api/*", "/auth/*", "/approve", "/agents.md", "/join", "/join.html"]
+run_worker_first = ["/mcp", "/api/*", "/auth/*", "/approve", "/agents.md", "/join", "/join.html", "/kit/*"]
 
 [[d1_databases]]
 binding = "DB"
@@ -15,10 +15,17 @@ database_name = "iblis"
 database_id = "31ccab53-4d94-472e-a727-c2035cea1b2d"
 
 [vars]
+# Enable only after secret rotation and a real isolated host submission test.
+CONTRIBUTIONS_ENABLED = "false"
+# Keep old potentially exposed host/OAuth credentials unusable until the owner rotates both secrets.
+CREDENTIALS_ROTATED = "false"
 # SITE_URL = "https://your.domain"   (unset: the service uses the address it is served from)
 REPO_URL = "https://github.com/Regubreaku/Iblis"
 DEFAULT_FLAGS = "/nologo /c /TP /Zl /Z7 /Gy /MT /O2 /Oy- /Ob2 /Gd"
 MAX_SOURCE_BYTES = "262144"
+
+[triggers]
+crons = ["*/5 * * * *"]
 
 # Secrets (set with `wrangler secret put NAME`, never committed):
 #   GITHUB_CLIENT_ID      GitHub OAuth app client id

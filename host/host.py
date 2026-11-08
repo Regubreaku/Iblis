@@ -1,22 +1,26 @@
 #!/usr/bin/env python3
-"""The Project Iblis build host. Runs where the authenticated Game.exe and the source repository live.
+"""Project Iblis controller. Public compilation requires the isolated Docker runner (host/README.md).
 
   python host/host.py sync      --repo PATH           push the queue (state, length, module, name, flags) to the service
   python host/host.py verify    --repo PATH [--once]  poll pending submissions, recompile each, post verdicts
   python host/host.py integrate --repo PATH           write the day's verified sources into the repository (nightly)
+  python host/host.py review list|recheck|adjudicate --repo PATH [--id N] [--verdict failed --note TEXT]
   python host/host.py flags     --repo PATH VA        print the compile flags for one function
 
-Environment: IBLIS_URL (default https://iblis.pages.dev), IBLIS_HOST_KEY (the service's HOST_KEY secret).
+Environment: IBLIS_RUNNER_CONFIG, IBLIS_HOST_KEY, IBLIS_URL (default https://iblis.captainlegbreak.workers.dev).
 Verdicts: verified = the host's compile matches; failed = the submission cannot be right as sent (forbidden construct,
 no marker, does not compile, extra forms); review = it compiles cleanly but the host sees different bytes (not a strike).
 """
-import glob, json, os, re, sys, time, urllib.request
+import glob, hashlib, json, os, re, shutil, subprocess, sys, time, urllib.request
+from pathlib import Path
+from contextlib import contextmanager
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from isolated_runner import DockerRunner, RunnerError
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "kit"))
-import iblis_check as kit  # noqa: E402
 
-URL = os.environ.get("IBLIS_URL", "https://iblis.pages.dev").rstrip("/")
+URL = os.environ.get("IBLIS_URL", "https://iblis.captainlegbreak.workers.dev").rstrip("/")
 KEY = os.environ.get("IBLIS_HOST_KEY", "")
 EXCLUDE_STATES = {"not_function"}
 OPT_FLAGS = ("/Oy-", "/Ob1", "/Ob2", "/Oy", "/O1", "/O2", "/Os", "/Ot")
@@ -89,58 +93,207 @@ def cmd_sync(repo):
 
 
 def verdict_for(res):
-    st = res["status"]
+    st = res.get("status", "INFRA_ERROR")
     if st in ("RAW_EQUAL", "RELOCATION_RESOLVED_EQUAL"):
         return "verified", "%s, body %s" % (st, res["compiled_body_sha256"][:16])
-    if st in ("FORBIDDEN", "NO_MARKER", "COMPILE_ERROR", "NO_SYMBOL", "MULTI_FORM"):
+    if st == "COMPILE_ERROR":
+        return "failed", "COMPILE_ERROR: compilation failed; reproduce locally for diagnostics"
+    if st in ("FORBIDDEN", "NO_MARKER", "NO_SYMBOL", "MULTI_FORM", "INVALID_SOURCE", "SOURCE_ERROR"):
         return "failed", "%s: %s" % (st, (res.get("detail") or ", ".join(res.get("extra_forms", [])))[:600])
-    return "review", "host sees %d B vs %d B, %d bytes differ outside relocations, first at %s" % (
-        res["compiled_length"], res["length"], res["unmasked_diff_bytes"], res["first_diff"])
+    return "review", "%s: owner review/recheck required; diagnostics retained privately" % st
 
 
-def cmd_verify(repo, once):
-    s = json.load(open(kit.SETTINGS))
-    if kit.sha256_file(s["image"]) != repo.cfg["image"]["sha256"]:
-        sys.exit("the host's Game.exe is not the authenticated image")
-    lengths = {f["va"]: f["length"] for f in repo.queue()}
-    while True:
-        pend = api("GET", "/api/v1/host/pending?limit=20")["pending"]
-        for p in pend:
+def load_runner(cfg):
+    path = os.environ.get("IBLIS_RUNNER_CONFIG")
+    if not path:
+        raise RunnerError("IBLIS_RUNNER_CONFIG is required; public source compilation is disabled")
+    return DockerRunner(path, cfg["image"]["sha256"], cfg.get("toolchain", {}).get("cl_sha256"))
+
+
+def save_json(path, value):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp = path.with_suffix(path.suffix + ".tmp")
+    temp.write_bytes((json.dumps(value, indent=1, ensure_ascii=True) + "\n").encode("utf-8"))
+    os.replace(temp, path)
+
+
+def process_items(repo, runner, lengths, items):
+    for incoming in items:
+        p = dict(incoming)
+        if isinstance(p.get("source"), str) and "\r" in p["source"]:
+            p["original_source"] = p["source"]
+            p["source"] = p["source"].replace("\r\n", "\n").replace("\r", "\n")
+        try:
             va = norm(p["va"])
-            wd = os.path.join(repo.root, "work", "host", "%s-r%d" % (va, p["id"]))
-            res = kit.compile_and_compare(s, va, lengths[va], repo.flags(va), p["source"], wd)
+            rid = int(p["id"])
+            if rid <= 0 or va not in lengths:
+                raise ValueError("unknown submission address or id")
+            source = p["source"]
+            if not isinstance(source, str) or not source or len(source) > 262144:
+                raise ValueError("source must be nonempty text under 262144 characters")
+            source.encode("latin-1")
+        except (ValueError, TypeError, KeyError, UnicodeError) as e:
+            res = dict(status="INVALID_SOURCE", detail=str(e))
+        else:
+            try:
+                res = runner.compile(va, lengths[va], repo.flags(va), source)
+            except Exception as e:
+                # Runner/transport/parser failures are infrastructure or ambiguous, never strikes.
+                res = dict(status="INFRA_ERROR", detail="isolated runner: " + type(e).__name__)
+        try:
             v, note = verdict_for(res)
             if v == "verified" and p.get("body_sha256") and p["body_sha256"] != res["compiled_body_sha256"]:
                 v, note = "review", "matches here, but the submitted body hash differs from the host's"
-            json.dump(dict(p, host=res, verdict=v), open(os.path.join(wd, "verdict.json"), "w"), indent=1)
+            wd = Path(repo.root) / "work" / "host" / ("%s-r%d" % (norm(p["va"]), int(p["id"])))
+            wd.mkdir(parents=True, exist_ok=True)
+            obj = res.pop("object_bytes", None)
+            if obj is not None:
+                (wd / "candidate.obj").write_bytes(obj)
+            # Save before delivery for audit, but integration requires an acknowledged service verdict.
+            record = dict(p, host=res, verdict=v, delivered=False)
+            save_json(wd / "verdict.json", record)
             api("POST", "/api/v1/host/verdict", {"id": p["id"], "verdict": v, "note": note})
-            print(time.strftime("%H:%M:%S"), va, p["login"], v, note[:100])
+            record["delivered"] = True
+            save_json(wd / "verdict.json", record)
+            print(time.strftime("%H:%M:%S"), p["va"], v, note[:100])
+        except Exception as e:
+            print("submission %s deferred: %s" % (p.get("id"), type(e).__name__), file=sys.stderr)
+
+
+def cmd_verify(repo, once):
+    runner = load_runner(repo.cfg)  # fail before fetching work when isolation is unconfigured
+    lengths = {f["va"]: f["length"] for f in repo.queue()}
+    while True:
+        pend = api("GET", "/api/v1/host/pending?limit=20")["pending"]
+        process_items(repo, runner, lengths, pend)
         if once:
             return
         time.sleep(60 if not pend else 1)
 
 
+def cmd_review(repo, action, rid=None, decision=None, note=None):
+    path = "/api/v1/host/review"
+    if rid is not None:
+        rid = int(rid)
+        if rid <= 0: raise ValueError("review id must be positive")
+        path += "?id=%d" % rid
+    rows, cursor = [], 0
+    while True:
+        page = api("GET", path)
+        rows.extend(page["review"])
+        next_cursor = page.get("next_cursor")
+        if rid is not None or next_cursor is None:
+            break
+        next_cursor = int(next_cursor)
+        if next_cursor <= cursor:
+            raise ValueError("review pagination did not advance")
+        cursor = next_cursor
+        path = "/api/v1/host/review?after=%d&limit=100" % cursor
+    if action == "list":
+        print(json.dumps(rows, indent=1))
+        return
+    selected = [p for p in rows if rid is None or int(p["id"]) == int(rid)]
+    if action == "recheck":
+        process_items(repo, load_runner(repo.cfg), {f["va"]: f["length"] for f in repo.queue()}, selected)
+    elif action == "adjudicate":
+        if rid is None or len(selected) != 1 or decision not in ("verified", "failed") or not note:
+            raise ValueError("adjudicate requires a current review --id, --verdict verified|failed and --note")
+        # Manual acceptance alone does not create importable evidence: recheck to generate that.
+        api("POST", "/api/v1/host/verdict", {"id": int(rid), "verdict": decision, "note": "owner: " + note})
+    else:
+        raise ValueError("review action must be list, recheck or adjudicate")
+
+
+@contextmanager
+def import_lock(root):
+    result = subprocess.run(["git", "-C", str(root), "rev-parse", "--git-common-dir"], capture_output=True, text=True)
+    common = Path(result.stdout.strip()) if result.returncode == 0 else root / ".git"
+    if not common.is_absolute():
+        common = root / common
+    common.mkdir(parents=True, exist_ok=True)
+    lock = common / "d2match.lock"
+    lock.mkdir()  # same lock as private tools; never steal an active/stale lock
+    try:
+        (lock / "owner").write_text("%d iblis-import" % os.getpid())
+        yield
+    finally:
+        (lock / "owner").unlink()
+        lock.rmdir()
+
+
+def import_record(repo, vp, v):
+    root = Path(repo.root)
+    va = norm(v["va"])
+    who = "iblis-%d" % int(v["github_id"])
+    with import_lock(root):
+        matches = [(p.parent.name, p) for p in (root / "queue").glob("*/*.json")
+                   if p.name.split(".")[0].upper() == va[2:]]
+        if len(matches) != 1 or matches[0][0] != "open":
+            raise ValueError("address is not uniquely open; preserve existing contributor work")
+        q = matches[0][1]
+        item = json.loads(q.read_text(encoding="utf-8"))
+        sd = root / "queue" / "submitted" / va[2:]
+        dst = sd.parent / (va[2:] + "." + who + ".json")
+        drop = root / "work" / "host" / "objects" / va[2:]
+        if sd.exists() or dst.exists() or drop.exists():
+            raise ValueError("submission or object drop exists; owner reconciliation required")
+        res = dict(v["host"])
+        src = v["source"].encode("latin-1")
+        obj = (vp.parent / "candidate.obj").read_bytes()
+        if hashlib.sha256(src).hexdigest() != res["source_sha256"] or hashlib.sha256(obj).hexdigest() != res["object_sha256"]:
+            raise ValueError("source/object changed since host verification")
+        for key in ("symbol", "compiled_length", "claimed_length", "original_body_sha256", "compiled_body_sha256", "cl_sha256", "command_argv"):
+            if key not in res:
+                raise ValueError("incomplete verifier metadata: " + key)
+        if not isinstance(res.get("relocations"), list):
+            raise ValueError("verifier needs relocation records, not a count")
+        if not isinstance(res["command_argv"], list) or not res["command_argv"] or not all(isinstance(x, str) for x in res["command_argv"]):
+            raise ValueError("verifier needs the actual compiler argv list")
+        attempt = dict(cl_sha256=res["cl_sha256"], command=res["command_argv"], exit_code=0, source_sha256=res["source_sha256"], object_sha256=res["object_sha256"])
+        created = []
+        try:
+            sd.mkdir(parents=True); created.append(sd)
+            drop.mkdir(parents=True); created.append(drop)
+            (sd / "candidate.cpp").write_bytes(src)
+            save_json(sd / "COMPARE.json", res)
+            save_json(sd / "attempts.json", [attempt])
+            files = ["candidate.cpp", "COMPARE.json", "attempts.json"]
+            (drop / "candidate.obj").write_bytes(obj)
+            if repo.cfg["rules"].get("share_objects"):
+                (sd / "candidate.obj").write_bytes(obj); files.append("candidate.obj")
+            (sd / "SUBMISSION_MANIFEST.sha256").write_text("".join(hashlib.sha256((sd / f).read_bytes()).hexdigest() + "  " + f + "\n" for f in files), encoding="ascii")
+            save_json(sd / "IBLIS.json", dict(result_id=v["id"], contributor=v["login"] if v.get("show_name") else who, github_id=v["github_id"], source="iblis", model=v.get("model")))
+            if v.get("notes"):
+                (sd / "NOTES.md").write_text(v["notes"], encoding="utf-8")
+            item.update(status="submitted", submitted_by=who, submitted_utc=time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()),
+                        attempts_used=item.get("attempts_used", 0)+1, chat="iblis-result-%d" % int(v["id"]), producer_status=res["status"],
+                        object_sha256=res["object_sha256"], source_sha256=res["source_sha256"], compiled_body_sha256=res["compiled_body_sha256"], symbol=res["symbol"], model=v.get("model") or "unknown")
+            with dst.open("x", encoding="utf-8", newline="\n") as f:
+                json.dump(item, f, indent=1)
+            created.append(dst)
+            q.unlink()
+        except Exception:
+            for p in reversed(created):
+                if p.is_dir(): shutil.rmtree(p)
+                else: p.unlink(missing_ok=True)
+            raise
+        v["integrated"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        save_json(vp, v)
+
+
 def cmd_integrate(repo):
-    """Write each verified submission's source into queue/submitted/<VA>/ with the contributor credited, the same layout
-    tools/submit.py uses, so the repository's own verifier flow moves it to matched. Run nightly after verify."""
-    done = os.path.join(repo.root, "work", "host")
     n = 0
-    for vp in sorted(glob.glob(os.path.join(done, "*", "verdict.json"))):
-        v = json.load(open(vp))
-        if v.get("verdict") != "verified" or v.get("integrated"):
-            continue
-        va = norm(v["va"]); sdir = os.path.join(repo.root, "queue", "submitted", va[2:])
-        os.makedirs(sdir, exist_ok=True)
-        open(os.path.join(sdir, "candidate.cpp"), "w", encoding="latin-1", newline="\n").write(v["source"])
-        if v.get("notes"):
-            open(os.path.join(sdir, "NOTES.md"), "w").write(v["notes"])
-        who = v["login"] if v.get("show_name") else "iblis-%d" % v["github_id"]
-        json.dump(dict(va=va, source="iblis", contributor=who, github_id=v["github_id"], model=v.get("model"),
-                       host_status=v["host"]["status"], compiled_body_sha256=v["host"]["compiled_body_sha256"],
-                       command=v["host"]["command"]), open(os.path.join(sdir, "IBLIS.json"), "w"), indent=1)
-        v["integrated"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()); json.dump(v, open(vp, "w"), indent=1)
-        n += 1
-    print("integrated", n, "verified submissions into queue/submitted/; commit them with the contributors as authors")
+    for vp in sorted((Path(repo.root) / "work" / "host").glob("*/verdict.json")):
+        try:
+            v = json.loads(vp.read_text(encoding="utf-8"))
+            if v.get("verdict") != "verified" or v.get("integrated") or not v.get("delivered"):
+                continue
+            import_record(repo, vp, v)
+            n += 1
+        except Exception as e:
+            print("import deferred %s: %s" % (vp.parent.name, e), file=sys.stderr)
+    print("prepared", n, "submissions; review the queue changes and commit privately; no push was performed")
 
 
 if __name__ == "__main__":
@@ -148,13 +301,9 @@ if __name__ == "__main__":
         sys.exit(__doc__)
     repo = Repo(arg("--repo") or sys.exit("--repo PATH is required"))
     c = sys.argv[1]
-    if c == "flags":
-        print(" ".join(repo.flags(norm(sys.argv[-1]))))
-    elif c == "sync":
-        cmd_sync(repo)
-    elif c == "verify":
-        cmd_verify(repo, "--once" in sys.argv)
-    elif c == "integrate":
-        cmd_integrate(repo)
-    else:
-        sys.exit(__doc__)
+    if c == "flags": print(" ".join(repo.flags(norm(sys.argv[-1]))))
+    elif c == "sync": cmd_sync(repo)
+    elif c == "verify": cmd_verify(repo, "--once" in sys.argv)
+    elif c == "integrate": cmd_integrate(repo)
+    elif c == "review": cmd_review(repo, sys.argv[2], arg("--id"), arg("--verdict"), arg("--note"))
+    else: sys.exit(__doc__)

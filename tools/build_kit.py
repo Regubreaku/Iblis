@@ -11,14 +11,11 @@ The kit carries hashes, names and one verified function's source; never any byte
 import datetime, glob, hashlib, io, json, os, re, shutil, sys, zipfile
 from pathlib import Path
 
-SELFTEST_VA = "0x00411540"
-
-
 def package_kit(kit, out):
     """Publish the prepared kit, excluding local work and maintainer material."""
     kit, out = Path(kit), Path(out)
-    required = ['README.md', 'CONVENTIONS.md', 'MATCHING.md', 'iblis_check.py', 'kit.json', 'names.json',
-                'headers/README.md', 'selftest/candidate.cpp']
+    required = ['README.md', 'LICENSE', 'CONVENTIONS.md', 'MATCHING.md', 'iblis_check.py', 'kit.json', 'names.json',
+                'headers/README.md', 'selftest/candidate.cpp', 'selftest/fixture.json']
     paths = [kit / name for name in required]
     for path in paths:
         if not path.is_file():
@@ -52,12 +49,12 @@ def main(repo, out):
     files = dict(l.split("  ", 1)[::-1] for l in open(os.path.join(repo, "setup", "toolchain.sha256")).read().splitlines() if l.strip())
     prov = cfg["toolchain"]["provenance"]
     m = re.search(r"(https://github\.com/\S+) @ ([0-9a-f]{40})", prov)
-    st = json.load(open(os.path.join(repo, "queue", "matched", SELFTEST_VA[2:] + ".json")))
+    # Keep the independently checked, relocation-free setup fixture stable across repository refreshes.
+    st = json.load(open(os.path.join(kit, "selftest", "fixture.json")))
     kitcfg = dict(
         image_sha256=cfg["image"]["sha256"],
         toolchain=dict(cl_version=cfg["toolchain"]["cl_version"], repo=m.group(1), commit=m.group(2), files=files),
-        selftest=dict(va=SELFTEST_VA, length=st["length"], flags=" ".join(r.flags(SELFTEST_VA)),
-                      compiled_body_sha256=st["compiled_body_sha256"]),
+        selftest=st,
     )
     json.dump(kitcfg, open(os.path.join(kit, "kit.json"), "w"), indent=1)
     json.dump(dict(sorted(r.names.items())), open(os.path.join(kit, "names.json"), "w"), separators=(",", ":"))
@@ -69,8 +66,6 @@ def main(repo, out):
     shutil.rmtree(headers)
     shutil.copytree(os.path.join(repo, 'headers'), headers)
     (headers / 'README.md').write_text(header_note, encoding='utf-8')
-    os.makedirs(os.path.join(kit, "selftest"), exist_ok=True)
-    shutil.copy(os.path.join(repo, "queue", "matched", SELFTEST_VA[2:], "candidate.cpp"), os.path.join(kit, "selftest", "candidate.cpp"))
 
     package_kit(kit, out)
 

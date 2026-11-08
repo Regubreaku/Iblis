@@ -36,5 +36,15 @@ IBLIS_URL=http://127.0.0.1:8787 IBLIS_HOST_KEY=dev python host/host.py sync --re
 2. GitHub OAuth app: callback `https://<site>/auth/callback`; `npx wrangler secret put GITHUB_CLIENT_ID`,
    `GITHUB_CLIENT_SECRET`, and a long random `HOST_KEY`.
 3. Set `SITE_URL` in `wrangler.toml` (and the URLs in `src/agents.md` and the Join page), then `npx wrangler deploy`.
-4. On the build host: `python kit/iblis_check.py setup --game <Game.exe> --fetch`, then
-   `python host/host.py sync --repo <source-repo>` and keep `python host/host.py verify --repo <source-repo>` running.
+4. Follow `host/README.md` to provision the isolated compiler using your licensed local game and compiler.
+   Set `IBLIS_RUNNER_CONFIG` and the current host key. Test a real known match and a deliberate mismatch before
+   running `python host/host.py verify --repo <source-repo>`. There is no unsandboxed public compilation fallback.
+5. Rotate `HOST_KEY` in Cloudflare and in the private host environment. Regenerate the GitHub OAuth app client secret
+   and replace `GITHUB_CLIENT_SECRET` in Cloudflare, then revoke the old OAuth secret. Set `CREDENTIALS_ROTATED = "true"`
+   only after both replacements are complete. Until then, host routes and OAuth sign-in are disabled.
+6. After validating the isolated host and downstream private import,
+   set `CONTRIBUTIONS_ENABLED = "true"`, remove the temporary pause notice in the Join page and agent guide, rebuild
+   and deploy. Until then, intake stays closed; existing credentials can still view status or revoke their keys.
+
+Run `npm test` for API/SQLite and Python regression tests. `npx wrangler deploy --dry-run` checks Worker packaging.
+Do not treat those checks as proof of an operational build host or a re-verification of historical matches.

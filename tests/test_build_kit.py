@@ -17,8 +17,8 @@ class BuildKitTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             kit = root / 'kit'
-            allowed = ['README.md', 'CONVENTIONS.md', 'MATCHING.md', 'iblis_check.py', 'kit.json', 'names.json',
-                       'headers/README.md', 'headers/types.h', 'selftest/candidate.cpp']
+            allowed = ['README.md', 'LICENSE', 'CONVENTIONS.md', 'MATCHING.md', 'iblis_check.py', 'kit.json', 'names.json',
+                       'headers/README.md', 'headers/types.h', 'selftest/candidate.cpp', 'selftest/fixture.json']
             private = ['.env', 'HOST_KEY.txt', 'work/candidate.cpp', 'toolchain/bin/cl.exe',
                        'headers/OLD_WORKFLOW.md', 'selftest/private-notes.md', '__pycache__/checker.pyc']
             for name in allowed + private:

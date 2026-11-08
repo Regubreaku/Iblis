@@ -18,6 +18,9 @@ const enc = new TextEncoder();
 const iso = (t = Date.now()) => new Date(t).toISOString().replace(/\.\d+Z$/, "Z");
 const hoursFromNow = (h) => iso(Date.now() + h * 3600e3);
 const LEASE_HOURS = 2;
+const SIGN_IN_TTL_MS = 900e3;
+const BROWSER_TTL_MS = 30 * 864e5;
+const MAX_JSON_BYTES = 2 * 1024 * 1024;
 
 const TIERS = [
   // name, leases at once, submissions per day, largest function in bytes (null = any)
@@ -39,6 +42,12 @@ class ApiError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
 const bad = (status, msg) => { throw new ApiError(status, msg); };
+function requireIntake(env) {
+  if (env.CONTRIBUTIONS_ENABLED !== 'true') bad(503, 'Contributions are temporarily paused while host verification is validated.');
+}
+function requireRotatedCredentials(env) {
+  if (env.CREDENTIALS_ROTATED !== 'true') bad(503, 'Host and GitHub sign-in are temporarily paused until credential rotation is complete.');
+}
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -66,7 +75,33 @@ function normVa(va) {
   return m ? "0x" + m[1].toUpperCase().padStart(8, "0") : null;
 }
 async function readJson(req) {
-  try { return await req.json(); } catch { return {}; }
+  if (!req.body) bad(400, 'request body must be a JSON object');
+  const reader = req.body.getReader();
+  const chunks = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_JSON_BYTES) {
+        await reader.cancel().catch(() => {});
+        bad(413, 'JSON request body exceeds 2 MiB');
+      }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    const body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    if (!body || typeof body !== 'object' || Array.isArray(body)) bad(400, 'request body must be a JSON object');
+    return body;
+  } catch (e) {
+    if (e instanceof ApiError) throw e;
+    bad(400, 'request body must be a valid JSON object');
+  } finally {
+    reader.releaseLock();
+  }
 }
 function escapeHtml(s) {
   return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -110,8 +145,9 @@ async function userFromKey(env, req) {
   const m = [null, k];
   return env.DB.prepare(
     `SELECT u.id, u.login, u.show_name, u.paused_until FROM keys k JOIN users u ON u.id = k.user_id
-      WHERE k.hash = ? AND k.revoked_utc IS NULL`
-  ).bind(await sha256(m[1])).first();
+      WHERE k.hash = ? AND k.revoked_utc IS NULL
+        AND (COALESCE(k.label, '') != 'browser' OR k.created_utc > ?)`
+  ).bind(await sha256(m[1]), iso(Date.now() - BROWSER_TTL_MS)).first();
 }
 function isHost(env, req) {
   const m = /^Bearer\s+(\S+)$/.exec((req.headers.get("authorization") || "").trim());
@@ -139,20 +175,19 @@ function tierFor({ verified: v, failed: f }) {
 // Leases that ran out go back to the pool; too many in a day pauses `next` for three hours.
 async function expireLeases(env) {
   const t = iso();
-  const stale = (await env.DB.prepare("SELECT va, user_id FROM leases WHERE expires_utc <= ?").bind(t).all()).results;
-  if (!stale.length) return;
-  const stmts = [];
-  for (const l of stale) {
-    stmts.push(env.DB.prepare("DELETE FROM leases WHERE va = ?").bind(l.va));
-    stmts.push(env.DB.prepare("INSERT INTO expired (va, user_id, expired_utc) VALUES (?, ?, ?)").bind(l.va, l.user_id, t));
-  }
-  await env.DB.batch(stmts);
+  // D1 batches are transactions: capture and remove the same expired rows without a stale read/delete gap.
+  const [captured] = await env.DB.batch([
+    env.DB.prepare(`INSERT INTO expired (va, user_id, expired_utc)
+      SELECT va, user_id, ? FROM leases WHERE expires_utc <= ? RETURNING user_id`).bind(t, t),
+    env.DB.prepare('DELETE FROM leases WHERE expires_utc <= ?').bind(t),
+  ]);
+  const stale = captured.results;
   const dayAgo = iso(Date.now() - 864e5);
   for (const uid of new Set(stale.map((l) => l.user_id))) {
     const e = (await env.DB.prepare("SELECT COUNT(*) AS n FROM expired WHERE user_id = ? AND expired_utc > ?").bind(uid, dayAgo).first()).n;
     const done = (await env.DB.prepare("SELECT COUNT(*) AS n FROM results WHERE user_id = ? AND created_utc > ?").bind(uid, dayAgo).first()).n;
     if (e > 6 && e > (e + done) / 4)
-      await env.DB.prepare("UPDATE users SET paused_until = ? WHERE id = ?").bind(hoursFromNow(3), uid).run();
+      await env.DB.prepare("UPDATE users SET paused_until = MAX(COALESCE(paused_until, ''), ?) WHERE id = ?").bind(hoursFromNow(3), uid).run();
   }
 }
 
@@ -160,11 +195,13 @@ async function expireLeases(env) {
 async function applyStrikes(env, uid) {
   const weekAgo = iso(Date.now() - 7 * 864e5);
   const r = await env.DB.prepare(
-    `SELECT SUM(status = 'failed') AS failed, SUM(status IN ('verified', 'failed')) AS decided
+    `SELECT SUM(status = 'failed') AS failed, SUM(status IN ('verified', 'failed')) AS decided,
+            MAX(CASE WHEN status = 'failed' THEN decided_utc END) AS last_failed
        FROM results WHERE user_id = ? AND decided_utc > ?`
   ).bind(uid, weekAgo).first();
   if ((r.failed || 0) >= 3 && r.failed * 20 >= (r.decided || 0))
-    await env.DB.prepare("UPDATE users SET paused_until = ? WHERE id = ?").bind(hoursFromNow(24 * 7), uid).run();
+    await env.DB.prepare("UPDATE users SET paused_until = MAX(COALESCE(paused_until, ''), ?) WHERE id = ?")
+      .bind(iso(Date.parse(r.last_failed) + 7 * 864e5), uid).run();
 }
 
 function bandOf(len) { return BANDS.find((b) => len >= b.min && (b.max === null || len <= b.max)).band; }
@@ -237,6 +274,7 @@ const tools = {
   },
 
   async next(env, user, args = {}) {
+    requireIntake(env);
     await expireLeases(env);
     if (user.paused_until && user.paused_until > iso()) bad(429, `new work is paused until ${user.paused_until}`);
     const tier = tierFor(await record(env, user));
@@ -267,11 +305,16 @@ const tools = {
     }
     const t = iso();
     try {
-      await env.DB.batch([
-        env.DB.prepare("INSERT INTO leases (va, user_id, leased_utc, expires_utc) VALUES (?, ?, ?, ?)")
-          .bind(pick.va, user.id, t, hoursFromNow(LEASE_HOURS)),
-        env.DB.prepare("UPDATE functions SET tries = tries + 1 WHERE va = ?").bind(pick.va),
+      const [claimed] = await env.DB.batch([
+        env.DB.prepare(`INSERT INTO leases (va, user_id, leased_utc, expires_utc)
+          SELECT va, ?, ?, ? FROM functions WHERE va = ? AND state = 'open'
+            AND (SELECT COUNT(*) FROM leases WHERE user_id = ?) < ?
+            AND NOT EXISTS (SELECT 1 FROM users WHERE id = ? AND paused_until > ?)
+          ON CONFLICT(va) DO NOTHING RETURNING va`)
+          .bind(user.id, t, hoursFromNow(LEASE_HOURS), pick.va, user.id, tier.leases, user.id, t),
+        env.DB.prepare("UPDATE functions SET tries = tries + 1 WHERE va = ? AND changes() > 0").bind(pick.va),
       ]);
+      if (!claimed.results.length) bad(409, 'function or lease capacity is no longer available; ask again');
     } catch {
       bad(409, "another agent took that function a moment ago; ask again");
     }
@@ -280,14 +323,15 @@ const tools = {
 
   async packet(env, user, args = {}) {
     const va = normVa(args.va) || bad(400, "va is required");
-    const l = await env.DB.prepare("SELECT 1 FROM leases WHERE va = ? AND user_id = ?").bind(va, user.id).first();
+    const l = await env.DB.prepare("SELECT 1 FROM leases WHERE va = ? AND user_id = ? AND expires_utc > ?").bind(va, user.id, iso()).first();
     if (!l) bad(404, `you are not working on ${va}; use next`);
     return packetFor(env, va);
   },
 
   async submit(env, user, args = {}) {
+    requireIntake(env);
     const va = normVa(args.va) || bad(400, "va is required");
-    const l = await env.DB.prepare("SELECT 1 FROM leases WHERE va = ? AND user_id = ?").bind(va, user.id).first();
+    const l = await env.DB.prepare("SELECT 1 FROM leases WHERE va = ? AND user_id = ? AND expires_utc > ?").bind(va, user.id, iso()).first();
     if (!l) bad(404, `you are not working on ${va} (its 2 hours may have run out; ask for it again with next)`);
     if (user.paused_until && user.paused_until > iso()) bad(429, `submissions are paused until ${user.paused_until}`);
     if (!["RAW_EQUAL", "RELOCATION_RESOLVED_EQUAL"].includes(args.local_status))
@@ -302,36 +346,47 @@ const tools = {
     checkText("notes", args.notes, 65536);
     if (!new RegExp("//\\s*0x0*" + va.slice(2).replace(/^0+/, ""), "i").test(args.source))
       bad(400, `source needs a "// ${va}" line directly above the function`);
-    const r = await env.DB.prepare(
-      `INSERT INTO results (va, user_id, kind, model, source, notes, local_status, body_sha256, status)
-       VALUES (?, ?, 'match', ?, ?, ?, ?, ?, 'pending') RETURNING id`
-    ).bind(va, user.id, String(args.model || "").slice(0, 80), args.source, args.notes || null,
-           args.local_status, String(args.body_sha256 || "").slice(0, 64)).first();
-    await env.DB.batch([
-      env.DB.prepare("DELETE FROM leases WHERE va = ?").bind(va),
-      env.DB.prepare("UPDATE functions SET state = 'pending' WHERE va = ?").bind(va),
+    const [inserted] = await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO results (va, user_id, kind, model, source, notes, local_status, body_sha256, status)
+         SELECT l.va, l.user_id, 'match', ?, ?, ?, ?, ?, 'pending'
+         FROM leases l JOIN functions f ON f.va = l.va
+         WHERE l.va = ? AND l.user_id = ? AND l.expires_utc > ? AND f.state = 'open'
+           AND NOT EXISTS (SELECT 1 FROM users WHERE id = ? AND paused_until > ?)
+           AND (SELECT COUNT(*) FROM results WHERE user_id = ? AND kind = 'match' AND created_utc > ?) < ?
+         RETURNING id`
+      ).bind(String(args.model || "").slice(0, 80), args.source, args.notes || null,
+             args.local_status, String(args.body_sha256 || "").slice(0, 64), va, user.id, iso(),
+             user.id, iso(), user.id, iso(Date.now() - 864e5), tier.perDay),
+      env.DB.prepare("DELETE FROM leases WHERE va = ? AND user_id = ? AND changes() > 0").bind(va, user.id),
+      env.DB.prepare("UPDATE functions SET state = 'pending' WHERE va = ? AND changes() > 0").bind(va),
     ]);
+    const r = inserted.results[0];
+    if (!r) bad(409, 'lease, function or submission allowance is no longer available');
     return { result: r.id, va, status: "pending", note: "The build host verifies it; status shows the verdict." };
   },
 
   async giveup(env, user, args = {}) {
     const va = normVa(args.va) || bad(400, "va is required");
-    const l = await env.DB.prepare("SELECT 1 FROM leases WHERE va = ? AND user_id = ?").bind(va, user.id).first();
+    const l = await env.DB.prepare("SELECT 1 FROM leases WHERE va = ? AND user_id = ? AND expires_utc > ?").bind(va, user.id, iso()).first();
     if (!l) bad(404, `you are not working on ${va}`);
     const reason = String(args.reason || "").trim();
     if (!reason) bad(400, "give a one-line reason: what differs and what you tried");
     checkText("reason", reason, 2000);
     checkText("source", args.source, Number(env.MAX_SOURCE_BYTES || 262144), true);
-    await env.DB.batch([
+    const [inserted] = await env.DB.batch([
       env.DB.prepare(
-        `INSERT INTO results (va, user_id, kind, model, source, notes, status) VALUES (?, ?, 'giveup', ?, ?, ?, 'giveup')`
-      ).bind(va, user.id, String(args.model || "").slice(0, 80), args.source || null, reason),
-      env.DB.prepare("DELETE FROM leases WHERE va = ?").bind(va),
+        `INSERT INTO results (va, user_id, kind, model, source, notes, status)
+         SELECT l.va, l.user_id, 'giveup', ?, ?, ?, 'giveup' FROM leases l JOIN functions f ON f.va = l.va
+         WHERE l.va = ? AND l.user_id = ? AND l.expires_utc > ? AND f.state = 'open' RETURNING id`
+      ).bind(String(args.model || "").slice(0, 80), args.source || null, reason, va, user.id, iso()),
+      env.DB.prepare("DELETE FROM leases WHERE va = ? AND user_id = ? AND changes() > 0").bind(va, user.id),
       // The next agent starts from the latest closest code and reason.
       env.DB.prepare(
-        "UPDATE functions SET best_note = ?, best_source = COALESCE(?, best_source) WHERE va = ?"
+        "UPDATE functions SET best_note = ?, best_source = COALESCE(?, best_source) WHERE va = ? AND changes() > 0"
       ).bind(reason, args.source || null, va),
     ]);
+    if (!inserted.results.length) bad(409, 'lease or function is no longer available');
     return { va, returned: true, note: "Giving up never counts against you." };
   },
 };
@@ -395,21 +450,51 @@ async function mcp(env, req) {
 
 // ---------------------------------------------------------------- connect (link + short code, approved with GitHub)
 
+async function expireSignIns(env) {
+  const cutoff = iso(Date.now() - SIGN_IN_TTL_MS);
+  // Revoke any legacy key minted before its approval was polled. New keys are minted only on collection.
+  const stale = (await env.DB.prepare('SELECT device_code, key_plain FROM approvals WHERE created_utc <= ? AND key_plain IS NOT NULL')
+    .bind(cutoff).all()).results;
+  const revocations = await Promise.all(stale.map(async a => env.DB.prepare(
+    `UPDATE keys SET revoked_utc = ? WHERE hash = ? AND revoked_utc IS NULL
+      AND EXISTS (SELECT 1 FROM approvals WHERE device_code = ? AND created_utc <= ?)`
+  ).bind(iso(), await sha256(a.key_plain), a.device_code, cutoff)));
+  for (let i = 0; i < revocations.length; i += 100) await env.DB.batch(revocations.slice(i, i + 100));
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM approvals WHERE created_utc <= ?').bind(cutoff),
+    env.DB.prepare('DELETE FROM oauth_states WHERE created_utc <= ?').bind(cutoff),
+    env.DB.prepare("UPDATE keys SET revoked_utc = ? WHERE label = 'browser' AND revoked_utc IS NULL AND created_utc <= ?")
+      .bind(iso(), iso(Date.now() - BROWSER_TTL_MS)),
+  ]);
+}
+
 async function connectStart(env) {
+  requireIntake(env);
+  await expireSignIns(env);
   const device_code = randomHex(24), code = userCode();
   await env.DB.prepare("INSERT INTO approvals (device_code, user_code) VALUES (?, ?)").bind(device_code, code).run();
   return { approve_url: `${env.SITE_URL}/approve?code=${code}`, code, device_code, poll_every_seconds: 5, expires_in: 900 };
 }
 
 async function connectPoll(env, req) {
+  await expireSignIns(env);
   const { device_code } = await readJson(req);
   if (!device_code) bad(400, "device_code is required");
   const a = await env.DB.prepare("SELECT * FROM approvals WHERE device_code = ?").bind(device_code).first();
-  if (!a || a.created_utc < iso(Date.now() - 900e3)) bad(410, "this sign-in expired; start again with connect");
+  if (!a || a.created_utc <= iso(Date.now() - SIGN_IN_TTL_MS)) bad(410, "this sign-in expired; start again with connect");
   if (!a.user_id) return { pending: true };
-  const key = a.key_plain;
-  await env.DB.prepare("DELETE FROM approvals WHERE device_code = ?").bind(device_code).run();
-  return { key, mcp_url: `${env.SITE_URL}/mcp`, api_url: `${env.SITE_URL}/api/v1` };
+  if (!a.key_plain) bad(410, 'this sign-in was already collected; start again with connect');
+  const cutoff = iso(Date.now() - SIGN_IN_TTL_MS);
+  const [, collected] = await env.DB.batch([
+    env.DB.prepare(`INSERT INTO keys (hash, user_id, label)
+      SELECT ?, user_id, 'agent' FROM approvals WHERE device_code = ? AND user_id IS NOT NULL
+        AND key_plain = ? AND created_utc > ? ON CONFLICT(hash) DO NOTHING`)
+      .bind(await sha256(a.key_plain), device_code, a.key_plain, cutoff),
+    env.DB.prepare(`DELETE FROM approvals WHERE device_code = ? AND key_plain = ? AND created_utc > ?
+      RETURNING key_plain`).bind(device_code, a.key_plain, cutoff),
+  ]);
+  if (!collected.results.length) bad(410, 'this sign-in expired or was already collected; start again with connect');
+  return { key: collected.results[0].key_plain, mcp_url: `${env.SITE_URL}/mcp`, api_url: `${env.SITE_URL}/api/v1` };
 }
 
 function approvePage(env, code) {
@@ -425,10 +510,14 @@ no shared keys; verified source is published under the MIT licence with you cred
 }
 
 async function authStart(env, url) {
+  requireRotatedCredentials(env);
+  await expireSignIns(env);
   // Two ways in: approving an agent's code, or signing in to the account page (user_code stays NULL).
   const code = url.searchParams.get("account") ? null : url.searchParams.get("code");
   if (!url.searchParams.get("account")) {
-    const a = await env.DB.prepare("SELECT user_code FROM approvals WHERE user_code = ? AND user_id IS NULL").bind(code).first();
+    requireIntake(env);
+    const a = await env.DB.prepare("SELECT user_code FROM approvals WHERE user_code = ? AND user_id IS NULL AND created_utc > ?")
+      .bind(code, iso(Date.now() - SIGN_IN_TTL_MS)).first();
     if (!a) return page("Approval expired", "<p>This code is no longer waiting. Ask your agent to connect again.</p>", 410);
   }
   const state = randomHex(16);
@@ -442,10 +531,18 @@ async function authStart(env, url) {
 }
 
 async function authCallback(env, url) {
-  const st = await env.DB.prepare("DELETE FROM oauth_states WHERE state = ? RETURNING user_code")
-    .bind(url.searchParams.get("state") || "").first();
+  requireRotatedCredentials(env);
+  await expireSignIns(env);
+  const st = await env.DB.prepare("DELETE FROM oauth_states WHERE state = ? AND created_utc > ? RETURNING user_code")
+    .bind(url.searchParams.get("state") || "", iso(Date.now() - SIGN_IN_TTL_MS)).first();
   const code = url.searchParams.get("code");
   if (!st || !code) return page("Approval failed", "<p>The approval link expired. Ask your agent to connect again.</p>", 400);
+  if (st.user_code) {
+    requireIntake(env);
+    const approval = await env.DB.prepare('SELECT 1 FROM approvals WHERE user_code = ? AND user_id IS NULL AND created_utc > ?')
+      .bind(st.user_code, iso(Date.now() - SIGN_IN_TTL_MS)).first();
+    if (!approval) return page('Approval expired', '<p>This code expired or was already approved. Ask your agent to connect again.</p>', 410);
+  }
   const t = await (await fetch("https://github.com/login/oauth/access_token", {
     method: "POST", headers: { accept: "application/json", "content-type": "application/json" },
     body: JSON.stringify({ client_id: env.GITHUB_CLIENT_ID, client_secret: env.GITHUB_CLIENT_SECRET, code }),
@@ -466,14 +563,20 @@ async function authCallback(env, url) {
       "set-cookie": `iblis_session=${key}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${30 * 86400}`,
     } });
   }
-  await env.DB.batch([
+  const [approved] = await env.DB.batch([
+    env.DB.prepare(`UPDATE approvals SET user_id = ?, key_plain = ?
+      WHERE user_code = ? AND user_id IS NULL AND created_utc > ? RETURNING user_code`)
+      .bind(gh.id, key, st.user_code, iso(Date.now() - SIGN_IN_TTL_MS)),
     env.DB.prepare(
-      `INSERT INTO users (id, login, terms_utc) VALUES (?, ?, ?)
+      `INSERT INTO users (id, login, terms_utc)
+       SELECT ?, ?, ? WHERE changes() > 0
        ON CONFLICT(id) DO UPDATE SET login = excluded.login, terms_utc = COALESCE(users.terms_utc, excluded.terms_utc)`
     ).bind(gh.id, gh.login, iso()),
-    env.DB.prepare("INSERT INTO keys (hash, user_id, label) VALUES (?, ?, 'agent')").bind(await sha256(key), gh.id),
-    env.DB.prepare("UPDATE approvals SET user_id = ?, key_plain = ? WHERE user_code = ?").bind(gh.id, key, st.user_code),
   ]);
+  if (!approved.results.length) {
+    await expireSignIns(env);
+    return page('Approval expired', '<p>This code expired or was already approved. Ask your agent to connect again.</p>', 410);
+  }
   return page("Approved", `<p>Signed in as <b>${escapeHtml(gh.login)}</b>. Your agent will pick up its key in a few seconds.
 You can close this tab.</p><p>You appear on the board as <b>anonymous</b> until you choose otherwise in your account.</p>`);
 }
@@ -505,7 +608,10 @@ const host = {
          ON CONFLICT(va) DO UPDATE SET length = excluded.length, module = excluded.module, name = excluded.name,
            flags = excluded.flags, reference = excluded.reference, body_sha256 = excluded.body_sha256,
            best_note = COALESCE(functions.best_note, excluded.best_note),
-           state = CASE WHEN functions.state = 'pending' AND excluded.state = 'open' THEN 'pending' ELSE excluded.state END`
+           state = CASE WHEN functions.state = 'matched' THEN 'matched'
+             WHEN excluded.state = 'open' AND EXISTS (SELECT 1 FROM results WHERE va = functions.va AND status = 'verified') THEN 'matched'
+             WHEN excluded.state = 'open' AND EXISTS (SELECT 1 FROM results WHERE va = functions.va AND status IN ('pending', 'review')) THEN 'pending'
+             ELSE excluded.state END`
       ).bind(va, f.length | 0, String(f.module || "?"), ["open", "matched", "excluded"].includes(f.state) ? f.state : "open",
              f.name || null, f.flags || null, f.reference || null, f.body_sha256 || null,
              f.note ? String(f.note).slice(0, 4000) : null));
@@ -521,20 +627,42 @@ const host = {
          FROM results r JOIN users u ON u.id = r.user_id WHERE r.status = 'pending' ORDER BY r.id LIMIT ?`
     ).bind(limit).all()).results };
   },
+  async review(env, url) {
+    const limit = Math.max(1, Math.min(100, Math.floor(Number(url.searchParams.get('limit')) || 20)));
+    const after = Number(url.searchParams.get('after') || 0);
+    const id = url.searchParams.has('id') ? Number(url.searchParams.get('id')) : null;
+    if (!Number.isSafeInteger(after) || after < 0 || (id !== null && (!Number.isSafeInteger(id) || id < 1)))
+      bad(400, 'after must be a nonnegative integer; id must be a positive integer');
+    const rows = (await env.DB.prepare(
+      `SELECT r.id, r.va, r.model, r.source, r.notes, r.local_status, r.body_sha256, r.created_utc,
+              r.status, r.host_note, r.decided_utc, u.login, u.id AS github_id, u.show_name
+         FROM results r JOIN users u ON u.id = r.user_id
+        WHERE r.status = 'review' AND r.id > ? AND (? IS NULL OR r.id = ?) ORDER BY r.id LIMIT ?`
+    ).bind(after, id, id, limit + 1).all()).results;
+    const review = rows.slice(0, limit);
+    return { review, next_cursor: rows.length > limit ? review[review.length - 1].id : null };
+  },
   async verdict(env, req) {
     const b = await readJson(req);
     if (!["verified", "failed", "review"].includes(b.verdict)) bad(400, "verdict must be verified, failed or review");
-    const r = await env.DB.prepare("SELECT id, va, user_id FROM results WHERE id = ? AND status IN ('pending', 'review')")
-      .bind(b.id).first();
-    if (!r) bad(404, "no submission waiting with that id");
-    const state = { verified: "matched", failed: "open", review: "pending" }[b.verdict];
-    await env.DB.batch([
-      env.DB.prepare("UPDATE results SET status = ?, host_note = ?, decided_utc = ? WHERE id = ?")
-        .bind(b.verdict, String(b.note || "").slice(0, 4000), b.verdict === "review" ? null : iso(), r.id),
-      env.DB.prepare("UPDATE functions SET state = ? WHERE va = ?").bind(state, r.va),
+    const [updated] = await env.DB.batch([
+      env.DB.prepare(`UPDATE results SET status = ?, host_note = ?, decided_utc = ?
+        WHERE id = ? AND kind = 'match' AND status IN ('pending', 'review') AND status != ? RETURNING id, va, user_id`)
+        .bind(b.verdict, String(b.note || "").slice(0, 4000), b.verdict === "review" ? null : iso(), b.id, b.verdict),
+      // Derive state from all results, including legacy duplicate submissions. Terminal work cannot be reopened.
+      env.DB.prepare(`UPDATE functions SET state = CASE
+        WHEN state IN ('matched', 'excluded') THEN state
+        WHEN EXISTS (SELECT 1 FROM results WHERE va = functions.va AND status = 'verified') THEN 'matched'
+        WHEN EXISTS (SELECT 1 FROM results WHERE va = functions.va AND status IN ('pending', 'review')) THEN 'pending'
+        ELSE 'open' END WHERE va = (SELECT va FROM results WHERE id = ?) AND changes() > 0`).bind(b.id),
     ]);
+    const r = await env.DB.prepare(`SELECT r.id, r.va, r.status, r.user_id, f.state
+      FROM results r JOIN functions f ON f.va = r.va WHERE r.id = ? AND r.kind = 'match'`).bind(b.id).first();
+    if (!r) bad(404, 'no submission with that id');
+    if (!updated.results.length && r.status !== b.verdict) bad(409, 'submission already has a different terminal verdict');
+    // Recompute on an identical retry too: a previous verdict may have committed before this update failed.
     if (b.verdict === "failed") await applyStrikes(env, r.user_id);
-    return { id: r.id, va: r.va, state };
+    return { id: r.id, va: r.va, state: r.state };
   },
 };
 
@@ -552,6 +680,10 @@ async function board(env) {
 // ---------------------------------------------------------------- router
 
 export default {
+  async scheduled(_event, env) {
+    await expireSignIns(env);
+    await expireLeases(env);
+  },
   async fetch(req, env) {
     const url = new URL(req.url);
     // Pass every binding and secret through untouched; only SITE_URL falls back to the address we are served from.
@@ -559,6 +691,19 @@ export default {
     env = new Proxy(env, { get: (t, k) => (k === "SITE_URL" ? site : Reflect.get(t, k)) });
     const p = url.pathname, m = req.method;
     try {
+      const assetPath = decodeURIComponent(p);
+      if (/^\/kit\/.*\.zip(?:\.sha256)?\/?$/i.test(assetPath)) {
+        // Guard retired immutable assets even if a previous deployment's copy is still cached.
+        const manifest = await env.ASSETS.fetch(new Request(new URL('/kit/latest.json', url)));
+        if (!manifest.ok) return json({ error: 'current checker manifest is unavailable' }, 503);
+        let latest;
+        try { latest = await manifest.json(); } catch { return json({ error: 'current checker manifest is invalid' }, 503); }
+        if (!/^[A-Za-z0-9_-]+\.zip$/.test(latest?.file || ''))
+          return json({ error: 'current checker manifest is invalid' }, 503);
+        if (assetPath !== '/kit/' + latest.file && assetPath !== '/kit/' + latest.file + '.sha256')
+          return json({ error: 'this checker release is retired; use /kit/latest.json for the current release' }, 410);
+        return env.ASSETS.fetch(req);
+      }
       if (p === "/mcp" && m === "POST") return await mcp(env, req);
       if (p === "/approve" && m === "GET") return approvePage(env, url.searchParams.get("code"));
       if (p === "/auth/github" && m === "GET") return await authStart(env, url);
@@ -574,9 +719,11 @@ export default {
       if (p === "/api/v1/stats" && m === "GET") return env.ASSETS.fetch(new Request(new URL("/data/stats.json", url)));
 
       if (p.startsWith("/api/v1/host/")) {
+        requireRotatedCredentials(env);
         if (!isHost(env, req)) return json({ error: String(env.HOST_KEY || "").trim() ? "host key does not match" : "HOST_KEY is not set on this worker (add it under Runtime variables and secrets)" }, 401);
         if (p === "/api/v1/host/sync" && m === "POST") return json(await host.sync(env, req));
         if (p === "/api/v1/host/pending" && m === "GET") return json(await host.pending(env, url));
+        if (p === "/api/v1/host/review" && m === "GET") return json(await host.review(env, url));
         if (p === "/api/v1/host/verdict" && m === "POST") return json(await host.verdict(env, req));
         return json({ error: "no such route" }, 404);
       }
