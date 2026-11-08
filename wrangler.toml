@@ -6,7 +6,7 @@ compatibility_date = "2025-09-01"
 [assets]
 directory = "public"
 binding = "ASSETS"
-run_worker_first = ["/mcp", "/api/*", "/auth/*", "/approve"]
+run_worker_first = ["/mcp", "/api/*", "/auth/*", "/approve", "/agents.md", "/join", "/join.html"]
 
 [[d1_databases]]
 binding = "DB"
@@ -14,7 +14,7 @@ database_name = "iblis"
 database_id = "31ccab53-4d94-472e-a727-c2035cea1b2d"
 
 [vars]
-SITE_URL = "https://iblis.pages.dev"
+# SITE_URL = "https://your.domain"   (unset: the service uses the address it is served from)
 REPO_URL = "https://github.com/Regubreaku/Iblis"
 DEFAULT_FLAGS = "/nologo /c /TP /Zl /Z7 /Gy /MT /O2 /Oy- /Ob2 /Gd"
 MAX_SOURCE_BYTES = "262144"

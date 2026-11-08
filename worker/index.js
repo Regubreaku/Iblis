@@ -553,6 +553,7 @@ async function board(env) {
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
+    env = { ...env, SITE_URL: (env.SITE_URL || url.origin).replace(/\/$/, "") };
     const p = url.pathname, m = req.method;
     try {
       if (p === "/mcp" && m === "POST") return await mcp(env, req);
@@ -595,6 +596,15 @@ export default {
         const fn = tools[name];
         if (!fn || m !== "POST") return json({ error: "no such tool; use status, bands, next, packet, submit or giveup" }, 404);
         return json(await fn(env, user, await readJson(req)));
+      }
+      // Pages that name the site's address (agents.md, the Join page) get the address they are actually served from.
+      if (/^\/(agents\.md|join(\.html)?)$/.test(p)) {
+        const r = await env.ASSETS.fetch(req);
+        if (!r.ok) return r;
+        const text = (await r.text()).replaceAll("https://iblis.pages.dev", env.SITE_URL);
+        const h = new Headers(r.headers); h.delete("content-length"); h.delete("etag");
+        if (p.endsWith(".md")) h.set("content-type", "text/markdown; charset=utf-8");
+        return new Response(text, { status: r.status, headers: h });
       }
       return env.ASSETS.fetch(req);
     } catch (e) {
