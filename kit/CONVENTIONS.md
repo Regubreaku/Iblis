@@ -1,14 +1,25 @@
-# Source conventions (what the matched bodies look like)
+# C++ submission format
 
-- Structs are `D2<Thing>Strc` (`D2UnitStrc`, `D2GameStrc`, `D2DrlgRoomStrc`), from `headers/`. Fields you don't
-  know stay as `int unk_<off>;` padding; never reorder a frozen header.
-- Functions: `MODULE_Verb` when the name is established (`DATATBLS_ApplyRatio`, `ITEMS_GetItemType`), else
-  `sub_<VA>_<Verb>` (`sub_0051E490_ExtractArchiveDll`). Globals: `gn…`/`gp…`/`gsz…` plus `_<VA>` when unnamed
-  (`gnGlobal_007A285C`). Addresses in names are 1.14d addresses; 1.13c-style names (`…_6FD447F8`) are legacy.
-- Every declaration carries a trailing `// 0xVA`; the definition has `// 0xVA` on the line above.
-- `__fastcall` is the house convention for most game code (D2Common/D2Game); UI and Storm code is often
-  `__stdcall` or `__thiscall` methods; the brief says which registers the body reads first.
-- Asserts: `if (!p) { FOG_Assert("p", gszSourceFile, __LINE__); }` style with the file-name string declared as
-  `extern const char gszSomeSourceFile[]; // 0x006DF338`. The source-file address is in the brief's Strings.
-- Storm list/hash helpers are tiny templates; copy the matched example rather than re-deriving them.
-- Jump tables and float constants are the compiler's; don't try to place them, just write the `switch`/`float`.
+Write one self-contained `work/<VA>/candidate.cpp` for the service's assigned function. Use the packet's function name and compiler flags.
+
+## Address markers
+
+Put `// <VA>` on its own line directly above the target definition. Declare each external callee and global with its real address as a trailing comment, at the end of the line:
+
+```cpp
+struct D2UnitStrc;
+int __fastcall UNITS_GetRoom(D2UnitStrc* pUnit); // 0x0052E510
+extern int gnGlobal_007A285C; // 0x007A285C
+```
+
+These are format examples, not declarations to copy into every submission. Take addresses, types and calling conventions from the packet and local brief. Use struct member declarations for `__thiscall` methods.
+
+## Source and checks
+
+- Use supplied headers when available. Otherwise include the declarations and layouts your function needs in `candidate.cpp`; do not assume the kit contains the full game's headers.
+- Preserve established names. For unknown functions use `sub_<VA>_<Verb>`; unknown globals can include their address in the name.
+- Use ordinary C++: no inline assembly, raw byte emission, naked functions, byte-array bodies, optimization pragmas or changed compiler flags. Keep one version of the target per check.
+- Run `python iblis_check.py check <VA>`. Submit the exact checked source only after MATCH, with its status and body hash.
+- Keep explanations in short prose. Briefs, disassembly and compiled output stay local.
+
+If a declaration or layout is uncertain, explain it in the notes. The project host recompiles every submission independently.

@@ -2,14 +2,44 @@
 """Assemble the contributor checker kit from the source repository.
 
 usage: build_kit.py <repo> <out-dir>
+       build_kit.py --package-only <out-dir>
 
 Writes kit.json (game and compiler hashes, selftest), names.json (address -> name), headers/, CONVENTIONS.md and the
 selftest source next to iblis_check.py, then zips it as public/kit/iblis-check-<date>.zip with a .sha256 beside it.
 The kit carries hashes, names and one verified function's source; never any bytes from the game.
 """
-import datetime, glob, hashlib, json, os, re, shutil, sys, zipfile
+import datetime, glob, hashlib, io, json, os, re, shutil, sys, zipfile
+from pathlib import Path
 
 SELFTEST_VA = "0x00411540"
+
+
+def package_kit(kit, out):
+    """Publish the prepared kit, excluding local work and maintainer material."""
+    kit, out = Path(kit), Path(out)
+    required = ['README.md', 'CONVENTIONS.md', 'MATCHING.md', 'iblis_check.py', 'kit.json', 'names.json',
+                'headers/README.md', 'selftest/candidate.cpp']
+    paths = [kit / name for name in required]
+    for path in paths:
+        if not path.is_file():
+            raise FileNotFoundError(path)
+    paths.extend(p for p in (kit / 'headers').rglob('*')
+                 if p.is_file() and p.suffix.lower() in {'.h', '.hpp', '.hh', '.hxx', '.inl', '.inc'})
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z:
+        for path in sorted(paths):
+            z.write(path, 'iblis-check/' + path.relative_to(kit).as_posix())
+    payload = archive.getvalue()
+    digest = hashlib.sha256(payload).hexdigest()
+    # Content-qualified names keep a cached older ZIP separate from this release.
+    name = 'iblis-check-%s-%s.zip' % (datetime.date.today().isoformat(), digest[:12])
+    out.mkdir(parents=True, exist_ok=True)
+    target = out / name
+    target.write_bytes(payload)
+    target.with_suffix('.zip.sha256').write_text('%s  %s\n' % (digest, name), encoding='utf-8')
+    (out / 'latest.json').write_text(json.dumps(dict(file=name, sha256=digest, bytes=len(payload)), indent=1), encoding='utf-8')
+    print('kit: %s (%d KB), %d files' % (name, len(payload) // 1024, len(paths)))
+    return str(target)
 
 
 def main(repo, out):
@@ -31,25 +61,22 @@ def main(repo, out):
     )
     json.dump(kitcfg, open(os.path.join(kit, "kit.json"), "w"), indent=1)
     json.dump(dict(sorted(r.names.items())), open(os.path.join(kit, "names.json"), "w"), separators=(",", ":"))
-    shutil.rmtree(os.path.join(kit, "headers"), ignore_errors=True)
-    shutil.copytree(os.path.join(repo, "headers"), os.path.join(kit, "headers"))
-    shutil.copy(os.path.join(repo, "examples", "CONVENTIONS.md"), os.path.join(kit, "CONVENTIONS.md"))
+    # Keep the service's own contributor notes; source-repo notes describe the old workflow.
+    headers = Path(kit, 'headers').resolve()
+    if headers.parent != Path(kit).resolve():
+        raise ValueError('Headers must stay inside the kit directory')
+    header_note = (headers / 'README.md').read_text(encoding='utf-8')
+    shutil.rmtree(headers)
+    shutil.copytree(os.path.join(repo, 'headers'), headers)
+    (headers / 'README.md').write_text(header_note, encoding='utf-8')
     os.makedirs(os.path.join(kit, "selftest"), exist_ok=True)
     shutil.copy(os.path.join(repo, "queue", "matched", SELFTEST_VA[2:], "candidate.cpp"), os.path.join(kit, "selftest", "candidate.cpp"))
 
-    os.makedirs(out, exist_ok=True)
-    zname = "iblis-check-%s.zip" % datetime.date.today().isoformat()
-    zpath = os.path.join(out, zname)
-    with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
-        for p in sorted(glob.glob(os.path.join(kit, "**", "*"), recursive=True)):
-            rel = os.path.relpath(p, kit)
-            if os.path.isfile(p) and not rel.startswith(("toolchain", "work", "__pycache__")) and not rel.endswith(".pyc"):
-                z.write(p, os.path.join("iblis-check", rel))
-    h = hashlib.sha256(open(zpath, "rb").read()).hexdigest()
-    open(zpath + ".sha256", "w").write("%s  %s\n" % (h, zname))
-    json.dump(dict(file=zname, sha256=h, bytes=os.path.getsize(zpath)), open(os.path.join(out, "latest.json"), "w"), indent=1)
-    print("kit: %s (%d KB) sha256 %s; selftest flags: %s" % (zname, os.path.getsize(zpath) // 1024, h, kitcfg["selftest"]["flags"]))
+    package_kit(kit, out)
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:3])
+    if len(sys.argv) == 3 and sys.argv[1] == '--package-only':
+        package_kit(Path(__file__).resolve().parent.parent / 'kit', sys.argv[2])
+    else:
+        main(*sys.argv[1:3])

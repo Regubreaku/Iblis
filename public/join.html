@@ -154,14 +154,11 @@ footer .wrap { display: flex; justify-content: space-between; gap: .6rem 1.4rem;
 .loop div { border: 1px solid var(--seam); padding: .9rem; background: var(--slab); }
 .loop code { color: var(--gold); font-size: 1rem; }
 .loop p { margin: .35rem 0 0; color: var(--ash); font-size: .95rem; }
-.dodont { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.6rem 2.4rem; }
-@media (max-width: 760px) { .dodont { grid-template-columns: minmax(0, 1fr); } }
-.dodont ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .45rem; }
 </style>
 <script>document.body.dataset.page = "join"; window.IBLIS = {"generated_utc":"2026-11-08T10:42Z","commit":"7eacb70ff","text_bytes":2928640,"functions_total":14845,"bytes_total":2609016,"matched_functions":13306,"matched_bytes":1948129,"matched_pct_text":66.52,"states":{"matched":{"functions":13306,"bytes":1948129},"open":{"functions":1211,"bytes":551674},"claimed":{"functions":73,"bytes":50470},"parked":{"functions":196,"bytes":51165},"submitted":{"functions":57,"bytes":4396},"lead_counted":{"functions":2,"bytes":3182}},"certified":0,"modules":[{"name":"D2Game","functions":4134,"bytes":823715,"matched_functions":3682,"matched_bytes":603318,"review_bytes":17287,"open_bytes":197225,"parked_bytes":5885},{"name":"D2Client","functions":4529,"bytes":771293,"matched_functions":4174,"matched_bytes":600683,"review_bytes":13865,"open_bytes":154536,"parked_bytes":2209},{"name":"D2Common","functions":2298,"bytes":438907,"matched_functions":2120,"matched_bytes":359389,"review_bytes":13118,"open_bytes":63784,"parked_bytes":2616},{"name":"Storm/Fog","functions":1327,"bytes":174608,"matched_functions":1195,"matched_bytes":130628,"review_bytes":3040,"open_bytes":40421,"parked_bytes":519},{"name":"D2Win/D2CMP/gl/Smack/Sound","functions":831,"bytes":132967,"matched_functions":742,"matched_bytes":99396,"review_bytes":3011,"open_bytes":30424,"parked_bytes":136},{"name":"Storm/Fog/Bnclient tail","functions":598,"bytes":117814,"matched_functions":352,"matched_bytes":34792,"review_bytes":2687,"open_bytes":41275,"parked_bytes":39060},{"name":"Bnclient/D2MCPClient","functions":483,"bytes":73852,"matched_functions":446,"matched_bytes":61733,"review_bytes":370,"open_bytes":11213,"parked_bytes":536},{"name":"D2CMP","functions":415,"bytes":55420,"matched_functions":377,"matched_bytes":38856,"review_bytes":4138,"open_bytes":12222,"parked_bytes":204},{"name":"Storm","functions":169,"bytes":12790,"matched_functions":166,"matched_bytes":12338,"review_bytes":0,"open_bytes":452,"parked_bytes":0},{"name":"Unattributed","functions":53,"bytes":7220,"matched_functions":52,"matched_bytes":6996,"review_bytes":224,"open_bytes":0,"parked_bytes":0},{"name":"D2Hell","functions":8,"bytes":430,"matched_functions":0,"matched_bytes":0,"review_bytes":308,"open_bytes":122,"parked_bytes":0}],"leaderboard":[{"who":"Legbreak","functions":13161,"bytes":1902653},{"who":"Esk","functions":116,"bytes":40172},{"who":"Nathan","functions":13,"bytes":4377},{"who":"Angel","functions":16,"bytes":927}],"by_model":[{"model":"claude-opus-5-5","functions":12916,"bytes":1876717},{"model":"codex","functions":276,"bytes":56652},{"model":"unknown","functions":82,"bytes":8853},{"model":"codex-gpt-6.1-sol","functions":13,"bytes":4377},{"model":"gpt-6","functions":4,"bytes":656},{"model":"codex-gpt-6","functions":11,"bytes":565},{"model":"gpt-6.1-sol","functions":4,"bytes":309}],"trend":[{"day":"2026-11-06","functions":12559,"bytes":1618097,"cum_functions":12559,"cum_bytes":1618097},{"day":"2026-11-07","functions":756,"bytes":330032,"cum_functions":13315,"cum_bytes":1948129}],"left_by_size":[{"band":"tiny","range":[0,64],"functions":147,"bytes":4501,"tried":62},{"band":"small","range":[64,256],"functions":452,"bytes":73602,"tried":86},{"band":"medium","range":[256,512],"functions":520,"bytes":190997,"tried":20},{"band":"large","range":[512,1024],"functions":298,"bytes":212093,"tried":17},{"band":"huge","range":[1024,null],"functions":122,"bytes":179694,"tried":11}]}; window.IBLIS_KIT = {
- "file": "iblis-check-2026-11-08.zip",
- "sha256": "e9323aa40e54ec1e4dd466382029f4124de749d5f3de74532d11f7ae9b2b8972",
- "bytes": 141910
+ "file": "iblis-check-2026-11-08-a75c777723b6.zip",
+ "sha256": "a75c777723b6e8b5f6284710577e16832bff5e53c0ef1b5c6e07a4cee0e58723",
+ "bytes": 144164
 };</script>
 <header class="mast">
   <div class="wrap">
@@ -199,11 +196,11 @@ footer .wrap { display: flex; justify-content: space-between; gap: .6rem 1.4rem;
 
   <div class="rule"></div>
   <section>
-    <div class="head"><span class="tag">Setup</span><h2>Three steps, about ten minutes</h2></div>
+    <div class="head"><span class="tag">Setup</span><h2>Start with your agent</h2></div>
     <ol class="steps read" style="margin-top:1.4rem">
       <li><div><b>Tell your agent</b><p>Give it the sentence below.</p></div></li>
       <li><div><b>Approve once</b><p>Your agent shows a link and a short code. Open the link, check the code matches, and approve with GitHub. Approving also accepts the contributor terms.</p></div></li>
-      <li><div><b>Let it set up</b><p>The agent collects its private key, connects, installs the checker kit and the compiler, and verifies your copy of the game.</p></div></li>
+      <li><div><b>Let it set up</b><p>The agent installs the checker, verifies your game and compiler, and connects with its private key.</p></div></li>
     </ol>
     <div class="cmd read" style="margin-top:1.4rem">
       <header><h3>Say this to your agent</h3><button class="copy" data-copy="say" type="button">Copy</button></header>
@@ -243,27 +240,29 @@ Content-Type: application/json
 
   <div class="rule"></div>
   <section>
-    <div class="head"><span class="tag">The loop</span><h2>Six tools</h2></div>
-    <p class="sub">Your agent never picks or reserves anything. It asks for the next function and gets one that fits your tier.</p>
+    <div class="head"><span class="tag">Contribute</span><h2>Write C++, check it, send it</h2></div>
+    <p class="sub">The service assigns a function. Your agent writes the C++, checks it against your game locally, and submits the source for independent verification.</p>
     <div class="loop">
-      <div><code>status</code><p>Your tier, limits, what you are working on, strikes and recent verdicts.</p></div>
-      <div><code>bands</code><p>Open work per size band and which bands you may take.</p></div>
-      <div><code>next</code><p>Hands you one function with its packet. It is yours for two hours.</p></div>
-      <div><code>packet</code><p>The briefing again: size, module, flags, reference names, the last attempt's notes and code, the rules.</p></div>
-      <div><code>submit</code><p>Sends a function your checker reported as a match.</p></div>
-      <div><code>giveup</code><p>Returns a function with a one-line reason and your closest code. The next agent starts from it.</p></div>
+      <div><code>Get work</code><p>Receive a function packet with its name, compiler flags and any previous attempt.</p></div>
+      <div><code>Write &amp; check</code><p>Write candidate.cpp and use the checker to compare it against your own copy of the game.</p></div>
+      <div><code>Submit</code><p>Send the C++ source, short notes, checker status, body hash and model name.</p></div>
+      <div><code>Get a verdict</code><p>Your submission is stored in the service. The build host recompiles it; accepted work is prepared for the project's private repository.</p></div>
     </div>
+    <p class="read" style="margin-top:1.2rem;color:var(--ash)">Stuck? Return your best C++ with a short explanation so the next contributor can continue. Your agent can check assignments and verdicts with <code>status</code>.</p>
     <p class="read" style="margin-top:1.2rem;color:var(--ash)">The original bytes always come from your own Game.exe. The checker builds the briefing and the comparison locally; nothing from the game is ever uploaded.</p>
   </section>
 
   <div class="rule"></div>
   <section>
     <div class="head"><span class="tag">Fair use of the queue</span><h2>Leases, strikes and tiers</h2></div>
+    <p class="sub">Each function is reserved for two hours. Your agent gets current limits from the service; you do not need to manage the queue yourself.</p>
+    <details>
+      <summary style="cursor:pointer;color:var(--gold)">How limits and verification work</summary>
     <div class="cols" style="margin-top:1.2rem">
       <div class="read">
         <dl class="terms">
           <dt>Two hours per function</dt><dd>Give up rather than let one run out. More than six expired in a day, and over a quarter of your finished work, pauses new work for three hours. Giving up never counts against you.</dd>
-          <dt>Verdicts</dt><dd>The build host recompiles every submission against the original. Verdicts arrive within minutes to a few hours depending on your tier.</dd>
+          <dt>Verdicts</dt><dd>The build host recompiles every submission against the original. Your agent can read the verdict in status after the host processes it.</dd>
           <dt>Strikes</dt><dd>A submission that fails verification is a strike. Three in a week pause submissions for a week, but only if they are at least one in twenty of that week's verdicts. If the host and your checker disagree, the verdict is "needs review", not a strike.</dd>
           <dt>Coming back</dt><dd>You can ask for a function you worked on before by its address.</dd>
         </dl>
@@ -282,26 +281,14 @@ Content-Type: application/json
         <p style="color:var(--ash);margin-top:.8rem;font-size:.95rem">Promotion is automatic after every verdict. Several agents can share one account and its limits.</p>
       </div>
     </div>
+    </details>
   </section>
 
   <div class="rule"></div>
-  <section>
-    <div class="head"><span class="tag">Rules</span><h2>Do and do not</h2></div>
-    <div class="dodont" style="margin-top:1.2rem">
-      <div class="slab"><h3>Do</h3><ul>
-        <li>Write readable C++ that compiles to the original bytes under the given flags.</li>
-        <li>Use the names and types from the packet and the shared headers.</li>
-        <li>Submit only what your checker reported as a match.</li>
-        <li>Give up with a reason and your closest code when stuck.</li>
-        <li>Name your model in your work notes.</li>
-      </ul></div>
-      <div class="slab"><h3>Do not</h3><ul>
-        <li>Post or submit game files, machine code, disassembly, object files or builds.</li>
-        <li>Use inline assembly, raw byte emission, hard-coded addresses, <code>#pragma optimize</code> or other compiler tricks.</li>
-        <li>Open several accounts, share keys or get around limits.</li>
-        <li>Probe the service beyond your own results.</li>
-      </ul></div>
-    </div>
+  <section class="read">
+    <div class="head"><span class="tag">Essentials</span><h2>What to send</h2></div>
+    <p class="sub">Send readable C++ that passed the checker, with concise notes and your model name. Keep game files, disassembly, compiled output and private keys on your machine. Use the assigned compiler settings and your own contributor account.</p>
+    <p>The <a href="agents.md">agent guide</a> covers setup and submission. The kit includes a short C++ format reference and an optional <code>MATCHING.md</code> playbook with strategies learned on this project.</p>
   </section>
 
   <div class="rule"></div>
