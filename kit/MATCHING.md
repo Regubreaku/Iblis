@@ -35,18 +35,27 @@ Use `python iblis_check.py sxs <VA>` to inspect differences locally. Judge the c
 
 A function that reads EAX, EBX, ESI or EDI before setting it, or a callee that receives a value in one of them, is
 not a dead end. With this profile MSVC gives a `static` function whose every call it can see a register convention of
-its own, and the original was built the same way. So:
+its own, including EBX, ESI and EDI parameters, and the original was built the same way.
 
-- **The target takes register values:** write it as a `static` function, and add one caller in the same file, with
-  that caller's own `// 0x...` line above it, that sets the values up as the original caller does.
-  `python iblis_check.py callers <VA>` lists the call sites and the instructions leading up to each one.
-- **A callee takes register values:** define that callee as a `static` function in your file, with its own
-  `// 0x...` line, and write a real attempt at its body (its closest source if it has one). The checker verifies that
-  your call lands on that address; the helper's body is context, not part of your compare.
-- Start from `__stdcall` with the parameter order the reference uses; the compiler chooses the registers. If it picks
-  different ones, the helper's body or parameter types decide it: change those, not the target's call.
+- **The target takes register values:** write it as a `static` function (keep `// <VA>` directly above it) and add one
+  caller in the same file with that caller's own `// 0x...` line. `python iblis_check.py callers <VA>` lists the call
+  sites and the instructions leading up to each one.
+- **A callee takes register values:** define that callee as a `static` function in your file with its own `// 0x...`
+  line and a real attempt at its body. The checker verifies that your call lands on that address; the helper's body
+  is context, not part of your compare. A real body is usually enough for the caller's setup to line up.
+- **Only the static's body decides its registers.** `__stdcall`, `__fastcall` or `__cdecl` on it, its parameter
+  order, and what the caller looks like made no difference in testing. To move a parameter to another register,
+  change how the body uses it.
+- The compiler also knows which registers a static leaves alone: ECX and EDX can stay live across a call to a static
+  that only uses EAX, as in the original.
+- `/Ob2` inlines a small static into its caller; mark it `__declspec(noinline)` when the original calls it.
+- There are no CRT headers, so `memset` and `= {}` compile to calls (which also clobber ECX and EDX). A plain element
+  loop gives `rep stosd`; a short fixed loop gives unrolled stores.
+- Open problem: a parameter and a local sometimes swap callee-saved registers (the original gives the local the first
+  pick). No spelling has flipped it yet; note it in your give-up so the pattern can be studied.
 
-Verified examples: `0x0064D060` (calls two such statics, grid in EAX, box in ECX).
+Verified examples: `0x0064D060` (calls two such statics, grid in EAX, box in ECX); `0x004549F0` (target as a static
+with its caller in the file; the text pointer arrives in EBX).
 
 Small algebraic rewrites, added scopes or declaration reordering have often produced identical bodies. Check the result instead of cycling through cosmetic variants.
 
