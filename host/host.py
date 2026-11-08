@@ -129,11 +129,11 @@ def sync_batches(fs, limit=1_500_000, most=500):
 def cmd_sync(repo, redivivus=None):
     fs = repo.queue(redivivus)
     print("references %d" % sum(1 for f in fs if f.get("reference")))
-    done = 0
+    done = written = billed = 0
     for batch in sync_batches(fs):
         r = api("POST", "/api/v1/host/sync", {"functions": batch})
-        done += r["synced"]
-        print("synced", done, "of", len(fs))
+        done += r["synced"]; written += r.get("written", 0); billed += r.get("rows_written", 0)
+        print("synced", done, "of", len(fs), "- rows changed", written, "- D1 rows written", billed)
 
 
 def verdict_for(res):
