@@ -114,8 +114,9 @@ async function userFromKey(env, req) {
   ).bind(await sha256(m[1])).first();
 }
 function isHost(env, req) {
-  const m = /^Bearer\s+(\S+)$/.exec(req.headers.get("authorization") || "");
-  return !!(m && env.HOST_KEY && m[1] === env.HOST_KEY);
+  const m = /^Bearer\s+(\S+)$/.exec((req.headers.get("authorization") || "").trim());
+  const want = String(env.HOST_KEY || "").trim();
+  return !!(m && want && m[1] === want);
 }
 
 async function record(env, user) {
@@ -573,7 +574,7 @@ export default {
       if (p === "/api/v1/stats" && m === "GET") return env.ASSETS.fetch(new Request(new URL("/data/stats.json", url)));
 
       if (p.startsWith("/api/v1/host/")) {
-        if (!isHost(env, req)) return json({ error: "host key required" }, 401);
+        if (!isHost(env, req)) return json({ error: String(env.HOST_KEY || "").trim() ? "host key does not match" : "HOST_KEY is not set on this worker (add it under Runtime variables and secrets)" }, 401);
         if (p === "/api/v1/host/sync" && m === "POST") return json(await host.sync(env, req));
         if (p === "/api/v1/host/pending" && m === "GET") return json(await host.pending(env, url));
         if (p === "/api/v1/host/verdict" && m === "POST") return json(await host.verdict(env, req));
