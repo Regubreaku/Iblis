@@ -19,6 +19,9 @@ class HostTests(unittest.TestCase):
 
     def test_infrastructure_result_never_becomes_contributor_failure(self):
         self.assertEqual(host.verdict_for({'status': 'INFRA_ERROR', 'detail': 'engine down'})[0], 'review')
+        v, note = host.verdict_for({'status': 'RELOCATION_RESOLVED_EQUAL', 'compiled_body_sha256': 'ab' * 32,
+                                    'helpers': [{'va': '0x00402000', 'status': 'STAND_IN'}, {'va': '0x00403000', 'status': 'MATCHES_ORIGINAL_MASKED'}]})
+        self.assertEqual(v, 'verified'); self.assertIn('stand-in helper 0x00402000', note); self.assertNotIn('0x00403000', note)
 
     def test_bad_unicode_does_not_stop_next_result(self):
         with tempfile.TemporaryDirectory() as td:

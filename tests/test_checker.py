@@ -122,6 +122,24 @@ class CheckerTests(unittest.TestCase):
     def test_unmarked_helper_is_still_an_unverified_dependency(self):
         self.assert_rejected(self.helper_check(None))
 
+    def helper_with_image(self, helper_body, image_helper):
+        # target at 0x00401000 calls a same-file helper marked 0x00402000; the image holds image_helper there
+        target, orig = b'\xe8\0\0\0\0\xc3', b'\xe8\xfb\x0f\0\0\xc3'
+        self.fixture.write_bytes(coff(target, ((1, 0x14),), scn=2, extra=(b'.text$h', helper_body, ())))
+        self.image.write_bytes(pe(orig + b'\xcc' * (0x1000 - len(orig)) + image_helper))
+        src = '// 0x00402000\nstatic void wrong() {}\n// 0x00401000\nvoid f() { wrong(); }\n'
+        return checker.compile_and_compare(self.settings, '0x00401000', len(orig), [str(self.script), str(self.fixture)], src, str(self.root / 'work'))
+
+    def test_helper_that_matches_its_original_is_reported_as_real(self):
+        res = self.helper_with_image(b'\x33\xc0\xc3', b'\x33\xc0\xc3')
+        self.assertEqual(res['status'], 'RELOCATION_RESOLVED_EQUAL')
+        self.assertEqual([(h['va'], h['status']) for h in res['helpers']], [('0x00402000', 'MATCHES_ORIGINAL_MASKED')])
+
+    def test_stand_in_helper_keeps_the_target_verdict_but_is_labelled(self):
+        res = self.helper_with_image(b'\xc3', b'\x55\x8b\xec')
+        self.assertEqual(res['status'], 'RELOCATION_RESOLVED_EQUAL')
+        self.assertEqual([(h['va'], h['status']) for h in res['helpers']], [('0x00402000', 'STAND_IN')])
+
     def test_explicit_simple_global_cpp_symbol_is_supported(self):
         self.assertEqual(self.check(symbol='?wrong@@YAXXZ', decl='extern void wrong(); // 0x00402000')['status'], 'RELOCATION_RESOLVED_EQUAL')
 

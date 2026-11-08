@@ -127,7 +127,9 @@ def cmd_sync(repo, replace_notes=()):
 def verdict_for(res):
     st = res.get("status", "INFRA_ERROR")
     if st in ("RAW_EQUAL", "RELOCATION_RESOLVED_EQUAL"):
-        return "verified", "%s, body %s" % (st, res["compiled_body_sha256"][:16])
+        stand = [h["va"] for h in res.get("helpers", []) if h.get("status") == "STAND_IN"]
+        return "verified", "%s, body %s%s" % (st, res["compiled_body_sha256"][:16],
+                                              ("; stand-in helper " + " ".join(stand)) if stand else "")
     if st == "COMPILE_ERROR":
         return "failed", "COMPILE_ERROR: compilation failed; reproduce locally for diagnostics"
     if st in ("FORBIDDEN", "NO_MARKER", "NO_SYMBOL", "MULTI_FORM", "INVALID_SOURCE", "SOURCE_ERROR"):

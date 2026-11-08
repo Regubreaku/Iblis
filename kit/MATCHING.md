@@ -29,7 +29,7 @@ Use `python iblis_check.py sxs <VA>` to inspect differences locally. Judge the c
 - **Control flow:** a result local with one return, a literal enum comparison, or a top-tested versus bottom-tested loop has resolved near matches. Equivalent C++ does not necessarily produce equivalent bytes.
 - **Layouts:** validate actual offsets rather than guessing padding. Adjacent globals represented together sometimes need a leading field to put the second at the correct offset. Never change a layout solely to force a match without evidence.
 - **Globals and qualifiers:** `static` or `volatile` can change reloads, stores and register allocation. Use them only when the function's behavior and context justify them, not as blanket fixes.
-- **Helpers:** the compiler's knowledge of a real same-file callee can affect its caller. Explain necessary helper context in your notes; do not fabricate stand-in bodies or add alternate target versions to trick the check. Report a rejected context body rather than padding it to evade detection.
+- **Helpers:** the compiler's knowledge of a real same-file callee can affect its caller. Explain necessary helper context in your notes; do not fabricate stand-in bodies or add alternate target versions to trick the check. Report a rejected context body rather than padding it to evade detection. `check` compares every same-file helper with its original: one that does not match is recorded as a stand-in, not as recovered code. The target still counts; prefer the helper's real body when you can write it.
 
 ## Register arguments (EAX, EBX, ESI, EDI)
 

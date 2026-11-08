@@ -795,6 +795,7 @@ def compile_and_compare(s, va, length, flags, src, wd, image=None):
                 continue
         twins.append(y["name"])
     rels, problems = [], []
+    helper_secs = {}   # same-file helpers the target calls: va -> symbol
     mask = bytearray(len(body))
     by_index = {y["idx"]: y for y in syms}
     external_names = {}
@@ -840,8 +841,9 @@ def compile_and_compare(s, va, length, flags, src, wd, image=None):
             # A helper defined in this file (typically a `static` function, which MSVC may give a register
             # convention its callers then follow) carries its own `// 0x...` line above its definition: the call
             # must land exactly there, the same rule as for an external callee's marker. Its body is a dependency,
-            # not part of this compare.
+            # not part of this compare: it is reported on its own below (matches its original, or a stand-in).
             want = defs[undec(sy["name"])]
+            helper_secs[want] = sy
         else:
             want = None
             problems.append("%s has an unverified internal/common/absolute dependency" % sy["name"])
@@ -854,6 +856,19 @@ def compile_and_compare(s, va, length, flags, src, wd, image=None):
         expected = (want + addend - (start + off + 4 if ty == 0x14 else 0)) & 0xffffffff
         if actual != expected:
             problems.append("%s target/addend mismatch at +0x%x (expected 0x%08X, found 0x%08X)" % (sy["name"], off, expected, actual))
+    # Each same-file helper's own body against the original at its marked address, its relocation fields masked. This never
+    # changes the target's verdict; it says whether the helper is real code or a stand-in written only to steer registers.
+    helpers = []
+    for hva, hs in sorted(helper_secs.items()):
+        hsec = secs[hs["scn"] - 1]; hb = hsec["raw"]; ho = pe.read(hva, len(hb)) or b""
+        hmask = bytearray(len(hb))
+        for k in range(hsec["nrel"]):
+            off = struct.unpack_from("<IIH", d, hsec["relptr"] + 10 * k)[0]
+            hmask[off:off + 4] = b"\1" * 4
+        same = len(ho) == len(hb) and all(hb[i] == ho[i] or hmask[i] for i in range(len(hb)))
+        helpers.append(dict(va="0x%08X" % hva, symbol=hs["name"], length=len(hb),
+                            status="MATCHES_ORIGINAL_MASKED" if same else "STAND_IN",
+                            differing_bytes=sum(1 for i in range(min(len(hb), len(ho))) if hb[i] != ho[i] and not hmask[i])))
     raw_diffs = [i for i in range(min(len(body), len(orig))) if body[i] != orig[i]]
     diffs = [i for i in raw_diffs if not mask[i]]
     same_len = len(body) == length
@@ -870,7 +885,7 @@ def compile_and_compare(s, va, length, flags, src, wd, image=None):
                target_problems=problems, extra_forms=twins, symbol=tgt["name"],
                compiled_body_sha256=hashlib.sha256(body).hexdigest(), relocations=len(rels), relocation_records=rels,
                object_sha256=hashlib.sha256(d).hexdigest(), original_body_sha256=hashlib.sha256(orig).hexdigest(), claimed_length=length,
-               extent_agrees=same_len, diff_bytes=len(raw_diffs))
+               extent_agrees=same_len, diff_bytes=len(raw_diffs), helpers=helpers)
     with open(os.path.join(wd, ".last_body.json"), "w") as f:
         json.dump(dict(body=body.hex(), mask=mask.hex()), f)  # local, for sxs
     return res
@@ -895,6 +910,12 @@ def cmd_check(va):
     st = res["status"]
     if st in ("RAW_EQUAL", "RELOCATION_RESOLVED_EQUAL"):
         print("MATCH (%s)  %d B\nbody_sha256 %s\nsubmit candidate.cpp exactly as it is now" % (st, res["compiled_length"], res["compiled_body_sha256"]))
+        for h in res.get("helpers", []):
+            if h["status"] == "STAND_IN":
+                print("note: helper %s (%s) does not match the original there (%d bytes differ): it is recorded as a stand-in,"
+                      " not as recovered code. Say so in your notes." % (h["va"], h["symbol"], h["differing_bytes"]))
+            else:
+                print("helper %s matches its original outside relocation fields" % h["va"])
     elif st == "DIFF":
         print("DIFF  compiled %d B vs original %d B, %d bytes differ outside relocations, first at %s"
               % (res["compiled_length"], res["length"], res["unmasked_diff_bytes"], res["first_diff"]))
