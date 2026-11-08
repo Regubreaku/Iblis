@@ -285,7 +285,7 @@ def starter_source(va, pk, calls, dref, ctx, hints):
     for s, ms in sorted(members.items()):
         out += ["struct %s" % s, "{"] + ms + ["};"]
     out += [""] + known + todo + ["", "// %s" % va, head, "{",
-            "    // TODO: the body. Start from previous.cpp or examples/ when the packet supplied them."]
+            "    // TODO: the body. Start from previous.cpp when the packet has an earlier attempt."]
     if not re.match(r"^(?:static\s+)?void\b", head):
         out.append("    return 0;")
     out += ["}", ""]
@@ -496,12 +496,6 @@ def cmd_brief(va):
         with open(os.path.join(wd, "previous.cpp"), "w", encoding="latin-1", errors="replace") as f:
             f.write(prev)
         made.append("previous.cpp")
-    for ex in (pk.get("context") or {}).get("examples", []) or []:
-        if re.match(r"^0x[0-9A-F]{8}$", str(ex.get("va", ""))) and ex.get("source"):
-            os.makedirs(os.path.join(wd, "examples"), exist_ok=True)
-            with open(os.path.join(wd, "examples", ex["va"][2:] + ".cpp"), "w", encoding="latin-1", errors="replace") as f:
-                f.write("// verified example %s (%s B): %s\n%s" % (ex["va"], ex.get("length", "?"), ex.get("why", "similar function"), ex["source"]))
-            made.append("examples/%s.cpp" % ex["va"][2:])
     cand = os.path.join(wd, "candidate.cpp")
     if not os.path.exists(cand):
         shutil.copyfile(os.path.join(wd, "previous.cpp" if prev else "starter.cpp"), cand)

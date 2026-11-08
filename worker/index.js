@@ -204,20 +204,6 @@ async function applyStrikes(env, uid) {
       .bind(iso(Date.parse(r.last_failed) + 7 * 864e5), uid).run();
 }
 
-// Context the build host attaches to a function: verified example sources chosen for it. Bounded, text only.
-const SYNC_SOURCE_CHARS = 65536;
-const SYNC_CONTEXT_CHARS = 49152;
-function syncContext(c) {
-  if (!c || typeof c !== "object" || !Array.isArray(c.examples)) return null;
-  const examples = c.examples.slice(0, 3).filter((e) => e && typeof e.source === "string" && /^0x[0-9A-F]{8}$/.test(String(e.va)))
-    .map((e) => ({ va: e.va, length: e.length | 0, why: String(e.why || "").slice(0, 200), source: e.source }));
-  const text = JSON.stringify({ examples });
-  return examples.length && text.length <= SYNC_CONTEXT_CHARS ? text : null;
-}
-function parseContext(t) {
-  try { return t ? JSON.parse(t) : null; } catch { return null; }
-}
-
 function bandOf(len) { return BANDS.find((b) => len >= b.min && (b.max === null || len <= b.max)).band; }
 
 async function packetFor(env, va) {
@@ -227,8 +213,7 @@ async function packetFor(env, va) {
     va: f.va, length: f.length, band: bandOf(f.length), module: f.module, name: f.name, body_sha256: f.body_sha256,
     flags: f.flags || env.DEFAULT_FLAGS,
     reference: f.reference,
-    previous_attempt: f.best_note || f.best_source ? { note: f.best_note || "closest earlier source; no note", closest_source: f.best_source } : null,
-    context: parseContext(f.context),
+    previous_attempt: f.best_note ? { note: f.best_note, closest_source: f.best_source } : null,
     lease_hours: LEASE_HOURS,
     local_steps: [
       `save this packet as work/${f.va}/packet.json`,
@@ -618,23 +603,18 @@ const host = {
       if (!va) continue;
       // A function waiting for a verdict stays pending until the host reports one.
       stmts.push(env.DB.prepare(
-        `INSERT INTO functions (va, length, module, state, name, flags, reference, body_sha256, best_note, best_source, context)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO functions (va, length, module, state, name, flags, reference, body_sha256, best_note)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(va) DO UPDATE SET length = excluded.length, module = excluded.module, name = excluded.name,
            flags = excluded.flags, reference = excluded.reference, body_sha256 = excluded.body_sha256,
            best_note = COALESCE(functions.best_note, excluded.best_note),
-           best_source = CASE WHEN functions.best_note IS NOT NULL AND functions.best_source IS NOT NULL THEN functions.best_source
-             ELSE COALESCE(excluded.best_source, functions.best_source) END,
-           context = excluded.context,
            state = CASE WHEN functions.state = 'matched' THEN 'matched'
              WHEN excluded.state = 'open' AND EXISTS (SELECT 1 FROM results WHERE va = functions.va AND status = 'verified') THEN 'matched'
              WHEN excluded.state = 'open' AND EXISTS (SELECT 1 FROM results WHERE va = functions.va AND status IN ('pending', 'review')) THEN 'pending'
              ELSE excluded.state END`
       ).bind(va, f.length | 0, String(f.module || "?"), ["open", "matched", "excluded"].includes(f.state) ? f.state : "open",
              f.name || null, f.flags || null, f.reference || null, f.body_sha256 || null,
-             f.note ? String(f.note).slice(0, 4000) : null,
-             typeof f.best_source === "string" && f.best_source.length <= SYNC_SOURCE_CHARS ? f.best_source : null,
-             syncContext(f.context)));
+             f.note ? String(f.note).slice(0, 4000) : null));
     }
     for (let i = 0; i < stmts.length; i += 100) await env.DB.batch(stmts.slice(i, i + 100));
     return { synced: stmts.length };

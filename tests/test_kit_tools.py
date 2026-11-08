@@ -169,15 +169,6 @@ int __fastcall Target(D2UnitStrc* pUnit)
 
 
 class HostContextTests(unittest.TestCase):
-    def test_examples_prefer_shared_callees_and_never_the_function_itself(self):
-        import host
-        pool = [dict(va='0x00401000', length=40, module='m', source='self', marks={0x00409000}),
-                dict(va='0x00402000', length=40, module='m', source='near', marks=set()),
-                dict(va='0x00403000', length=90, module='x', source='shares', marks={0x00409000, 0x00403000})]
-        ex = host.pick_examples(pool, '0x00401000', 40, 'm', 'int f(); // 0x00409000\n', 2)
-        self.assertEqual([e['va'] for e in ex], ['0x00403000', '0x00402000'])
-        self.assertIn('shares 1 declared callee', ex[0]['why'])
-
     def test_sync_batches_stay_under_the_service_limit(self):
         import host
         fs = [dict(va='0x%08X' % i, best_source='x' * 40000) for i in range(100)]
@@ -185,11 +176,21 @@ class HostContextTests(unittest.TestCase):
         self.assertEqual(sum(len(b) for b in batches), 100)
         self.assertTrue(all(len(json.dumps({'functions': b})) < 2 * 1024 * 1024 for b in batches))
 
-    def test_host_never_sends_text_the_service_would_reject(self):
+    def test_sync_never_carries_source(self):
         import host
-        self.assertTrue(host.service_text_ok('// 0x00401000\nint f() { return 0; }\n'))
-        self.assertFalse(host.service_text_ok('int f() { __asm { nop } }'))
-        self.assertFalse(host.service_text_ok('mov eax, 1\n' + ''.join('\n00401%03X: mov eax, 1' % i for i in range(12))))
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            (root / 'docs/rulings').mkdir(parents=True)
+            (root / 'config.json').write_text(json.dumps({'profile': {'flags': ['/O2']}, 'rules': {}}))
+            (root / 'names.json').write_text('{}')
+            for state in ('parked', 'matched'):
+                (root / 'queue' / state / '00401000').mkdir(parents=True)
+            (root / 'queue/parked/00401000.json').write_text(json.dumps({'va': '0x00401000', 'length': 8, 'park_reason': 'near'}))
+            (root / 'queue/parked/00401000/candidate.cpp').write_text('// 0x00401000\nint f(){return 1;}\n')
+            fs = host.Repo(t).queue()
+        self.assertEqual([f['va'] for f in fs], ['0x00401000'])
+        self.assertEqual(fs[0]['note'], 'near')
+        self.assertFalse({'best_source', 'context', 'source'} & set(fs[0]))
 
 
 class CompilerEnvironmentTests(unittest.TestCase):

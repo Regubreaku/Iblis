@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Project Iblis controller. Public compilation requires the isolated Docker runner (host/README.md).
 
-  python host/host.py sync      --repo PATH [--redivivus PATH] [--examples N]
-                                                      push the queue (state, length, module, name, flags, closest
-                                                      parked source; a Redivivus pointer; N verified examples each)
+  python host/host.py sync      --repo PATH [--redivivus PATH]
+                                                      push the queue (state, length, module, name, flags, park note,
+                                                      a Redivivus pointer). Never source: project code stays private.
   python host/host.py verify    --repo PATH [--once]  poll pending submissions, recompile each, post verdicts
   python host/host.py integrate --repo PATH           write the day's verified sources into the repository (nightly)
   python host/host.py review list|recheck|adjudicate --repo PATH [--id N] [--verdict failed --note TEXT]
@@ -69,18 +69,8 @@ class Repo:
                 f.append(r["flag"])
         return f
 
-    def closest_source(self, state, va):
-        """A parked or reopened function's last candidate.cpp, if the service would accept it as text."""
-        p = os.path.join(self.root, "queue", state, va[2:], "candidate.cpp")
-        try:
-            src = open(p, encoding="latin-1").read()
-        except OSError:
-            return None
-        return src if service_text_ok(src) and len(src) <= 60000 else None
-
-    def queue(self, redivivus=None, examples=0):
+    def queue(self, redivivus=None):
         refs = redivivus_refs(redivivus) if redivivus else {}
-        pool = example_pool(self.root) if examples else []
         out = []
         for state in ("open", "claimed", "submitted", "parked", "matched"):
             for p in glob.glob(os.path.join(self.root, "queue", state, "*.json")):
@@ -95,29 +85,10 @@ class Repo:
                 f = dict(va=va, length=it["length"], module=it.get("module", "?"), state=st,
                          name=self.names.get(va), flags=" ".join(self.flags(va)), body_sha256=it.get("body_sha256"),
                          note=it.get("previous_park_reason") or it.get("last_park_reason") or it.get("park_reason"))
-                if st == "open":
-                    f["best_source"] = self.closest_source(state, va)
-                    if refs.get(a):
-                        f["reference"] = refs[a]
-                    if pool:
-                        ex = pick_examples(pool, va, it["length"], f["module"], f["best_source"], examples)
-                        if ex:
-                            f["context"] = dict(examples=ex)
+                if st == "open" and refs.get(a):
+                    f["reference"] = refs[a]
                 out.append(f)
         return out
-
-
-MARKER = re.compile(r"//\s*(?:0x|.*?\bat\s+0x)([0-9A-Fa-f]{8})\b")
-
-
-def service_text_ok(s):
-    """The service's own text rules (worker checkText), so the host never sends what a contributor could not."""
-    if "\0" in s or re.search(r"[A-Za-z0-9+/=]{400,}", s) or re.search(r"(?:\b[0-9A-Fa-f]{2}\b[ ,]+){48,}", s):
-        return False
-    if re.search(r"\b(?:push|mov|lea|call|jmp|ret)\s+(?:e[a-d]x|e[sd]i|e[sb]p|dword|byte|0x)", s, re.I) and \
-            len(re.findall(r"\n\s*[0-9A-F]{6,8}[: ]", s, re.I)) > 8:
-        return False
-    return not re.search(r"__asm|\b_emit\b|__declspec\s*\(\s*naked|#pragma\s+(?:optimize|code_seg)", s)
 
 
 def redivivus_refs(root):
@@ -137,43 +108,8 @@ def redivivus_refs(root):
     return out
 
 
-def example_pool(root):
-    """Verified single-function sources (contributor submissions) that can serve as examples."""
-    pool = []
-    for p in glob.glob(os.path.join(root, "queue", "matched", "*.json")):
-        try:
-            it = json.load(open(p))
-            src = open(os.path.join(root, "queue", "matched", os.path.basename(p)[:-5], "candidate.cpp"), encoding="latin-1").read()
-        except (OSError, ValueError):
-            continue
-        if len(src) > 12000 or not service_text_ok(src):
-            continue
-        pool.append(dict(va=norm(it["va"]), length=it["length"], module=it.get("module", "?"), source=src,
-                         marks={int(x, 16) for x in MARKER.findall(src)}))
-    return pool
-
-
-def pick_examples(pool, va, length, module, source, n):
-    """Most shared callees first, then same module, then nearest size; never the function itself."""
-    import math
-    marks = {int(x, 16) for x in MARKER.findall(source or "")} - {int(va, 16)}
-    ranked = []
-    for e in pool:
-        if e["va"] == va or e["length"] > max(4 * length, 64):
-            continue
-        shared = len(marks & (e["marks"] - {int(e["va"], 16)}))
-        ranked.append(((-shared, e["module"] != module, abs(math.log((e["length"] + 1) / (length + 1)))), shared, e))
-    ranked.sort(key=lambda r: (r[0], r[2]["va"]))
-    out = []
-    for _, shared, e in ranked[:n]:
-        why = ", ".join(x for x in (("shares %d declared callee(s)" % shared) if shared else "",
-                                    "same module" if e["module"] == module else "", "%d B" % e["length"]) if x)
-        out.append(dict(va=e["va"], length=e["length"], why=why, source=e["source"]))
-    return out
-
-
 def sync_batches(fs, limit=1_500_000, most=500):
-    """Split records into requests under the service's 2 MiB body limit (sources and examples make records large)."""
+    """Split records into requests under the service's 2 MiB body limit."""
     batch, size = [], 2
     for f in fs:
         n = len(json.dumps(f)) + 1
@@ -185,10 +121,9 @@ def sync_batches(fs, limit=1_500_000, most=500):
         yield batch
 
 
-def cmd_sync(repo, redivivus=None, examples=0):
-    fs = repo.queue(redivivus, examples)
-    print("closest sources %d, references %d, with examples %d" % (
-        sum(1 for f in fs if f.get("best_source")), sum(1 for f in fs if f.get("reference")), sum(1 for f in fs if f.get("context"))))
+def cmd_sync(repo, redivivus=None):
+    fs = repo.queue(redivivus)
+    print("references %d" % sum(1 for f in fs if f.get("reference")))
     done = 0
     for batch in sync_batches(fs):
         r = api("POST", "/api/v1/host/sync", {"functions": batch})
@@ -406,7 +341,7 @@ if __name__ == "__main__":
     repo = Repo(arg("--repo") or sys.exit("--repo PATH is required"))
     c = sys.argv[1]
     if c == "flags": print(" ".join(repo.flags(norm(sys.argv[-1]))))
-    elif c == "sync": cmd_sync(repo, arg("--redivivus"), int(arg("--examples", "0")))
+    elif c == "sync": cmd_sync(repo, arg("--redivivus"))
     elif c == "verify": cmd_verify(repo, "--once" in sys.argv)
     elif c == "integrate": cmd_integrate(repo)
     elif c == "review": cmd_review(repo, sys.argv[2], arg("--id"), arg("--verdict"), arg("--note"))
