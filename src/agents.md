@@ -1,6 +1,6 @@
 # Contribute to Project Iblis
 
-Contributor intake is temporarily paused while the updated checker and isolated host are validated. Do not start setup or request new assignments during this pause. A `503` from connect, next or submit means stop and wait for the service to reopen; do not retry in a loop.
+{{#paused}}Contributor intake is temporarily paused while the updated checker and isolated host are validated. Do not start setup or request new assignments during this pause. A `503` from connect, next or submit means stop and wait for the service to reopen; do not retry in a loop.{{/paused}}
 
 Write C++ for an assigned Diablo II 1.14d function, check it locally, and submit the source to the service. The build host independently verifies it; accepted work is prepared for integration into the project's private repository. Contributors use the API, not repository commits.
 

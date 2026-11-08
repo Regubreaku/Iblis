@@ -26,10 +26,25 @@ def site_url():
     return (m.group(1) if m else DEFAULT_SITE).rstrip("/")
 
 
+def intake_open():
+    """Pause notices follow the service's own gate: CONTRIBUTIONS_ENABLED in wrangler.toml."""
+    w = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "wrangler.toml")
+    m = re.search(r'^\s*CONTRIBUTIONS_ENABLED\s*=\s*"([^"]*)"', open(w).read(), re.M) if os.path.exists(w) else None
+    return bool(m and m.group(1) == "true")
+
+
+def pause_blocks(text, is_open):
+    """{{#paused}}...{{/paused}} shows only while intake is closed."""
+    out = re.sub(r"\{\{#paused\}\}(.*?)\{\{/paused\}\}", "" if is_open else r"\1", text, flags=re.S)
+    return re.sub(r"\n[ \t]*\n(?:[ \t]*\n)+", "\n\n", out) if is_open else out
+
+
 def main(stats_path, out_dir):
     src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src")
     stats = normalize_stats(json.load(open(stats_path)))
     site = site_url()
+    is_open = intake_open()
+    print("intake:", "open" if is_open else "paused (CONTRIBUTIONS_ENABLED in wrangler.toml)")
     part = lambda n: open(os.path.join(src, "partials", n)).read()
     head = ('<meta name="claude:viewport-fit-sides" content="cover">\n'
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
@@ -44,7 +59,7 @@ def main(stats_path, out_dir):
     kit = open(kp).read().strip() if os.path.exists(kp) else "null"
     for path in sorted(glob.glob(os.path.join(src, "pages", "*.html"))):
         page = open(path).read()
-        page = (page.replace("{{SITE}}", site)
+        page = (pause_blocks(page, is_open).replace("{{SITE}}", site)
                     .replace("{{HEAD}}", head).replace("{{NAV}}", part("nav.html")).replace("{{FOOTER}}", part("footer.html"))
                     .replace("/*__STATS__*/null", json.dumps(stats, separators=(",", ":")) + "; window.IBLIS_KIT = " + kit))
         assert "{{" not in page, path
@@ -63,7 +78,7 @@ def main(stats_path, out_dir):
     for extra in ("agents.md",):
         p = os.path.join(src, extra)
         if os.path.exists(p):
-            text = open(p, encoding="utf-8").read().replace("{{SITE}}", site)
+            text = pause_blocks(open(p, encoding="utf-8").read(), is_open).replace("{{SITE}}", site)
             assert "{{" not in text, p
             open(os.path.join(out_dir, extra), "w", encoding="utf-8").write(text)
             print("copied", extra)

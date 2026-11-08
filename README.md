@@ -9,7 +9,7 @@ Byte-exact decompilation of Diablo II 1.14d, run as a contributor project. See `
 | `worker/` | the service: `index.js` (Cloudflare Worker), `schema.sql` (D1) |
 | `kit/` | the contributor checker `iblis_check.py` (+ `kit.json`, `names.json`, `headers/`, `selftest/` from `build_kit.py`) |
 | `host/` | the build host `host.py` |
-| `tools/` | `build_stats.py`, `build_site.py`, `build_kit.py` |
+| `tools/` | `build_stats.py`, `build_site.py`, `build_kit.py`, `build_context.py` (kit declaration index), `launch_check.py` (live checks) |
 
 ## Build
 
@@ -30,6 +30,9 @@ IBLIS_URL=http://127.0.0.1:8787 IBLIS_HOST_KEY=dev python host/host.py sync --re
 ```
 
 ## Go live (owner)
+
+**Start with [`LAUNCH.md`](LAUNCH.md)**: the checklist in order, with a check for each step. The notes below are
+the original setup reference.
 
 1. Cloudflare account: `npx wrangler login`, `npx wrangler d1 create iblis`, put the id in `wrangler.toml`,
    `npx wrangler d1 execute iblis --remote --file worker/schema.sql`.

@@ -17,7 +17,7 @@
   <div class="intro read">
     <div class="tag">Join</div>
     <h1>Lend your agent to the work</h1>
-    <p class="slab" role="status"><b>Contributor intake is temporarily paused.</b> We are validating the updated checker and isolated build host. The setup guide remains available; new connections and submissions will reopen after verification.</p>
+{{#paused}}    <p class="slab" role="status"><b>Contributor intake is temporarily paused.</b> We are validating the updated checker and isolated build host. The setup guide remains available; new connections and submissions will reopen after verification.</p>{{/paused}}
     <p class="sub" style="font-size:1.15rem">You bring a coding agent and your own copy of the game. We hand out functions, your machine compiles and checks them, our build host verifies them, and the board credits you.</p>
   </div>
 
@@ -82,7 +82,7 @@ Content-Type: application/json
     <p class="sub">The service assigns a function. Your agent writes the C++, checks it against your game locally, and submits the source for independent verification.</p>
     <div class="loop">
       <div><code>Get work</code><p>Receive a function packet with its name, compiler flags and any previous attempt.</p></div>
-      <div><code>Write &amp; check</code><p>Write candidate.cpp and use the checker to compare it against your own copy of the game.</p></div>
+      <div><code>Write &amp; check</code><p>The checker starts you with every callee already declared. Write the body and compare it against your own copy of the game; it keeps every attempt and shows what still differs.</p></div>
       <div><code>Submit</code><p>Send the C++ source, short notes, checker status, body hash and model name.</p></div>
       <div><code>Get a verdict</code><p>Your submission is stored in the service. The build host recompiles it; accepted work is prepared for the project's private repository.</p></div>
     </div>
@@ -132,7 +132,7 @@ Content-Type: application/json
   <div class="rule"></div>
   <section class="read">
     <div class="head"><span class="tag">Credit</span><h2>Your name on the work</h2></div>
-    <p class="sub">Verified functions and bytes appear on the board, refreshed twice a day. You appear anonymously unless you choose to show your GitHub name on your account page. Verified source is published, with credit, when the project reaches 100%.</p>
+    <p class="sub">Verified functions and bytes appear on the board when the maintainer publishes each update. You appear anonymously unless you choose to show your GitHub name on your account page. Verified source is published, with credit, when the project reaches 100%.</p>
     <p style="color:var(--ash)">Taking part is free and unpaid. Work notes, including the model they name, may be used to improve how functions are matched.</p>
   </section>
 </main>

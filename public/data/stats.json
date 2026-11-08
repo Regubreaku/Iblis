@@ -1,6 +1,6 @@
 {
- "generated_utc": "2026-11-08T10:42Z",
- "commit": "7eacb70ff",
+ "generated_utc": "2026-11-08T17:04Z",
+ "commit": "d07c5923c",
  "text_bytes": 2928640,
  "functions_total": 14845,
  "bytes_total": 2609016,
@@ -13,20 +13,20 @@
    "bytes": 1948129
   },
   "open": {
-   "functions": 1211,
-   "bytes": 551674
+   "functions": 1082,
+   "bytes": 537458
   },
   "claimed": {
-   "functions": 73,
-   "bytes": 50470
+   "functions": 80,
+   "bytes": 50744
   },
   "parked": {
-   "functions": 196,
-   "bytes": 51165
+   "functions": 239,
+   "bytes": 57099
   },
   "submitted": {
-   "functions": 57,
-   "bytes": 4396
+   "functions": 136,
+   "bytes": 12404
   },
   "lead_counted": {
    "functions": 2,
@@ -41,9 +41,9 @@
    "bytes": 823715,
    "matched_functions": 3682,
    "matched_bytes": 603318,
-   "review_bytes": 17287,
-   "open_bytes": 197225,
-   "parked_bytes": 5885
+   "review_bytes": 20483,
+   "open_bytes": 191950,
+   "parked_bytes": 7964
   },
   {
    "name": "D2Client",
@@ -51,9 +51,9 @@
    "bytes": 771293,
    "matched_functions": 4174,
    "matched_bytes": 600683,
-   "review_bytes": 13865,
-   "open_bytes": 154536,
-   "parked_bytes": 2209
+   "review_bytes": 14855,
+   "open_bytes": 153174,
+   "parked_bytes": 2581
   },
   {
    "name": "D2Common",
@@ -61,9 +61,9 @@
    "bytes": 438907,
    "matched_functions": 2120,
    "matched_bytes": 359389,
-   "review_bytes": 13118,
-   "open_bytes": 63784,
-   "parked_bytes": 2616
+   "review_bytes": 13726,
+   "open_bytes": 62505,
+   "parked_bytes": 3287
   },
   {
    "name": "Storm/Fog",
@@ -71,9 +71,9 @@
    "bytes": 174608,
    "matched_functions": 1195,
    "matched_bytes": 130628,
-   "review_bytes": 3040,
-   "open_bytes": 40421,
-   "parked_bytes": 519
+   "review_bytes": 4335,
+   "open_bytes": 38852,
+   "parked_bytes": 793
   },
   {
    "name": "D2Win/D2CMP/gl/Smack/Sound",
@@ -81,8 +81,8 @@
    "bytes": 132967,
    "matched_functions": 742,
    "matched_bytes": 99396,
-   "review_bytes": 3011,
-   "open_bytes": 30424,
+   "review_bytes": 3489,
+   "open_bytes": 29946,
    "parked_bytes": 136
   },
   {
@@ -91,9 +91,9 @@
    "bytes": 117814,
    "matched_functions": 352,
    "matched_bytes": 34792,
-   "review_bytes": 2687,
-   "open_bytes": 41275,
-   "parked_bytes": 39060
+   "review_bytes": 3907,
+   "open_bytes": 38343,
+   "parked_bytes": 40772
   },
   {
    "name": "Bnclient/D2MCPClient",
@@ -101,9 +101,9 @@
    "bytes": 73852,
    "matched_functions": 446,
    "matched_bytes": 61733,
-   "review_bytes": 370,
-   "open_bytes": 11213,
-   "parked_bytes": 536
+   "review_bytes": 418,
+   "open_bytes": 10899,
+   "parked_bytes": 802
   },
   {
    "name": "D2CMP",
@@ -111,9 +111,9 @@
    "bytes": 55420,
    "matched_functions": 377,
    "matched_bytes": 38856,
-   "review_bytes": 4138,
-   "open_bytes": 12222,
-   "parked_bytes": 204
+   "review_bytes": 4463,
+   "open_bytes": 11625,
+   "parked_bytes": 476
   },
   {
    "name": "Storm",
@@ -122,8 +122,8 @@
    "matched_functions": 166,
    "matched_bytes": 12338,
    "review_bytes": 0,
-   "open_bytes": 452,
-   "parked_bytes": 0
+   "open_bytes": 164,
+   "parked_bytes": 288
   },
   {
    "name": "Unattributed",
@@ -141,8 +141,8 @@
    "bytes": 430,
    "matched_functions": 0,
    "matched_bytes": 0,
-   "review_bytes": 308,
-   "open_bytes": 122,
+   "review_bytes": 430,
+   "open_bytes": 0,
    "parked_bytes": 0
   }
  ],
@@ -240,7 +240,7 @@
    ],
    "functions": 452,
    "bytes": 73602,
-   "tried": 86
+   "tried": 128
   },
   {
    "band": "medium",
@@ -250,7 +250,7 @@
    ],
    "functions": 520,
    "bytes": 190997,
-   "tried": 20
+   "tried": 21
   },
   {
    "band": "large",

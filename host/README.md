@@ -19,9 +19,8 @@ contributor strike. Every item has its own error boundary. The service default i
    Runtime uses that immutable local ID and `--pull=never`.
 3. Supply your legally obtained, authenticated Game.exe and MSVC 2005 SP1 toolchain
    locally. This project does not download or license either. Copy
-   `runner.example.json` outside the repository. List **every runtime compiler
-   file** (EXE, DLL and dependencies) and its complete SHA-256 in `compiler_files`.
-   The three example files are illustrative, not a complete installation.
+   `runner.example.json` outside the repository. It already lists all twelve pinned compiler files with their
+   SHA-256 (the same set `kit/kit.json` pins) and the 1.14d game hash; set the paths and the image ID.
    Set `game_sha256` to the private repository's `config.json` image hash.
    The compiler hash must also match its configured toolchain prefix.
 4. Set `IBLIS_RUNNER_CONFIG` to this file, plus `IBLIS_HOST_KEY` and optionally
