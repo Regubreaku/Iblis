@@ -7,6 +7,7 @@ workers_dev = true
 [assets]
 directory = "public"
 binding = "ASSETS"
+not_found_handling = "404-page"   # unknown addresses get public/404.html, not the browser's bare error
 run_worker_first = ["/mcp", "/api/*", "/auth/*", "/approve", "/agents.md", "/join", "/join.html", "/kit/*"]
 
 [[d1_databases]]
