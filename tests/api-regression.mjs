@@ -392,3 +392,36 @@ test('invite list limits next and submit to invited GitHub accounts; status stay
   f.env.INVITED_GITHUB='';
   assert.notEqual((await f.request('/api/v1/next')).status,403);
 });
+
+test('sync writes only rows that changed', async t => {
+  const f = await fixture(t);
+  const row = {va, length: 16, module: 'fixture', state: 'open', flags: '/O2', note: 'tried a'};
+  const other = {va: '0x00401300', length: 32, module: 'fixture', state: 'open'};
+  const sync = async rows => (await f.request('/api/v1/host/sync', {functions: rows}, {host: true})).body;
+  assert.deepEqual(await sync([row, other]), {synced: 2, written: 2});    // flags/note on an existing row, plus an insert
+  assert.deepEqual(await sync([row, other]), {synced: 2, written: 0});    // same queue again: nothing written
+  assert.deepEqual(await sync([{...row, note: 'tried b'}, other]), {synced: 2, written: 0});  // a note never overwrites
+  assert.deepEqual(await sync([{...row, flags: '/O2 /Oy'}, other]), {synced: 2, written: 1});
+  assert.equal(f.sql.prepare('SELECT flags FROM functions WHERE va = ?').get(va).flags, '/O2 /Oy');
+  f.result('pending');
+  assert.deepEqual(await sync([{...row, flags: '/O2 /Oy'}]), {synced: 1, written: 1});  // open -> pending while it waits
+  assert.equal(f.sql.prepare('SELECT state FROM functions WHERE va = ?').get(va).state, 'pending');
+  assert.deepEqual(await sync([{...row, flags: '/O2 /Oy'}]), {synced: 1, written: 0});
+  assert.deepEqual(await sync([{...other, state: 'matched'}]), {synced: 1, written: 1});
+  assert.deepEqual(await sync([{...other, state: 'open'}]), {synced: 1, written: 0});   // matched never reopens
+});
+
+test('sync replaces a note only when the host asks for that function', async t => {
+  const f = await fixture(t);
+  const sync = async rows => (await f.request('/api/v1/host/sync', {functions: rows}, {host: true})).body;
+  const note = () => f.sql.prepare('SELECT best_note FROM functions WHERE va = ?').get(va).best_note;
+  await sync([{va, length: 16, module: 'fixture', state: 'open', note: 'forbidden RNG call'}]);
+  assert.equal(note(), 'forbidden RNG call');
+  assert.deepEqual(await sync([{va, length: 16, module: 'fixture', state: 'open', note: 'RNG call'}]), {synced: 1, written: 0});
+  assert.equal(note(), 'forbidden RNG call');                      // a plain sync never overwrites
+  assert.deepEqual(await sync([{va, length: 16, module: 'fixture', state: 'open', note: 'RNG call', replace_note: true}]), {synced: 1, written: 1});
+  assert.equal(note(), 'RNG call');
+  assert.deepEqual(await sync([{va, length: 16, module: 'fixture', state: 'open', note: 'RNG call', replace_note: true}]), {synced: 1, written: 0});
+  assert.deepEqual(await sync([{va, length: 16, module: 'fixture', state: 'open', replace_note: true}]), {synced: 1, written: 1});
+  assert.equal(note(), null);                                     // a replaced empty note clears it
+});
