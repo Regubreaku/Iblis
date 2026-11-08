@@ -23,8 +23,9 @@ CREDENTIALS_ROTATED = "true"
 # Soft launch: only these GitHub logins (or numeric ids), comma-separated, may take work or submit. "" = open to all.
 INVITED_GITHUB = ""
 # No tier limits and no strike or expiry pauses for these GitHub logins or numeric ids, comma-separated.
-# 353598303 = Eskeshehir (esk), owner decision 2026-11-08. Verification still decides every submission.
-UNLIMITED_GITHUB = "353598303"
+# 353598303 = Eskeshehir (esk), 120912283 = Regubreaku (the owner); owner decisions 2026-11-08.
+# Verification still decides every submission.
+UNLIMITED_GITHUB = "353598303,120912283"
 # SITE_URL = "https://your.domain"   (unset: the service uses the address it is served from)
 REPO_URL = "https://github.com/Regubreaku/Iblis"
 DEFAULT_FLAGS = "/nologo /c /TP /Zl /Z7 /Gy /MT /O2 /Oy- /Ob2 /Gd"
