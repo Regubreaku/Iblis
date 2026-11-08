@@ -5,7 +5,7 @@ Optional help when a candidate differs. These observations come from the project
 ## Start from evidence
 
 - Read the local brief and the packet's `previous_attempt` first. Preserve a useful candidate and avoid repeating changes its notes already ruled out.
-- Use [Redivivus](https://github.com/jaenster/redivivus) and [D2MOO](https://github.com/ThePhrozenKeep/D2MOO) for established names, types, helper signatures and statement order. Both publish MIT-licensed source. Record the reference and retain applicable attribution when adapting it.
+- Use [D2MOO](https://github.com/ThePhrozenKeep/D2MOO) (MIT) for established names, types, helper signatures and statement order. Credit it in your notes when you start from it; it is a guide, not a match.
 - Try the reference's literal C++ structure before inventing a new one. Its enum names, conditional expressions and helper parameter order have often mattered.
 - Change one evidence-backed idea per check. `check` keeps every source in `history/` and `best --restore` returns to the closest; `sweep` compiles a folder of variants and names the ones that produce the same body, which is not progress.
 - Look up before guessing: `decl <VA>` for a callee's verified signature (convention, parameter types and order decide registers), `fields <Struct>` and `layout` for offsets. They are what verified functions used, which is evidence, not proof.
@@ -43,10 +43,11 @@ its own, including EBX, ESI and EDI parameters, and the original was built the s
 - **A callee takes register values:** define that callee as a `static` function in your file with its own `// 0x...`
   line and a real attempt at its body. The checker verifies that your call lands on that address; the helper's body
   is context, not part of your compare. A real body is usually enough for the caller's setup to line up.
-- **Only the static's body decides its registers.** `__stdcall`, `__fastcall` or `__cdecl` on it, its parameter
-  order, and what the caller looks like made no difference to the static's own code. Small body changes do move them:
-  writing through a struct field instead of a pointer local, or one result variable through a switch instead of
-  several returns.
+- **The static's body decides its registers.** `__stdcall`, `__fastcall` or `__cdecl` on it and what the caller looks
+  like made no difference to the static's own code, and its parameter order usually made none either (once it moved a
+  value from EDX to ECX, so it is worth a sweep). Small body changes do move them:
+  writing through a struct field instead of a pointer local, one result variable through a switch instead of several
+  returns, or reading a field into a local before the call (that swapped two incoming registers into the original's).
 - **Parameter order still matters to the caller:** it sets the order the arguments are evaluated at the call site.
   When only the caller's setup differs, sweep the permutations of the static's parameters.
 - A static with its own convention can come out without `push ebp` even under `/Oy-`, so a missing frame pointer
@@ -62,7 +63,7 @@ its own, including EBX, ESI and EDI parameters, and the original was built the s
 Examples matched this way: `0x0064D060` (calls two such statics, grid in EAX, box in ECX); `0x004549F0` (target as a
 static, text pointer in EBX); `0x006C3D20`, `0x006C42E0`, `0x006C4980`, `0x0065A710` (targets as statics, values in
 EAX/ECX/EDX/ESI/EDI); `0x006C5A90` (target and callee both statics); `0x004DB2E0` (ordinary target, four static
-callees).
+callees); `0x00681560`, `0x006C50D0` (targets as statics); `0x00540DF0` (static callee, queue in EAX).
 
 Small algebraic rewrites, added scopes or declaration reordering have often produced identical bodies. Check the result instead of cycling through cosmetic variants.
 
