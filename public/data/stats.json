@@ -1,32 +1,28 @@
 {
- "generated_utc": "2026-11-08T17:35Z",
- "commit": "38ddc055c",
+ "generated_utc": "2026-11-08T18:20Z",
+ "commit": "8c6f02f54",
  "text_bytes": 2928640,
  "functions_total": 14845,
  "bytes_total": 2609016,
- "matched_functions": 13445,
- "matched_bytes": 1963869,
+ "matched_functions": 13447,
+ "matched_bytes": 1964024,
  "matched_pct_text": 67.06,
  "states": {
   "matched": {
-   "functions": 13445,
-   "bytes": 1963869
+   "functions": 13447,
+   "bytes": 1964024
   },
   "open": {
-   "functions": 1070,
-   "bytes": 535575
-  },
-  "claimed": {
-   "functions": 80,
-   "bytes": 50798
+   "functions": 1128,
+   "bytes": 584243
   },
   "parked": {
-   "functions": 249,
-   "bytes": 58622
+   "functions": 255,
+   "bytes": 59661
   },
-  "submitted": {
-   "functions": 1,
-   "bytes": 152
+  "claimed": {
+   "functions": 15,
+   "bytes": 1088
   }
  },
  "certified": 0,
@@ -37,29 +33,29 @@
    "bytes": 823715,
    "matched_functions": 3705,
    "matched_bytes": 608083,
-   "review_bytes": 15719,
-   "open_bytes": 191639,
-   "parked_bytes": 8274
+   "review_bytes": 205,
+   "open_bytes": 206899,
+   "parked_bytes": 8528
   },
   {
    "name": "D2Client",
    "functions": 4529,
    "bytes": 771293,
-   "matched_functions": 4191,
-   "matched_bytes": 602331,
-   "review_bytes": 13687,
-   "open_bytes": 152544,
-   "parked_bytes": 2731
+   "matched_functions": 4192,
+   "matched_bytes": 602483,
+   "review_bytes": 227,
+   "open_bytes": 165376,
+   "parked_bytes": 3207
   },
   {
    "name": "D2Common",
    "functions": 2298,
    "bytes": 438907,
-   "matched_functions": 2125,
-   "matched_bytes": 362976,
-   "review_bytes": 10162,
-   "open_bytes": 62033,
-   "parked_bytes": 3736
+   "matched_functions": 2126,
+   "matched_bytes": 362979,
+   "review_bytes": 322,
+   "open_bytes": 71717,
+   "parked_bytes": 3889
   },
   {
    "name": "Storm/Fog",
@@ -67,8 +63,8 @@
    "bytes": 174608,
    "matched_functions": 1239,
    "matched_bytes": 132701,
-   "review_bytes": 2262,
-   "open_bytes": 38852,
+   "review_bytes": 0,
+   "open_bytes": 41114,
    "parked_bytes": 793
   },
   {
@@ -77,8 +73,8 @@
    "bytes": 132967,
    "matched_functions": 761,
    "matched_bytes": 100511,
-   "review_bytes": 2374,
-   "open_bytes": 29946,
+   "review_bytes": 0,
+   "open_bytes": 32320,
    "parked_bytes": 136
   },
   {
@@ -87,9 +83,9 @@
    "bytes": 117814,
    "matched_functions": 367,
    "matched_bytes": 36459,
-   "review_bytes": 2245,
-   "open_bytes": 38029,
-   "parked_bytes": 41081
+   "review_bytes": 334,
+   "open_bytes": 39784,
+   "parked_bytes": 41237
   },
   {
    "name": "Bnclient/D2MCPClient",
@@ -97,8 +93,8 @@
    "bytes": 73852,
    "matched_functions": 451,
    "matched_bytes": 61899,
-   "review_bytes": 252,
-   "open_bytes": 10743,
+   "review_bytes": 0,
+   "open_bytes": 10995,
    "parked_bytes": 958
   },
   {
@@ -107,8 +103,8 @@
    "bytes": 55420,
    "matched_functions": 380,
    "matched_bytes": 39032,
-   "review_bytes": 4138,
-   "open_bytes": 11625,
+   "review_bytes": 0,
+   "open_bytes": 15763,
    "parked_bytes": 625
   },
   {
@@ -137,21 +133,21 @@
    "bytes": 430,
    "matched_functions": 7,
    "matched_bytes": 319,
-   "review_bytes": 111,
-   "open_bytes": 0,
+   "review_bytes": 0,
+   "open_bytes": 111,
    "parked_bytes": 0
   }
  ],
  "leaderboard": [
   {
    "who": "Legbreak",
-   "functions": 13250,
-   "bytes": 1915691
+   "functions": 13251,
+   "bytes": 1915694
   },
   {
    "who": "Esk",
-   "functions": 166,
-   "bytes": 42874
+   "functions": 167,
+   "bytes": 43026
   },
   {
    "who": "Nathan",
@@ -167,13 +163,13 @@
  "by_model": [
   {
    "model": "claude-opus-5-5",
-   "functions": 12918,
-   "bytes": 1879899
+   "functions": 12919,
+   "bytes": 1879902
   },
   {
    "model": "codex",
-   "functions": 362,
-   "bytes": 66207
+   "functions": 363,
+   "bytes": 66359
   },
   {
    "model": "unknown",
@@ -223,10 +219,10 @@
   },
   {
    "day": "2026-11-08",
-   "functions": 139,
-   "bytes": 15740,
-   "cum_functions": 13454,
-   "cum_bytes": 1963869
+   "functions": 142,
+   "bytes": 15895,
+   "cum_functions": 13457,
+   "cum_bytes": 1964024
   }
  ],
  "left_by_size": [
@@ -236,9 +232,9 @@
     0,
     64
    ],
-   "functions": 76,
-   "bytes": 2488,
-   "tried": 62
+   "functions": 75,
+   "bytes": 2485,
+   "tried": 61
   },
   {
    "band": "small",
@@ -246,9 +242,9 @@
     64,
     256
    ],
-   "functions": 399,
-   "bytes": 67229,
-   "tried": 138
+   "functions": 398,
+   "bytes": 67077,
+   "tried": 145
   },
   {
    "band": "medium",
