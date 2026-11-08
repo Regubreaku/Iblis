@@ -1,7 +1,10 @@
 # Opening Project Iblis to contributors
 
-**Current plan: invite-only soft launch.** Take the trusted-local route in step 2 (no Docker) and set the invite
-list in step 4.
+**Current plan (2026-11-08): open to anyone, with Claude as the host.** Host rounds run in a disposable Claude
+cloud container with `IBLIS_RUNNER=trusted-local` and `IBLIS_TRUSTED_GITHUB=*`: strangers' C++ never compiles on a
+personal computer. Each round stages Game.exe read-only from the owner's PC, runs `host.py sync` and
+`host.py verify --once`, and deletes it. The host key lives on the owner's PC (`C:\D2-Private\Diablo-II-114d\IBLIS_HOST_KEY.txt`)
+and in Cloudflare. `INVITED_GITHUB` stays empty.
 
 The owner's checklist, in order. Each step says how to know it worked. Nothing here publishes project source:
 packets carry no project code, and the only code a contributor ever receives is another contributor's give-up.
