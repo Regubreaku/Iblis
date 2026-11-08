@@ -239,7 +239,7 @@ def decl_name(text):
     fn = [w for w in re.findall(r"([A-Za-z_~]\w*)\s*\(", text) if w not in KEYWORDS]
     if fn:
         return fn[0]
-    ids = re.findall(r"([A-Za-z_]\w*)\s*(?:\[[^\]]*\])?\s*;?\s*$", text)
+    ids = re.findall(r"([A-Za-z_]\w*)\s*(?:\[[^\]]*\]\s*)*;?\s*$", text)
     return ids[-1] if ids else None
 
 

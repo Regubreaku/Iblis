@@ -59,6 +59,7 @@ class StarterTests(unittest.TestCase):
     def test_decl_name(self):
         self.assertEqual(ck.decl_name('extern "C" __declspec(noreturn) void __cdecl exit(int nCode);'), 'exit')
         self.assertEqual(ck.decl_name('extern char gsz[16];'), 'gsz')
+        self.assertEqual(ck.decl_name('extern int gnTable[4][2];'), 'gnTable')  # multi-dimensional arrays
 
 
 class LayoutTests(unittest.TestCase):
