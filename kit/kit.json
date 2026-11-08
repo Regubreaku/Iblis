@@ -1,0 +1,28 @@
+{
+ "image_sha256": "631066c1649c4ea9ffe48bf97e24c00bca1f7a6759c21150f1a79982589adaaf",
+ "toolchain": {
+  "cl_version": "14.00.50727.762",
+  "repo": "https://github.com/Drahsid/ffxiv_msvc8.0sp1",
+  "commit": "0d6f444cfc120e4e62a092726844fa310c74b1bc",
+  "files": {
+   "bin/1033/clui.dll": "86a77aa0754b7cb8622ad85944f7443feea0ad3d458ef9f46baadbe15eddafaa",
+   "bin/1033/linkui.dll": "6a5b8a15f45413aa58ce5baa39ba76478682a3a8d1bc4c8c29c9bbba0d8c9b75",
+   "bin/c1.dll": "be425bf69704a3717a0265574a357cc64e7daf42ae269c30ba5cda651e244254",
+   "bin/c1xx.dll": "391b9d99bfd3566922623b156e38b7e3f780f2a18fdaa440982ad09961297b0d",
+   "bin/c2.dll": "497d1ffe57f75db8b458167bdea475f3962829e139b355a2672a4ef51c716413",
+   "bin/cl.exe": "71c93ca5bddc9b2816d0e053cac2b952f926f6b9321fab6b1ab6e8603621324c",
+   "bin/link.exe": "16beda175e8e83f45187c0cd18eed06d0ec26a401d0bbc3544074c57eeebaff5",
+   "bin/ml.exe": "cf89e56ac89d1cb374114fd0c7a9eb52219381dc4aec7bb6d96b787a21d0e752",
+   "bin/msobj80.dll": "02747cf37e2c8303d6d7c62bcdd83a458b52b62fa302c11038a6fea44a085edd",
+   "bin/mspdb80.dll": "92e4d5684040e87abe599db87d79cf1d75e7ab07726c590996b9c32242bc9d0e",
+   "bin/mspdbcore.dll": "75df53ed64493816388aff9cf4bbf8c87aa9cbf461df5038770ef632269c558e",
+   "bin/mspdbsrv.exe": "a216a6a07adb23894bef5f658a9b12adc14b1f471eac73abb53e8d54cdff1e4f"
+  }
+ },
+ "selftest": {
+  "va": "0x00411540",
+  "length": 221,
+  "flags": "/nologo /c /TP /Zl /Z7 /Gy /MT /O2 /Oy- /Ob2 /Gd",
+  "compiled_body_sha256": "9b3734141ae240c4e42e4b45b83403f99cb21741e9887c58725df05c945ffa65"
+ }
+}

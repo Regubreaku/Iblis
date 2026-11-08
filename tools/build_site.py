@@ -22,10 +22,12 @@ def main(stats_path, out_dir):
             f'<link rel="stylesheet" href="{FONTS}">\n'
             f"<style>\n{part('style.css')}</style>")
     os.makedirs(out_dir, exist_ok=True)
+    kp = os.path.join(out_dir, "kit", "latest.json")
+    kit = open(kp).read().strip() if os.path.exists(kp) else "null"
     for path in sorted(glob.glob(os.path.join(src, "pages", "*.html"))):
         page = open(path).read()
         page = (page.replace("{{HEAD}}", head).replace("{{NAV}}", part("nav.html")).replace("{{FOOTER}}", part("footer.html"))
-                    .replace("/*__STATS__*/null", json.dumps(stats, separators=(",", ":"))))
+                    .replace("/*__STATS__*/null", json.dumps(stats, separators=(",", ":")) + "; window.IBLIS_KIT = " + kit))
         assert "{{" not in page, path
         name = os.path.basename(path)
         # Deployed pages are complete documents. The preview's entry page stays a fragment (the preview host wraps it).

@@ -172,7 +172,7 @@ async function packetFor(env, va) {
   const f = await env.DB.prepare("SELECT * FROM functions WHERE va = ?").bind(va).first();
   if (!f) bad(404, `${va} is not in the queue`);
   return {
-    va: f.va, length: f.length, band: bandOf(f.length), module: f.module, name: f.name,
+    va: f.va, length: f.length, band: bandOf(f.length), module: f.module, name: f.name, body_sha256: f.body_sha256,
     flags: f.flags || env.DEFAULT_FLAGS,
     reference: f.reference,
     previous_attempt: f.best_note ? { note: f.best_note, closest_source: f.best_source } : null,
@@ -499,12 +499,15 @@ const host = {
       if (!va) continue;
       // A function waiting for a verdict stays pending until the host reports one.
       stmts.push(env.DB.prepare(
-        `INSERT INTO functions (va, length, module, state, name, flags, reference) VALUES (?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO functions (va, length, module, state, name, flags, reference, body_sha256, best_note)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(va) DO UPDATE SET length = excluded.length, module = excluded.module, name = excluded.name,
-           flags = excluded.flags, reference = excluded.reference,
+           flags = excluded.flags, reference = excluded.reference, body_sha256 = excluded.body_sha256,
+           best_note = COALESCE(functions.best_note, excluded.best_note),
            state = CASE WHEN functions.state = 'pending' AND excluded.state = 'open' THEN 'pending' ELSE excluded.state END`
       ).bind(va, f.length | 0, String(f.module || "?"), ["open", "matched", "excluded"].includes(f.state) ? f.state : "open",
-             f.name || null, f.flags || null, f.reference || null));
+             f.name || null, f.flags || null, f.reference || null, f.body_sha256 || null,
+             f.note ? String(f.note).slice(0, 4000) : null));
     }
     for (let i = 0; i < stmts.length; i += 100) await env.DB.batch(stmts.slice(i, i + 100));
     return { synced: stmts.length };

@@ -74,11 +74,13 @@ count until the owner's rule is met.
 | # | Item | State |
 |---|---|---|
 | 1 | Site: five pages, figures from the repo, F3 structure, original design | preview published |
-| 2 | Service: Worker + D1 schema, connect/approve, MCP + HTTPS tools, tiers, leases, strikes, host routes, account | written; local test next |
+| 2 | Service: Worker + D1 schema, connect/approve, MCP + HTTPS tools, tiers, leases, strikes, host routes, account | done; tested locally |
 | 3 | `agents.md` | written |
-| 4 | Checker kit: package `brief`/`match` as `iblis-check` driven by packets, headers, examples, `selftest` | next |
-| 5 | Compiler from Microsoft's distribution: find the image that carries `cl.exe` 14.00.50727.762 with our hashes | to verify |
-| 6 | Build host: `host.py` (sync, poll, verify with `match.py`, verdict), nightly integration, figures rebuild + deploy | next |
+| 4 | Checker kit `iblis_check.py` (`setup`, `selftest`, `brief`, `check`, `sxs`), built by `tools/build_kit.py` | done; selftest MATCH under Wine |
+| 5 | Compiler from Microsoft's distribution: find the image that carries `cl.exe` 14.00.50727.762 with our hashes | to verify; the kit fetches the pinned tree until then |
+| 6 | Build host `host/host.py` (`sync`, `verify`, `integrate`, `flags`) sharing the kit's compile-and-compare | done; end-to-end test passed |
+| 6b | Host as a service: run `verify` continuously, `integrate` + figures + `wrangler deploy` nightly (cron or a scheduled task) | next |
+| 6c | A form of the board and history for the integrated contributors (map `iblis-<id>` to the opted-in login) | next |
 | 7 | Accounts: Cloudflare (Worker, D1), GitHub OAuth app, contact address, Discord | owner |
 | 8 | Soft launch with 3-5 trusted contributors; fix onboarding | after 2-6 |
 | 9 | Reddit post (drafted, posted by the owner); note to the Redivivus maintainers | after 8 |

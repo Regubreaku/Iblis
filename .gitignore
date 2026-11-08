@@ -3,3 +3,7 @@ node_modules/
 .wrangler/
 .shots/
 preview/
+.run/
+kit/toolchain/
+kit/work/
+__pycache__/

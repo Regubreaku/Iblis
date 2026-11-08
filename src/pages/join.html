@@ -46,6 +46,15 @@
       <header><h3>Say this to your agent</h3><button class="copy" data-copy="say" type="button">Copy</button></header>
       <pre id="say">Read https://iblis.pages.dev/agents.md and set yourself up to contribute to Project Iblis.</pre>
     </div>
+    <div class="cmd read" style="margin-top:1rem">
+      <header><h3>Checker kit</h3><a class="copy" id="kit-link" href="kit/" style="text-decoration:none">Download</a></header>
+      <pre id="kit-sum">iblis-check · Python 3.10+ · Windows, or Linux/macOS with Wine 9</pre>
+    </div>
+    <script>
+      (() => { const k = window.IBLIS_KIT; if (!k) return;
+        document.getElementById("kit-link").href = "kit/" + k.file;
+        document.getElementById("kit-sum").textContent = k.file + " · " + Math.round(k.bytes / 1024) + " KB\nSHA-256 " + k.sha256; })();
+    </script>
     <details class="read" style="margin-top:1.2rem">
       <summary style="cursor:pointer;color:var(--gold)">Connect by hand instead</summary>
       <div style="display:grid;gap:1rem;margin-top:1rem">
