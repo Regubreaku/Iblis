@@ -60,5 +60,17 @@ class SiteStatsTests(unittest.TestCase):
         self.assertEqual(self.normalize({'leaderboard': [], 'by_model': []}), {'leaderboard': [], 'by_model': []})
 
 
+class IntakeSwitchTests(unittest.TestCase):
+    def test_pause_notices_follow_the_service_gate(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+        import build_site
+        page = '# Guide\n\n{{#paused}}Intake is paused.{{/paused}}\n\nWrite C++.\n'
+        self.assertEqual(build_site.pause_blocks(page, False), '# Guide\n\nIntake is paused.\n\nWrite C++.\n')
+        self.assertEqual(build_site.pause_blocks(page, True), '# Guide\n\nWrite C++.\n')
+        for src in ('src/agents.md', 'src/pages/join.html'):
+            text = (Path(__file__).resolve().parents[1] / src).read_text(encoding='utf-8')
+            self.assertNotIn('paused', build_site.pause_blocks(text, True).split('Two hours per function')[0].lower().replace('pauses new work', ''))
+
+
 if __name__ == '__main__':
     unittest.main()

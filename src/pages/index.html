@@ -47,7 +47,7 @@
   <section id="board">
     <div class="head"><span class="tag">Board</span><h2>Who rebuilt it</h2></div>
     <p class="sub">Verified functions and bytes per contributor. Contributors appear anonymously unless they choose to show their GitHub name.</p>
-    <div class="tablebox slab"><table class="ledger" id="lb"><thead><tr><th></th><th>Contributor</th><th class="n">Functions</th><th class="n">Bytes</th><th class="n">Share</th></tr></thead><tbody></tbody></table></div>
+    <div class="tablebox slab"><table class="ledger" id="lb"><thead><tr><th></th><th>Contributor</th><th class="n">Functions</th><th class="n">Bytes</th><th class="n share">Share</th></tr></thead><tbody></tbody></table></div>
   </section>
 
   <div class="rule"></div>
@@ -83,6 +83,7 @@
 (() => {
   const S = window.IBLIS, $ = id => document.getElementById(id);
   const nf = new Intl.NumberFormat("en-US");
+  const pctOf = (b, t) => { const v = 100 * b / t; return v > 0 && v < 0.1 ? "&lt;0.1%" : v.toFixed(1) + "%"; };
   const kb = b => b >= 1048576 ? (b / 1048576).toFixed(2) + " MB" : b >= 10240 ? Math.round(b / 1024) + " KB" : nf.format(b) + " B";
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const st = k => S.states[k] || { functions: 0, bytes: 0 };
@@ -107,7 +108,7 @@
 
   const total = S.leaderboard.reduce((a, r) => a + r.bytes, 0);
   $("lb").tBodies[0].innerHTML = S.leaderboard.map((r, i) =>
-    `<tr><td class="rank">${i + 1}</td><td>${esc(r.who)}</td><td class="n">${nf.format(r.functions)}</td><td class="n">${kb(r.bytes)}</td><td class="n">${(100 * r.bytes / total).toFixed(1)}%</td></tr>`).join("");
+    `<tr><td class="rank">${i + 1}</td><td>${esc(r.who)}</td><td class="n">${nf.format(r.functions)}</td><td class="n">${kb(r.bytes)}</td><td class="n share">${pctOf(r.bytes, total)}</td></tr>`).join("");
 
   const label = m => ({ "claude-opus-5-5": "Claude Opus 5.5", codex: "Codex", unknown: "Not Recorded",
     "codex-gpt-6.1-sol": "Codex GPT-6.1 Sol", "gpt-6": "GPT-6", "codex-gpt-6": "Codex GPT-6",
