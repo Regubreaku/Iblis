@@ -410,3 +410,18 @@ test('sync writes only rows that changed', async t => {
   assert.deepEqual(await sync([{...other, state: 'matched'}]), {synced: 1, written: 1});
   assert.deepEqual(await sync([{...other, state: 'open'}]), {synced: 1, written: 0});   // matched never reopens
 });
+
+test('sync replaces a note only when the host asks for that function', async t => {
+  const f = await fixture(t);
+  const sync = async rows => (await f.request('/api/v1/host/sync', {functions: rows}, {host: true})).body;
+  const note = () => f.sql.prepare('SELECT best_note FROM functions WHERE va = ?').get(va).best_note;
+  await sync([{va, length: 16, module: 'fixture', state: 'open', note: 'forbidden RNG call'}]);
+  assert.equal(note(), 'forbidden RNG call');
+  assert.deepEqual(await sync([{va, length: 16, module: 'fixture', state: 'open', note: 'RNG call'}]), {synced: 1, written: 0});
+  assert.equal(note(), 'forbidden RNG call');                      // a plain sync never overwrites
+  assert.deepEqual(await sync([{va, length: 16, module: 'fixture', state: 'open', note: 'RNG call', replace_note: true}]), {synced: 1, written: 1});
+  assert.equal(note(), 'RNG call');
+  assert.deepEqual(await sync([{va, length: 16, module: 'fixture', state: 'open', note: 'RNG call', replace_note: true}]), {synced: 1, written: 0});
+  assert.deepEqual(await sync([{va, length: 16, module: 'fixture', state: 'open', replace_note: true}]), {synced: 1, written: 1});
+  assert.equal(note(), null);                                     // a replaced empty note clears it
+});

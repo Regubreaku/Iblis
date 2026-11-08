@@ -66,6 +66,8 @@ function json(data, status = 200) {
 // The state a synced row takes. Verified work never reopens, and a function waiting for a verdict stays pending
 // until the host reports one. Used twice in host.sync: as the new value, and to skip rows that would not change,
 // so a routine sync writes only what moved (D1 bills every row an UPDATE touches).
+// A note is never overwritten (contributors' give-ups write it too) unless the host sends replace_note: true for that
+// function, which is how a note that states a lifted rule is corrected (host.py sync --replace-notes).
 const SYNC_STATE = `CASE WHEN functions.state = 'matched' THEN 'matched'
              WHEN excluded.state = 'open' AND EXISTS (SELECT 1 FROM results WHERE va = functions.va AND status = 'verified') THEN 'matched'
              WHEN excluded.state = 'open' AND EXISTS (SELECT 1 FROM results WHERE va = functions.va AND status IN ('pending', 'review')) THEN 'pending'
@@ -622,19 +624,20 @@ const host = {
       if (!va) continue;
       stmts.push(env.DB.prepare(
         `INSERT INTO functions (va, length, module, state, name, flags, reference, body_sha256, best_note)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
          ON CONFLICT(va) DO UPDATE SET length = excluded.length, module = excluded.module, name = excluded.name,
            flags = excluded.flags, reference = excluded.reference, body_sha256 = excluded.body_sha256,
-           best_note = COALESCE(functions.best_note, excluded.best_note),
+           best_note = CASE WHEN ?10 THEN excluded.best_note ELSE COALESCE(functions.best_note, excluded.best_note) END,
            state = ${SYNC_STATE}
          WHERE functions.length IS NOT excluded.length OR functions.module IS NOT excluded.module
             OR functions.name IS NOT excluded.name OR functions.flags IS NOT excluded.flags
             OR functions.reference IS NOT excluded.reference OR functions.body_sha256 IS NOT excluded.body_sha256
             OR (functions.best_note IS NULL AND excluded.best_note IS NOT NULL)
+            OR (?10 AND functions.best_note IS NOT excluded.best_note)
             OR functions.state IS NOT (${SYNC_STATE})`
       ).bind(va, f.length | 0, String(f.module || "?"), ["open", "matched", "excluded"].includes(f.state) ? f.state : "open",
              f.name || null, f.flags || null, f.reference || null, f.body_sha256 || null,
-             f.note ? String(f.note).slice(0, 4000) : null));
+             f.note ? String(f.note).slice(0, 4000) : null, f.replace_note === true ? 1 : 0));
     }
     // written: rows this sync inserted or changed. rows_written: what D1 itself reports (indexes included), when it does.
     let written = 0, billed = 0, reported = false;

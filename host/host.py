@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Project Iblis controller. Public compilation requires the isolated Docker runner (host/README.md).
 
-  python host/host.py sync      --repo PATH [--redivivus PATH]
+  python host/host.py sync      --repo PATH [--redivivus PATH] [--replace-notes VA,VA | @file]
                                                       push the queue (state, length, module, name, flags, park note,
                                                       a Redivivus pointer). Never source: project code stays private.
+                                                      --replace-notes overwrites those functions' service notes with
+                                                      the repository's (normally a note is only filled when empty).
   python host/host.py verify    --repo PATH [--once]  poll pending submissions, recompile each, post verdicts
   python host/host.py integrate --repo PATH           write the day's verified sources into the repository (nightly)
   python host/host.py review list|recheck|adjudicate --repo PATH [--id N] [--verdict failed --note TEXT]
@@ -126,8 +128,15 @@ def sync_batches(fs, limit=1_500_000, most=500):
         yield batch
 
 
-def cmd_sync(repo, redivivus=None):
+def cmd_sync(repo, redivivus=None, replace_notes=()):
     fs = repo.queue(redivivus)
+    replace = {norm(v) for v in replace_notes}
+    for f in fs:
+        if f["va"] in replace:
+            f["replace_note"] = True   # overwrite the service's note with the repository's (or clear it)
+    missing = replace - {f["va"] for f in fs}
+    if missing:
+        print("not in the queue, skipped:", " ".join(sorted(missing)))
     print("references %d" % sum(1 for f in fs if f.get("reference")))
     done = written = billed = 0
     for batch in sync_batches(fs):
@@ -367,7 +376,11 @@ if __name__ == "__main__":
     repo = Repo(arg("--repo") or sys.exit("--repo PATH is required"))
     c = sys.argv[1]
     if c == "flags": print(" ".join(repo.flags(norm(sys.argv[-1]))))
-    elif c == "sync": cmd_sync(repo, arg("--redivivus"))
+    elif c == "sync":
+        rn = arg("--replace-notes", "")
+        if rn.startswith("@"):
+            rn = open(rn[1:]).read()
+        cmd_sync(repo, arg("--redivivus"), [v for v in re.split(r"[\s,]+", rn) if v])
     elif c == "verify": cmd_verify(repo, "--once" in sys.argv)
     elif c == "integrate": cmd_integrate(repo)
     elif c == "review": cmd_review(repo, sys.argv[2], arg("--id"), arg("--verdict"), arg("--note"))
