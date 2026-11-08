@@ -81,6 +81,10 @@ class Repo:
                     st = "matched"
                 elif self.library and self.library[0] <= a <= self.library[1] or va in self.no_body:
                     st = "excluded"
+                elif state in ("claimed", "submitted"):
+                    # Held in the repository (a chat is working on it, or it waits for the verifier): not handed out.
+                    # The next sync reopens it if it is released or parked, or marks it matched once verified.
+                    st = "excluded"
                 else:
                     st = "open"
                 f = dict(va=va, length=it["length"], module=it.get("module", "?"), state=st,
