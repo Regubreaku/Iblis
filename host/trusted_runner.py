@@ -56,6 +56,10 @@ class TrustedLocalRunner:
             if res.get("status") in ("RAW_EQUAL", "RELOCATION_RESOLVED_EQUAL") and os.path.exists(obj):
                 res["object_bytes"] = open(obj, "rb").read()
                 res["object_sha256"] = hashlib.sha256(res["object_bytes"]).hexdigest()
+                # The same verifier metadata the Docker entry (runner_entry.py) records, so `integrate` can import it.
+                res["cl_sha256"] = self.kit.sha256_file(self.settings["cl"])
+                records = res.pop("relocation_records", None)
+                res["relocations"] = records if records is not None else []
             res["runner"] = self.kind
             return res
         finally:

@@ -231,4 +231,23 @@ class TrustedLocalRunnerTests(unittest.TestCase):
             self.assertIn('not a strike', posted[0]['note'])
 
 
+class TrustedRunnerMetadataTests(unittest.TestCase):
+    def test_match_carries_the_metadata_integrate_needs(self):
+        import trusted_runner
+        with tempfile.TemporaryDirectory() as td:
+            game, cl, settings = Path(td, 'Game.exe'), Path(td, 'cl.exe'), Path(td, 'settings.json')
+            game.write_bytes(b'game'); cl.write_bytes(b'cl')
+            settings.write_text(json.dumps({'image': str(game), 'cl': str(cl), 'runner': 'wine'}))
+            r = trusted_runner.TrustedLocalRunner(hashlib.sha256(b'game').hexdigest(), trusted='*', settings_path=str(settings))
+            def fake(s, va, length, flags, src, wd):
+                Path(wd, 'candidate.obj').write_bytes(b'obj')
+                return {'status': 'RAW_EQUAL', 'relocations': 1, 'relocation_records': [{'offset': 1}], 'compiled_body_sha256': 'ab'}
+            with patch.object(r.kit, 'compile_and_compare', side_effect=fake):
+                res = r.compile('0x00401000', 3, ['/O2'], 'int f();')
+        self.assertEqual(res['cl_sha256'], hashlib.sha256(b'cl').hexdigest())
+        self.assertEqual(res['relocations'], [{'offset': 1}])
+        self.assertNotIn('relocation_records', res)
+        self.assertEqual(res['object_sha256'], hashlib.sha256(b'obj').hexdigest())
+
+
 if __name__ == '__main__': unittest.main()
