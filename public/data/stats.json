@@ -1,32 +1,32 @@
 {
- "generated_utc": "2026-11-08T23:51Z",
- "commit": "73afae8f",
+ "generated_utc": "2026-11-09T03:48Z",
+ "commit": "a282ce1b",
  "text_bytes": 2928640,
  "functions_total": 14845,
  "bytes_total": 2609016,
- "matched_functions": 13477,
- "matched_bytes": 1966149,
- "matched_pct_text": 67.14,
+ "matched_functions": 13572,
+ "matched_bytes": 1992040,
+ "matched_pct_text": 68.02,
  "states": {
   "matched": {
-   "functions": 13477,
-   "bytes": 1966149
+   "functions": 13572,
+   "bytes": 1992040
   },
   "open": {
-   "functions": 1049,
-   "bytes": 572348
+   "functions": 868,
+   "bytes": 521065
   },
   "claimed": {
-   "functions": 51,
-   "bytes": 6895
+   "functions": 32,
+   "bytes": 5215
   },
   "parked": {
-   "functions": 260,
-   "bytes": 62479
+   "functions": 371,
+   "bytes": 90394
   },
   "submitted": {
-   "functions": 8,
-   "bytes": 1145
+   "functions": 2,
+   "bytes": 302
   }
  },
  "certified": 0,
@@ -35,81 +35,81 @@
    "name": "D2Game",
    "functions": 4134,
    "bytes": 823715,
-   "matched_functions": 3709,
-   "matched_bytes": 608604,
-   "review_bytes": 3090,
-   "open_bytes": 202646,
-   "parked_bytes": 9375
+   "matched_functions": 3744,
+   "matched_bytes": 617549,
+   "review_bytes": 1306,
+   "open_bytes": 187816,
+   "parked_bytes": 17044
   },
   {
    "name": "D2Client",
    "functions": 4529,
    "bytes": 771293,
-   "matched_functions": 4194,
-   "matched_bytes": 602708,
-   "review_bytes": 406,
-   "open_bytes": 163232,
-   "parked_bytes": 4947
+   "matched_functions": 4212,
+   "matched_bytes": 608340,
+   "review_bytes": 1428,
+   "open_bytes": 148637,
+   "parked_bytes": 12888
   },
   {
    "name": "D2Common",
    "functions": 2298,
    "bytes": 438907,
-   "matched_functions": 2129,
-   "matched_bytes": 363460,
-   "review_bytes": 1791,
-   "open_bytes": 69499,
-   "parked_bytes": 4157
+   "matched_functions": 2144,
+   "matched_bytes": 367578,
+   "review_bytes": 1228,
+   "open_bytes": 61348,
+   "parked_bytes": 8753
   },
   {
    "name": "Storm/Fog",
    "functions": 1327,
    "bytes": 174608,
-   "matched_functions": 1240,
-   "matched_bytes": 132784,
-   "review_bytes": 278,
-   "open_bytes": 40836,
-   "parked_bytes": 710
+   "matched_functions": 1244,
+   "matched_bytes": 133681,
+   "review_bytes": 1010,
+   "open_bytes": 36838,
+   "parked_bytes": 3079
   },
   {
    "name": "D2Win/D2CMP/gl/Smack/Sound",
    "functions": 831,
    "bytes": 132967,
-   "matched_functions": 763,
-   "matched_bytes": 100586,
+   "matched_functions": 765,
+   "matched_bytes": 101816,
    "review_bytes": 105,
-   "open_bytes": 32175,
-   "parked_bytes": 101
+   "open_bytes": 29321,
+   "parked_bytes": 1725
   },
   {
    "name": "Storm/Fog/Bnclient tail",
    "functions": 598,
    "bytes": 117814,
-   "matched_functions": 382,
-   "matched_bytes": 36965,
-   "review_bytes": 1903,
-   "open_bytes": 37651,
-   "parked_bytes": 41295
+   "matched_functions": 400,
+   "matched_bytes": 41367,
+   "review_bytes": 334,
+   "open_bytes": 31755,
+   "parked_bytes": 44358
   },
   {
    "name": "Bnclient/D2MCPClient",
    "functions": 483,
    "bytes": 73852,
-   "matched_functions": 453,
-   "matched_bytes": 62022,
-   "review_bytes": 467,
-   "open_bytes": 10382,
-   "parked_bytes": 981
+   "matched_functions": 455,
+   "matched_bytes": 62404,
+   "review_bytes": 106,
+   "open_bytes": 10180,
+   "parked_bytes": 1162
   },
   {
    "name": "D2CMP",
    "functions": 415,
    "bytes": 55420,
-   "matched_functions": 380,
-   "matched_bytes": 39032,
+   "matched_functions": 381,
+   "matched_bytes": 39317,
    "review_bytes": 0,
-   "open_bytes": 15763,
-   "parked_bytes": 625
+   "open_bytes": 15006,
+   "parked_bytes": 1097
   },
   {
    "name": "Storm",
@@ -145,8 +145,8 @@
  "leaderboard": [
   {
    "who": "Legbreak",
-   "functions": 13265,
-   "bytes": 1916526
+   "functions": 13297,
+   "bytes": 1928712
   },
   {
    "who": "Esk",
@@ -154,14 +154,14 @@
    "bytes": 43458
   },
   {
-   "who": "Nathan",
-   "functions": 13,
-   "bytes": 4377
+   "who": "Angel",
+   "functions": 75,
+   "bytes": 13952
   },
   {
-   "who": "Angel",
-   "functions": 18,
-   "bytes": 1217
+   "who": "Nathan",
+   "functions": 19,
+   "bytes": 5347
   },
   {
    "who": "Anonymous",
@@ -172,8 +172,8 @@
  "by_model": [
   {
    "model": "claude-opus-5-5",
-   "functions": 12930,
-   "bytes": 1880716
+   "functions": 12973,
+   "bytes": 1893705
   },
   {
    "model": "codex",
@@ -182,18 +182,18 @@
   },
   {
    "model": "unknown",
-   "functions": 84,
-   "bytes": 9143
+   "functions": 128,
+   "bytes": 20452
   },
   {
    "model": "codex-gpt-6.1-sol",
-   "functions": 13,
-   "bytes": 4377
+   "functions": 19,
+   "bytes": 5347
   },
   {
    "model": "claude-sonnet-5-5",
-   "functions": 51,
-   "bytes": 3003
+   "functions": 53,
+   "bytes": 3626
   },
   {
    "model": "gpt-6",
@@ -223,11 +223,25 @@
  ],
  "trend": [
   {
+   "day": "2026-11-07",
+   "functions": 13308,
+   "bytes": 1948129,
+   "cum_functions": 13308,
+   "cum_bytes": 1948129
+  },
+  {
    "day": "2026-11-08",
-   "functions": 13480,
-   "bytes": 1966149,
+   "functions": 172,
+   "bytes": 18020,
    "cum_functions": 13480,
    "cum_bytes": 1966149
+  },
+  {
+   "day": "2026-11-09",
+   "functions": 95,
+   "bytes": 25891,
+   "cum_functions": 13575,
+   "cum_bytes": 1992040
   }
  ],
  "left_by_size": [
@@ -247,9 +261,9 @@
     64,
     256
    ],
-   "functions": 386,
-   "bytes": 65742,
-   "tried": 164
+   "functions": 328,
+   "bytes": 55493,
+   "tried": 231
   },
   {
    "band": "medium",
@@ -257,9 +271,9 @@
     256,
     512
    ],
-   "functions": 504,
-   "bytes": 186078,
-   "tried": 21
+   "functions": 482,
+   "bytes": 179896,
+   "tried": 66
   },
   {
    "band": "large",
@@ -267,9 +281,9 @@
     512,
     1024
    ],
-   "functions": 298,
-   "bytes": 212093,
-   "tried": 17
+   "functions": 286,
+   "bytes": 205742,
+   "tried": 16
   },
   {
    "band": "huge",
@@ -277,8 +291,8 @@
     1024,
     null
    ],
-   "functions": 121,
-   "bytes": 176736,
+   "functions": 118,
+   "bytes": 173627,
    "tried": 11
   }
  ]
