@@ -67,6 +67,22 @@ callees); `0x00681560`, `0x006C50D0` (targets as statics); `0x00540DF0` (static 
 
 Small algebraic rewrites, added scopes or declaration reordering have often produced identical bodies. Check the result instead of cycling through cosmetic variants.
 
+## Callee-saved register swaps (ESI, EDI, EBX)
+
+When everything matches except that two values sit in each other's ESI/EDI/EBX, the original's source had different references or a different chain structure that produce the same instructions. From about 1,500 controlled compiles with this profile:
+
+- **Order.** The highest-priority live range gets ESI, the next EDI, the third EBX. The order of the prologue pushes only shows which register was needed first.
+- **Priority is a count of references in the optimised code.** Every surviving read, write, compare, push or address use counts once. Uses inside a loop count about 9 to 10 times. A use before the first branch outweighs one in a late block (about 3:1 when that block returns). A parameter's incoming value adds nothing, but a local's definition counts.
+- **Ties** go to the value whose definition is emitted first, not to declaration order or first use in the source.
+- **The unit is the def-use chain, not the variable.** Updating in place (`x += ...`, `n >>= 8`) keeps the references in one chain. Writing a result into a new local starts a second chain with its own priority.
+- **Spellings the optimiser removes cannot flip a swap.** Declaration order, initialisers, copies of a parameter, taking an address, `else {}`, `goto`, a ternary or `do {} while (0)` that compile to the same code all leave it unchanged. Don't spend checks on them.
+
+Levers:
+- To move a value up (toward ESI), merge it with the value it is computed from or into: accumulate into the parameter (0x0057B420), or hold the raw call result across the call and update it in place.
+- To move it down, put the computed result in a new local.
+- On a tie, change which definition comes first.
+- A double-evaluating clamp such as `MIN(MAX(n, lo), hi)` builds different chains (0x005BFC60), but it can also change the code.
+
 ## When to hand it back
 
 Keep the packet's flags. If evidence suggests an incorrect function extent, missing declaration, different optimization profile or unsupported helper context, use `giveup` with your best source and a concise explanation. Do not change compiler flags or submit a non-MATCH as verified.
