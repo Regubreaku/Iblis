@@ -49,7 +49,7 @@ then `selftest` prints `MATCH`).
 
 1. Cloudflare dashboard → Worker `iblis` → Settings → **Runtime variables and secrets** → add Secret `HOST_KEY`.
    Put the same value in `IBLIS_HOST_KEY` on the host machine.
-2. `python host/host.py sync --repo <Diablo2-Native>`. Add `--redivivus <checkout>` for reference pointers.
+2. `python host/host.py sync --repo <Diablo2-Native>`.
 
 **Done when** the sync prints `synced N of N`.
 

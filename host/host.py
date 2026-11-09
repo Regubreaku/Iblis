@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Project Iblis controller. Public compilation requires the isolated Docker runner (host/README.md).
 
-  python host/host.py sync      --repo PATH [--redivivus PATH]
+  python host/host.py sync      --repo PATH
                                                       push the queue (state, length, module, name, flags, park note,
-                                                      a Redivivus pointer). Never source: project code stays private.
+                                                      a reference pointer). Never source: project code stays private.
   python host/host.py verify    --repo PATH [--once]  poll pending submissions, recompile each, post verdicts
   python host/host.py integrate --repo PATH           write the day's verified sources into the repository (nightly)
   python host/host.py review list|recheck|adjudicate --repo PATH [--id N] [--verdict failed --note TEXT]
@@ -70,8 +70,8 @@ class Repo:
                 f.append(r["flag"])
         return f
 
-    def queue(self, redivivus=None):
-        refs = redivivus_refs(redivivus) if redivivus else {}
+    def queue(self):
+        refs = {}  # reference pointers are no longer sent (owner ruling)
         out = []
         for state in ("open", "claimed", "submitted", "parked", "matched"):
             for p in glob.glob(os.path.join(self.root, "queue", state, "*.json")):
@@ -96,23 +96,6 @@ class Repo:
         return out
 
 
-def redivivus_refs(root):
-    """Address -> 'file (function)' from a Redivivus checkout's Source/**/*.map files. Words only."""
-    out = {}
-    for m in glob.glob(os.path.join(root, "Source", "**", "*.map"), recursive=True):
-        try:
-            d = json.load(open(m, encoding="utf-8"))
-        except Exception:
-            continue
-        rel = (d.get("file") or os.path.relpath(m, root)[:-4]).replace("\\", "/")
-        for fn in d.get("functions", []):
-            try:
-                out[int(str(fn.get("address")), 16)] = "Redivivus %s (%s)" % (rel, fn.get("name", "?"))
-            except (TypeError, ValueError):
-                pass
-    return out
-
-
 def sync_batches(fs, limit=1_500_000, most=500):
     """Split records into requests under the service's 2 MiB body limit."""
     batch, size = [], 2
@@ -126,8 +109,8 @@ def sync_batches(fs, limit=1_500_000, most=500):
         yield batch
 
 
-def cmd_sync(repo, redivivus=None):
-    fs = repo.queue(redivivus)
+def cmd_sync(repo):
+    fs = repo.queue()
     print("references %d" % sum(1 for f in fs if f.get("reference")))
     done = 0
     for batch in sync_batches(fs):
@@ -367,7 +350,7 @@ if __name__ == "__main__":
     repo = Repo(arg("--repo") or sys.exit("--repo PATH is required"))
     c = sys.argv[1]
     if c == "flags": print(" ".join(repo.flags(norm(sys.argv[-1]))))
-    elif c == "sync": cmd_sync(repo, arg("--redivivus"))
+    elif c == "sync": cmd_sync(repo)
     elif c == "verify": cmd_verify(repo, "--once" in sys.argv)
     elif c == "integrate": cmd_integrate(repo)
     elif c == "review": cmd_review(repo, sys.argv[2], arg("--id"), arg("--verdict"), arg("--note"))
