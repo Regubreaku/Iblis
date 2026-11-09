@@ -171,6 +171,28 @@ class CheckerTests(unittest.TestCase):
     def test_internal_data_is_not_proven_by_code_or_marker(self):
         self.assert_rejected(self.check(body=b'\xa1\0\0\0\0\xc3', original=b'\xa1\0\x20\x40\0\xc3', decl='extern int wrong; // 0x00402000', relocs=((1, 6),), scn=2, extra=(b'.rdata', b'WRONG', ())))
 
+    def literal(self, image_bytes=b'abc\0', name='??_C@_03ABCDEFGH@abc?$AA@'):
+        # mov eax, [literal]; ret; the original's literal sits at 0x00401006, inside its own image
+        return self.check(body=b'\xa1\0\0\0\0\xc3abc\0', original=b'\xa1\x06\x10\x40\0\xc3' + image_bytes, relocs=((1, 6),),
+                          symbol=name, scn=2, extra=(b'.rdata', b'abc\0', ()))
+
+    def test_string_literal_resolves_when_the_original_points_at_equal_bytes(self):
+        self.assertEqual(self.literal()['status'], 'RELOCATION_RESOLVED_EQUAL')
+
+    def test_float_constant_resolves_the_same_way(self):
+        self.assertEqual(self.literal(name='__real@3f800000')['status'], 'RELOCATION_RESOLVED_EQUAL')
+
+    def test_string_literal_with_different_bytes_is_rejected(self):
+        self.assert_rejected(self.literal(image_bytes=b'abd\0'))
+
+    def test_other_internal_data_is_still_unverified(self):
+        self.assert_rejected(self.literal(name='_gTable'))
+
+    def test_multi_dimensional_array_declarations_are_named(self):
+        self.assertEqual(checker.decl_name('extern char gaszLogNames_0075D148[20][0x10];'), 'gaszLogNames_0075D148')
+        self.assertEqual(checker.decl_name('extern const D2CoordStrc gSocketLayouts[][6];'), 'gSocketLayouts')
+        self.assertEqual(checker.decl_name('extern int gnOne[4];'), 'gnOne')
+
     def test_common_symbol_is_not_external_declaration(self):
         self.assert_rejected(self.check(decl='extern void wrong(); // 0x00402000', value=4))
 

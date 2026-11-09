@@ -239,7 +239,7 @@ def decl_name(text):
     fn = [w for w in re.findall(r"([A-Za-z_~]\w*)\s*\(", text) if w not in KEYWORDS]
     if fn:
         return fn[0]
-    ids = re.findall(r"([A-Za-z_]\w*)\s*(?:\[[^\]]*\])?\s*;?\s*$", text)
+    ids = re.findall(r"([A-Za-z_]\w*)\s*(?:\[[^\]]*\])*\s*;?\s*$", text)   # any number of [..]: a[20][0x10], a[][6]
     return ids[-1] if ids else None
 
 
@@ -844,6 +844,19 @@ def compile_and_compare(s, va, length, flags, src, wd, image=None):
             # not part of this compare: it is reported on its own below (matches its original, or a stand-in).
             want = defs[undec(sy["name"])]
             helper_secs[want] = sy
+        elif (sy["scn"] > 0 and sy["value"] == 0 and actual is not None and re.match(r"\?\?_C@|__real@|__xmm@", sy["name"])
+              and not secs[sy["scn"] - 1]["name"].startswith(".text")):
+            # A string or floating-point constant the compiler emits itself: the original must point at exactly these
+            # bytes. Its address is wherever the original's operand points, less the in-place offset into the constant.
+            lit = secs[sy["scn"] - 1]["raw"]
+            signed_addend = addend if addend < 0x80000000 else addend - 0x100000000
+            base = (original_target - signed_addend) & 0xffffffff
+            if lit and pe.read(base, len(lit)) == lit:
+                want = base
+            else:
+                want = None
+                problems.append("%s: the original's operand at +0x%x does not point at these constant bytes" % (sy["name"], off))
+                continue
         else:
             want = None
             problems.append("%s has an unverified internal/common/absolute dependency" % sy["name"])
