@@ -444,3 +444,19 @@ test('an UNLIMITED_GITHUB account has no tier limits and is never paused', async
   f.env.UNLIMITED_GITHUB = '';
   assert.equal((await f.request('/api/v1/status', {})).body.tier, 'new');
 });
+
+test('a lease that ran out can be taken again by its holder and handed back', async t => {
+  const f = await fixture(t); f.lease(stamp(-1000));
+  await f.request('/api/v1/status');  // the sweep records the expiry
+  const again = await f.request('/api/v1/next', {va});
+  assert.equal(again.status, 200, JSON.stringify(again.body));
+  const back = await f.request('/api/v1/giveup', {va, reason: 'stuck after a pause', source: submission.source});
+  assert.equal(back.status, 200, JSON.stringify(back.body));
+  assert.equal(f.sql.prepare("SELECT best_note FROM functions").get().best_note, 'stuck after a pause');
+});
+
+test('a function never held by the account still cannot be asked for by address', async t => {
+  const f = await fixture(t);
+  f.sql.prepare("INSERT INTO expired VALUES(?,2,?)").run(va, stamp());
+  assert.equal((await f.request('/api/v1/next', {va})).status, 403);
+});
