@@ -842,9 +842,9 @@ def compile_and_compare(s, va, length, flags, src, wd, image=None):
             # must land exactly there, the same rule as for an external callee's marker. Its body is a dependency,
             # not part of this compare.
             want = defs[undec(sy["name"])]
-        elif (ty == 6 and sy["scn"] > 0 and sy["name"].startswith("??_C@") and actual is not None
+        elif (ty == 6 and sy["scn"] > 0 and sy["name"].startswith(("??_C@", "__real@", "__xmm@")) and actual is not None
               and secs[sy["scn"] - 1]["name"].startswith((".rdata", ".data"))):
-            # A string literal the compiler emitted itself (including the pieces an inline strcpy/strcat copies at
+            # A string literal or float/vector constant (__real@, __xmm@) the compiler emitted itself (including the pieces an inline strcpy/strcat copies at
             # +4, +8, ...): it resolves when the literal's bytes equal the original's data at the address the
             # original uses, minus the same offset into the literal.
             lit = secs[sy["scn"] - 1]["raw"]
@@ -852,7 +852,7 @@ def compile_and_compare(s, va, length, flags, src, wd, image=None):
             at = (actual - signed_addend) & 0xffffffff
             want = at if lit and pe.read(at, len(lit)) == lit else None
             if want is None:
-                problems.append("string literal %s does not equal the original's data at 0x%08X" % (sy["name"], at))
+                problems.append("literal %s does not equal the original's data at 0x%08X" % (sy["name"], at))
         else:
             want = None
             problems.append("%s has an unverified internal/common/absolute dependency" % sy["name"])
