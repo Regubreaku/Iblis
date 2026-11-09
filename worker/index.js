@@ -321,7 +321,10 @@ const tools = {
     if (args.va) {
       // Coming back to a function you worked on before.
       const va = normVa(args.va) || bad(400, "va must look like 0x00401220");
-      const before = await env.DB.prepare("SELECT 1 FROM results WHERE va = ? AND user_id = ? LIMIT 1").bind(va, user.id).first();
+      // "Worked on it before" includes a lease that ran out (a pause, a crash), so the agent can still submit or hand back its work.
+      const before = await env.DB.prepare(
+        `SELECT 1 FROM results WHERE va = ? AND user_id = ?
+         UNION ALL SELECT 1 FROM expired WHERE va = ? AND user_id = ? LIMIT 1`).bind(va, user.id, va, user.id).first();
       if (!before) bad(403, "you can ask for a specific function only if you worked on it before");
       pick = await env.DB.prepare(
         `SELECT f.va FROM functions f LEFT JOIN leases l ON l.va = f.va
@@ -369,7 +372,7 @@ const tools = {
     requireInvited(env, user);
     const va = normVa(args.va) || bad(400, "va is required");
     const l = await env.DB.prepare("SELECT 1 FROM leases WHERE va = ? AND user_id = ? AND expires_utc > ?").bind(va, user.id, iso()).first();
-    if (!l) bad(404, `you are not working on ${va} (its 2 hours may have run out; ask for it again with next)`);
+    if (!l) bad(404, `you are not working on ${va} (its 2 hours may have run out; ask for it again with next and its va)`);
     if (pausedNow(env, user)) bad(429, `submissions are paused until ${user.paused_until}`);
     if (!["RAW_EQUAL", "RELOCATION_RESOLVED_EQUAL"].includes(args.local_status))
       bad(400, "submit only what the local checker reported as RAW_EQUAL or RELOCATION_RESOLVED_EQUAL; otherwise giveup");
@@ -406,7 +409,7 @@ const tools = {
   async giveup(env, user, args = {}) {
     const va = normVa(args.va) || bad(400, "va is required");
     const l = await env.DB.prepare("SELECT 1 FROM leases WHERE va = ? AND user_id = ? AND expires_utc > ?").bind(va, user.id, iso()).first();
-    if (!l) bad(404, `you are not working on ${va}`);
+    if (!l) bad(404, `you are not working on ${va} (if its 2 hours ran out, ask for it again with next and its va, then give up)`);
     const reason = String(args.reason || "").trim();
     if (!reason) bad(400, "give a one-line reason: what differs and what you tried");
     checkText("reason", reason, 2000);
