@@ -122,6 +122,22 @@ class CheckerTests(unittest.TestCase):
     def test_unmarked_helper_is_still_an_unverified_dependency(self):
         self.assert_rejected(self.helper_check(None))
 
+    def literal_check(self, literal):
+        # mov eax, offset "ab" ; ret  -- the literal sits right after the function in the original image
+        body = b'\xb8\0\0\0\0\xc3'
+        original = b'\xb8\x06\x10\x40\x00\xc3' + b'ab\0'
+        name = '??_C@_02ABCD@ab?$AA@'
+        self.fixture.write_bytes(coff(body, ((1, 6),), symbol=name, scn=2, extra=(b'.rdata', literal, ())))
+        self.image.write_bytes(pe(original))
+        src = '\n// 0x00401000\nconst char* f() { return "ab"; }\n'
+        return checker.compile_and_compare(self.settings, '0x00401000', 6, [str(self.script), str(self.fixture)], src, str(self.root / 'work'))
+
+    def test_string_literal_equal_to_the_original_data_resolves(self):
+        self.assertEqual(self.literal_check(b'ab\0')['status'], 'RELOCATION_RESOLVED_EQUAL')
+
+    def test_string_literal_with_other_content_is_rejected(self):
+        self.assert_rejected(self.literal_check(b'xy\0'))
+
     def test_explicit_simple_global_cpp_symbol_is_supported(self):
         self.assertEqual(self.check(symbol='?wrong@@YAXXZ', decl='extern void wrong(); // 0x00402000')['status'], 'RELOCATION_RESOLVED_EQUAL')
 
