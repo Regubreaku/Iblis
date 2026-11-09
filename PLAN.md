@@ -83,7 +83,7 @@ count until the owner's rule is met.
 | 6c | A form of the board and history for the integrated contributors (map `iblis-<id>` to the opted-in login) | next |
 | 7 | Accounts: Cloudflare (Worker, D1), GitHub OAuth app, contact address, Discord | owner |
 | 8 | Soft launch with 3-5 trusted contributors; fix onboarding | after 2-6 |
-| 9 | Reddit post (drafted, posted by the owner); note to the Redivivus maintainers | after 8 |
+| 9 | Reddit post (drafted, posted by the owner); note to the maintainers of the reference projects | after 8 |
 
 ## 7. Decisions for the owner
 
@@ -92,7 +92,7 @@ count until the owner's rule is met.
 2. **Contact address** for rights holders (shown on Legal).
 3. **Domain**: start on the Worker's free subdomain; choose a domain later.
 4. Carried over from the old "Ask the owner" list: stand-in callee bodies at verification; placeholder declarations
-   for compiler-generated functions; possible `/GL` in the crash-reporter EH group; Redivivus's per-function MATCH list;
+   for compiler-generated functions; possible `/GL` in the crash-reporter EH group; a reference project's per-function match list;
    `/Ob1` as the profile default.
 
 ## 8. Legal posture

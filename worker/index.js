@@ -117,6 +117,25 @@ function escapeHtml(s) {
 }
 
 // Source and notes must be plain text: no NUL bytes, no long encoded blobs or byte dumps that could carry game bytes.
+// Owner ruling: no references to the former reference project in anything the service stores or hands out. Words in
+// notes and in source comments are rewritten; code is never touched (a match must keep its bytes), so a mention inside
+// code itself is refused instead.
+const RETIRED = new RegExp(atob("cmVkaXZpdnVz"), "gi");  // the retired reference project's name, encoded so the term itself never appears
+function scrubWords(s) {
+  return typeof s === "string" ? s.replace(RETIRED, "the reference project") : s;
+}
+function scrubSource(src) {
+  if (typeof src !== "string" || !RETIRED.test(src)) return src;
+  RETIRED.lastIndex = 0;
+  // rewrite only inside // and /* */ comments; string literals and code are left as they are
+  const out = src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'/g,
+    (m) => (m.startsWith("/") ? m.replace(RETIRED, "the reference project") : m));
+  RETIRED.lastIndex = 0;
+  if (RETIRED.test(out)) { RETIRED.lastIndex = 0; bad(400, "the source names the retired reference project outside a comment; rename it"); }
+  RETIRED.lastIndex = 0;
+  return out;
+}
+
 function checkText(name, s, max, isSource = false) {
   if (s == null || s === "") return;
   if (typeof s !== "string") bad(400, `${name} must be text`);
@@ -353,6 +372,8 @@ const tools = {
     ).bind(user.id, iso(Date.now() - 864e5)).first()).n;
     if (today >= tier.perDay) bad(429, `your tier (${tier.name}) submits ${tier.perDay} a day`);
     if (!args.source || !String(args.source).trim()) bad(400, "source is required");
+    args.source = scrubSource(args.source);
+    args.notes = scrubWords(args.notes);
     checkText("source", args.source, Number(env.MAX_SOURCE_BYTES || 262144), true);
     checkText("notes", args.notes, 65536);
     if (!new RegExp("//\\s*0x0*" + va.slice(2).replace(/^0+/, ""), "i").test(args.source))
@@ -381,7 +402,8 @@ const tools = {
     const va = normVa(args.va) || bad(400, "va is required");
     const l = await env.DB.prepare("SELECT 1 FROM leases WHERE va = ? AND user_id = ? AND expires_utc > ?").bind(va, user.id, iso()).first();
     if (!l) bad(404, `you are not working on ${va}`);
-    const reason = String(args.reason || "").trim();
+    const reason = scrubWords(String(args.reason || "").trim());
+    args.source = scrubSource(args.source);
     if (!reason) bad(400, "give a one-line reason: what differs and what you tried");
     checkText("reason", reason, 2000);
     checkText("source", args.source, Number(env.MAX_SOURCE_BYTES || 262144), true);
