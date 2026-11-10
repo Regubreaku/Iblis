@@ -1,32 +1,32 @@
 {
- "generated_utc": "2026-11-10T04:08Z",
- "commit": "f74c55d03",
+ "generated_utc": "2026-11-10T04:15Z",
+ "commit": "8f0724bb1",
  "text_bytes": 2928640,
  "functions_total": 14828,
  "bytes_total": 2605944,
- "matched_functions": 13782,
- "matched_bytes": 2097086,
- "matched_pct_text": 71.61,
+ "matched_functions": 13809,
+ "matched_bytes": 2110877,
+ "matched_pct_text": 72.08,
  "states": {
   "matched": {
-   "functions": 13782,
-   "bytes": 2097086
+   "functions": 13809,
+   "bytes": 2110877
   },
   "parked": {
-   "functions": 969,
-   "bytes": 471641
+   "functions": 967,
+   "bytes": 470222
   },
   "claimed": {
-   "functions": 46,
-   "bytes": 16802
+   "functions": 48,
+   "bytes": 18221
   },
   "open": {
    "functions": 3,
    "bytes": 2344
   },
   "submitted": {
-   "functions": 28,
-   "bytes": 18071
+   "functions": 1,
+   "bytes": 4280
   }
  },
  "certified": 0,
@@ -35,19 +35,19 @@
    "name": "D2Game",
    "functions": 4128,
    "bytes": 822333,
-   "matched_functions": 3825,
-   "matched_bytes": 661799,
-   "review_bytes": 10542,
+   "matched_functions": 3839,
+   "matched_bytes": 668127,
+   "review_bytes": 5633,
    "open_bytes": 1460,
-   "parked_bytes": 148532
+   "parked_bytes": 147113
   },
   {
    "name": "D2Client",
    "functions": 4524,
    "bytes": 770044,
-   "matched_functions": 4275,
-   "matched_bytes": 642412,
-   "review_bytes": 11048,
+   "matched_functions": 4284,
+   "matched_bytes": 645263,
+   "review_bytes": 8197,
    "open_bytes": 356,
    "parked_bytes": 116228
   },
@@ -55,9 +55,9 @@
    "name": "D2Common",
    "functions": 2286,
    "bytes": 437019,
-   "matched_functions": 2165,
-   "matched_bytes": 377636,
-   "review_bytes": 1442,
+   "matched_functions": 2166,
+   "matched_bytes": 378104,
+   "review_bytes": 974,
    "open_bytes": 528,
    "parked_bytes": 57413
   },
@@ -85,9 +85,9 @@
    "name": "Storm/Fog/Bnclient tail",
    "functions": 493,
    "bytes": 85374,
-   "matched_functions": 413,
-   "matched_bytes": 48373,
-   "review_bytes": 7492,
+   "matched_functions": 415,
+   "matched_bytes": 52249,
+   "review_bytes": 3616,
    "open_bytes": 0,
    "parked_bytes": 29509
   },
@@ -95,9 +95,9 @@
    "name": "Bnclient/D2MCPClient",
    "functions": 482,
    "bytes": 73846,
-   "matched_functions": 459,
-   "matched_bytes": 63815,
-   "review_bytes": 894,
+   "matched_functions": 460,
+   "matched_bytes": 64083,
+   "review_bytes": 626,
    "open_bytes": 0,
    "parked_bytes": 9137
   },
@@ -155,13 +155,13 @@
  "leaderboard": [
   {
    "who": "Legbreak",
-   "functions": 13449,
-   "bytes": 2011785
+   "functions": 13456,
+   "bytes": 2018461
   },
   {
    "who": "Esk",
-   "functions": 188,
-   "bytes": 52750
+   "functions": 208,
+   "bytes": 59865
   },
   {
    "who": "Angel",
@@ -192,18 +192,18 @@
   },
   {
    "model": "unknown",
-   "functions": 151,
-   "bytes": 29715
+   "functions": 168,
+   "bytes": 39112
+  },
+  {
+   "model": "gpt-6-astra",
+   "functions": 31,
+   "bytes": 13259
   },
   {
    "model": "claude-sonnet-5-5",
    "functions": 76,
    "bytes": 11605
-  },
-  {
-   "model": "gpt-6-astra",
-   "functions": 21,
-   "bytes": 8865
   },
   {
    "model": "codex-gpt-6.1-sol",
@@ -260,10 +260,10 @@
   },
   {
    "day": "2026-11-09",
-   "functions": 308,
-   "bytes": 130952,
-   "cum_functions": 13795,
-   "cum_bytes": 2097086
+   "functions": 335,
+   "bytes": 144743,
+   "cum_functions": 13822,
+   "cum_bytes": 2110877
   }
  ],
  "left_by_size": [
@@ -283,8 +283,8 @@
     64,
     256
    ],
-   "functions": 303,
-   "bytes": 51501,
+   "functions": 295,
+   "bytes": 49886,
    "tried": 286
   },
   {
@@ -293,8 +293,8 @@
     256,
     512
    ],
-   "functions": 370,
-   "bytes": 137137,
+   "functions": 358,
+   "bytes": 133353,
    "tried": 342
   },
   {
@@ -303,9 +303,9 @@
     512,
     1024
    ],
-   "functions": 219,
-   "bytes": 162657,
-   "tried": 204
+   "functions": 214,
+   "bytes": 159154,
+   "tried": 202
   },
   {
    "band": "huge",
@@ -313,8 +313,8 @@
     1024,
     null
    ],
-   "functions": 103,
-   "bytes": 155582,
+   "functions": 101,
+   "bytes": 150693,
    "tried": 97
   }
  ]
