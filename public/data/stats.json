@@ -1,6 +1,6 @@
 {
- "generated_utc": "2026-11-10T15:07Z",
- "commit": "7e1c670c1",
+ "generated_utc": "2026-11-10T15:15Z",
+ "commit": "31b8fbf99",
  "text_bytes": 2928640,
  "functions_total": 14970,
  "bytes_total": 2619687,
@@ -13,16 +13,16 @@
    "bytes": 2147150
   },
   "parked": {
-   "functions": 908,
-   "bytes": 455470
+   "functions": 910,
+   "bytes": 456451
   },
   "open": {
-   "functions": 24,
-   "bytes": 8658
+   "functions": 22,
+   "bytes": 8045
   },
   "claimed": {
    "functions": 15,
-   "bytes": 3742
+   "bytes": 3374
   },
   "submitted": {
    "functions": 6,
@@ -47,8 +47,8 @@
    "bytes": 776359,
    "matched_functions": 4321,
    "matched_bytes": 653506,
-   "review_bytes": 4775,
-   "open_bytes": 2217,
+   "review_bytes": 5099,
+   "open_bytes": 1893,
    "parked_bytes": 115861
   },
   {
@@ -57,9 +57,9 @@
    "bytes": 441922,
    "matched_functions": 2189,
    "matched_bytes": 381684,
-   "review_bytes": 874,
+   "review_bytes": 182,
    "open_bytes": 1412,
-   "parked_bytes": 57952
+   "parked_bytes": 58644
   },
   {
    "name": "Storm/Fog",
@@ -78,8 +78,8 @@
    "matched_functions": 789,
    "matched_bytes": 106186,
    "review_bytes": 0,
-   "open_bytes": 687,
-   "parked_bytes": 28036
+   "open_bytes": 398,
+   "parked_bytes": 28325
   },
   {
    "name": "Storm/Fog/Bnclient tail",
@@ -297,7 +297,7 @@
    ],
    "functions": 339,
    "bytes": 126755,
-   "tried": 310
+   "tried": 311
   },
   {
    "band": "large",
@@ -307,7 +307,7 @@
    ],
    "functions": 207,
    "bytes": 154892,
-   "tried": 205
+   "tried": 206
   },
   {
    "band": "huge",
@@ -327,7 +327,7 @@
    "0x00401000",
    "0x006CB5A1"
   ],
-  "coverage_generated_utc": "2026-11-10",
+  "coverage_generated_utc": "20261110b",
   "split": "queue",
   "segments": [
    {
@@ -339,19 +339,19 @@
    {
     "key": "pending",
     "label": "Waiting for the build host",
-    "bytes": 8409,
+    "bytes": 8041,
     "game": true
    },
    {
     "key": "parked",
     "label": "Tried, still open",
-    "bytes": 455470,
+    "bytes": 456451,
     "game": true
    },
    {
     "key": "never",
     "label": "Never tried",
-    "bytes": 39917,
+    "bytes": 6718,
     "game": true
    },
    {
@@ -363,17 +363,17 @@
    {
     "key": "library",
     "label": "Not game code: compiler runtime library",
-    "bytes": 139717,
+    "bytes": 171969,
     "game": false
    },
    {
     "key": "other",
     "label": "Not game code: data and fragments",
-    "bytes": 6693,
+    "bytes": 7027,
     "game": false
    }
   ],
-  "never_tried_measured": 4205
+  "never_tried_measured": 8045
  },
  "relink": {
   "pct_text": 83.09,
