@@ -17,7 +17,7 @@ spec.loader.exec_module(checker)
 MATCH = {'RAW_EQUAL', 'RELOCATION_RESOLVED_EQUAL'}
 
 
-def coff(body, relocs=(), symbol='_wrong', scn=0, value=0, extra=None, extra_symbols=()):
+def coff(body, relocs=(), symbol='_wrong', scn=0, value=0, extra=None, extra_symbols=(), cls=2):
     """One target section, one dependency symbol; explicit i386 COFF records."""
     sections = [(b'.text', body, relocs)] + ([extra] if extra else [])
     cursor = 20 + 40 * len(sections)
@@ -33,15 +33,15 @@ def coff(body, relocs=(), symbol='_wrong', scn=0, value=0, extra=None, extra_sym
         headers.append(struct.pack('<8sIIIIIIHHI', name, 0, 0, len(raw), rp, relocptr, 0, len(rels), 0, 0x60000020))
     strings = b''
     symbols = b''
-    symbol_specs = [('_f', 0, 1), (symbol, value, scn)] + list(extra_symbols)
-    for name, val, section in symbol_specs:
+    symbol_specs = [('_f', 0, 1, 2), (symbol, value, scn, cls)] + [tuple(x) + (2,) * (4 - len(x)) for x in extra_symbols]
+    for name, val, section, klass in symbol_specs:
         encoded = name.encode('ascii')
         if len(encoded) > 8:
             nm = struct.pack('<II', 0, 4 + len(strings))
             strings += encoded + b'\0'
         else:
             nm = encoded.ljust(8, b'\0')
-        symbols += nm + struct.pack('<IhHBB', val, section, 0x20 if name == '_f' else 0, 2, 0)
+        symbols += nm + struct.pack('<IhHBB', val, section, 0x20 if name == '_f' else 0, klass, 0)
     return struct.pack('<HHIIIHH', 0x14c, len(sections), 0, cursor, len(symbol_specs), 0, 0) + b''.join(headers) + payload + symbols + struct.pack('<I', 4 + len(strings)) + strings
 
 
@@ -170,6 +170,26 @@ class CheckerTests(unittest.TestCase):
 
     def test_internal_data_is_not_proven_by_code_or_marker(self):
         self.assert_rejected(self.check(body=b'\xa1\0\0\0\0\xc3', original=b'\xa1\0\x20\x40\0\xc3', decl='extern int wrong; // 0x00402000', relocs=((1, 6),), scn=2, extra=(b'.rdata', b'WRONG', ())))
+
+    def static_data(self, decl, cls=3, original=b'\xa1\0\x20\x40\0\xc3'):
+        # mov eax, [gnFlag]; ret -- gnFlag is a file static in .bss; the original reads 0x00402000
+        return self.check(body=b'\xa1\0\0\0\0\xc3', original=original, decl=decl, relocs=((1, 6),),
+                          symbol='?gnFlag@@3HA', scn=2, cls=cls, extra=(b'.bss', b'\0\0\0\0', ()))
+
+    def test_marked_file_static_data_resolves(self):
+        self.assertEqual(self.static_data('static int gnFlag; // 0x00402000')['status'], 'RELOCATION_RESOLVED_EQUAL')
+
+    def test_file_static_data_at_another_address_is_rejected(self):
+        self.assert_rejected(self.static_data('static int gnFlag; // 0x00402004'))
+
+    def test_unmarked_file_static_data_is_rejected(self):
+        self.assert_rejected(self.static_data('static int gnFlag;'))
+
+    def test_extern_marker_does_not_prove_a_static_the_file_defines(self):
+        self.assert_rejected(self.static_data('extern int gnFlag; // 0x00402000'))
+
+    def test_marked_static_inside_a_function_is_not_accepted(self):
+        self.assert_rejected(self.static_data('void g() {\n    static int gnFlag; // 0x00402000\n}'))
 
     def literal(self, image_bytes=b'abc\0', name='??_C@_03ABCDEFGH@abc?$AA@'):
         # mov eax, [literal]; ret; the original's literal sits at 0x00401006, inside its own image

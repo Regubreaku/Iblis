@@ -549,6 +549,25 @@ def parse_markers(src):
     return defs, decls
 
 
+def static_data_markers(src):
+    """File-static data objects with a trailing address marker on their own definition, e.g.
+    `static int gnFlag_007A8A18; // 0x007A8A18`. Only `static` definitions outside functions count: an `extern`
+    declaration never proves an object the file itself defines."""
+    out = {}
+    depth = 0
+    for ln in src.splitlines():
+        t = ln.strip()
+        code = t.split("//")[0]
+        m = re.search(r"//\s*(0x[0-9A-Fa-f]{8})\s*$", t)
+        if depth == 0 and m and re.match(r"static\s", code) and "(" not in code:
+            nm = decl_name(code.split("=")[0].strip().rstrip(";") + ";")
+            if nm:
+                addr = int(m.group(1), 16)
+                out[nm] = addr if nm not in out or out[nm] == addr else None
+        depth += code.count("{") - code.count("}")
+    return out
+
+
 def undec(n):
     m = re.match(r"^\?\?([01])([A-Za-z_0-9]+)@", n)
     if m:
@@ -731,6 +750,7 @@ def compile_and_compare(s, va, length, flags, src, wd, image=None):
         if re.search(bad, src):
             return dict(status="FORBIDDEN", detail="forbidden construct %r" % bad)
     defs, decls = parse_markers(src)
+    static_data = static_data_markers(src)
     target = next((k for k, v in defs.items() if v == start), None)
     if not target:
         return dict(status="NO_MARKER", detail="no `// %s` line directly above a function definition" % va)
@@ -857,6 +877,13 @@ def compile_and_compare(s, va, length, flags, src, wd, image=None):
                 want = None
                 problems.append("%s: the original's operand at +0x%x does not point at these constant bytes" % (sy["name"], off))
                 continue
+        elif (sy["scn"] > 0 and sy["cls"] == 3 and secs[sy["scn"] - 1]["name"].startswith((".data", ".bss", ".rdata"))
+              and secs[sy["scn"] - 1]["name"] != sy["name"] and static_data.get(undec(sy["name"])) is not None
+              and sum(1 for y in syms if y["scn"] > 0 and undec(y["name"]) == undec(sy["name"])) == 1):
+            # A file-static data object (the original's file defined it `static`, so MSVC knew stores through pointers
+            # cannot alias it) carries a trailing `// 0x...` on its own definition: the operand must land on that address,
+            # the same proof as for an extern. Its initial contents are not part of this compare.
+            want = static_data[undec(sy["name"])]
         else:
             want = None
             problems.append("%s has an unverified internal/common/absolute dependency" % sy["name"])
