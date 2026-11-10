@@ -300,5 +300,60 @@
    "bytes": 156133,
    "tried": 103
   }
- ]
+ ],
+ "code_section": {
+  "bytes": 2928640,
+  "measured_bytes": 2925985,
+  "range": [
+   "0x00401000",
+   "0x006CB5A1"
+  ],
+  "coverage_generated_utc": "2026-11-10",
+  "split": "coverage",
+  "segments": [
+   {
+    "key": "matched",
+    "label": "Verified",
+    "bytes": 2139692,
+    "game": true
+   },
+   {
+    "key": "pending",
+    "label": "Waiting for the build host",
+    "bytes": 7739,
+    "game": true
+   },
+   {
+    "key": "parked",
+    "label": "Tried, still open",
+    "bytes": 499310,
+    "game": true
+   },
+   {
+    "key": "never",
+    "label": "Never tried",
+    "bytes": 4205,
+    "game": true
+   },
+   {
+    "key": "padding",
+    "label": "Not game code: padding",
+    "bytes": 131284,
+    "game": false
+   },
+   {
+    "key": "library",
+    "label": "Not game code: compiler runtime library",
+    "bytes": 139717,
+    "game": false
+   },
+   {
+    "key": "other",
+    "label": "Not game code: data and fragments",
+    "bytes": 6693,
+    "game": false
+   }
+  ],
+  "never_tried_measured": 4205
+ }
 }

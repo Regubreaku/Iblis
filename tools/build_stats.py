@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """Build public/data/stats.json for the progress site from a checkout of the matching repo.
 
-usage: build_stats.py <repo> <out.json>
+usage: build_stats.py <repo> <out.json> [--coverage TEXT_COVERAGE.json]
 
 Reads only what the repo already publishes: docs/grid-data.json (one row per function: address, length, module,
 state, who), queue/matched/*.json (the model that produced each match) and the git history of queue/matched/ (when
 each function first became matched). Publishes counts and sizes only: no names, no code, no game bytes.
+
+The code-section bar also needs the bytes that are not game code (padding between functions, the statically linked
+C runtime, data in .text). Only the build host can measure those, because it alone holds the image: it writes
+per-category byte totals to TEXT_COVERAGE.json (format in tools/site_stats.py). Pass that file with --coverage, or set
+IBLIS_TEXT_COVERAGE. Only its totals reach stats.json. Without it the bar has no "not game code" segments and the
+page falls back to a single "Never tried or not yet queued" remainder.
 """
-import collections, datetime, glob, json, os, subprocess, sys
-from site_stats import normalize_stats
+import argparse, collections, datetime, glob, json, os, subprocess, sys
+from site_stats import code_section, load_coverage, normalize_stats
 
 TEXT_BYTES = None  # read from tools/board.py so the site and the board agree
 
@@ -20,7 +26,7 @@ def text_size(repo):
     raise SystemExit("TEXT not found in tools/board.py")
 
 
-def main(repo, out):
+def main(repo, out, coverage=None):
     text = text_size(repo)
     grid = json.load(open(os.path.join(repo, "docs", "grid-data.json")))
     length = {r["va"].upper(): r["length"] for r in grid}
@@ -121,6 +127,16 @@ def main(repo, out):
         "trend": trend,
         "left_by_size": left,
     }
+    if coverage:
+        stats["code_section"] = cs = code_section(stats, load_coverage(json.load(open(coverage))))
+        never = next(s["bytes"] for s in cs["segments"] if s["key"] == "never")
+        if abs(never - cs["never_tried_measured"]) > max(4096, text // 1000):
+            print("warning: never-tried remainder %d B differs from the host's measured %d B (queue moved since the "
+                  "coverage run? regenerate it)" % (never, cs["never_tried_measured"]), file=sys.stderr)
+        print("code section: " + "; ".join("%s %.2f%%" % (s["label"], 100.0 * s["bytes"] / text) for s in cs["segments"]))
+    else:
+        print("warning: no coverage file; the bar cannot separate padding and library code from never-tried code",
+              file=sys.stderr)
     normalize_stats(stats)
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     json.dump(stats, open(out, "w"), indent=1)
@@ -130,4 +146,10 @@ def main(repo, out):
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:3])
+    ap = argparse.ArgumentParser(description="Build the site's stats.json from the matching repo.")
+    ap.add_argument("repo")
+    ap.add_argument("out")
+    ap.add_argument("--coverage", default=os.environ.get("IBLIS_TEXT_COVERAGE"),
+                    help="TEXT_COVERAGE.json from the build host (default $IBLIS_TEXT_COVERAGE)")
+    a = ap.parse_args()
+    main(a.repo, a.out, a.coverage)
