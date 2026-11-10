@@ -1,32 +1,32 @@
 {
- "generated_utc": "2026-11-10T18:37Z",
- "commit": "b3b258f2",
+ "generated_utc": "2026-11-10T19:22Z",
+ "commit": "0e6f787ac",
  "text_bytes": 2928640,
- "functions_total": 14954,
- "bytes_total": 2618149,
- "matched_functions": 14020,
- "matched_bytes": 2151149,
+ "functions_total": 14945,
+ "bytes_total": 2618076,
+ "matched_functions": 14011,
+ "matched_bytes": 2151076,
  "matched_pct_text": 73.45,
  "states": {
   "matched": {
-   "functions": 14020,
-   "bytes": 2151149
+   "functions": 14011,
+   "bytes": 2151076
   },
   "parked": {
-   "functions": 909,
-   "bytes": 456274
+   "functions": 906,
+   "bytes": 454841
   },
   "claimed": {
-   "functions": 16,
-   "bytes": 4329
+   "functions": 17,
+   "bytes": 5319
   },
   "open": {
    "functions": 5,
    "bytes": 1820
   },
   "submitted": {
-   "functions": 4,
-   "bytes": 4577
+   "functions": 6,
+   "bytes": 5020
   }
  },
  "certified": 0,
@@ -37,9 +37,9 @@
    "bytes": 836871,
    "matched_functions": 3893,
    "matched_bytes": 684398,
-   "review_bytes": 1682,
+   "review_bytes": 4143,
    "open_bytes": 0,
-   "parked_bytes": 150791
+   "parked_bytes": 148330
   },
   {
    "name": "D2Client",
@@ -47,9 +47,9 @@
    "bytes": 776359,
    "matched_functions": 4321,
    "matched_bytes": 653506,
-   "review_bytes": 5873,
+   "review_bytes": 4793,
    "open_bytes": 867,
-   "parked_bytes": 116113
+   "parked_bytes": 117193
   },
   {
    "name": "D2Common",
@@ -87,9 +87,9 @@
    "bytes": 96117,
    "matched_functions": 460,
    "matched_bytes": 58782,
-   "review_bytes": 535,
+   "review_bytes": 786,
    "open_bytes": 0,
-   "parked_bytes": 36800
+   "parked_bytes": 36549
   },
   {
    "name": "Bnclient/D2MCPClient",
@@ -97,9 +97,9 @@
    "bytes": 77082,
    "matched_functions": 485,
    "matched_bytes": 67153,
-   "review_bytes": 199,
+   "review_bytes": 0,
    "open_bytes": 0,
-   "parked_bytes": 9730
+   "parked_bytes": 9929
   },
   {
    "name": "D2CMP",
@@ -123,10 +123,10 @@
   },
   {
    "name": "C runtime (prebuilt libcmt)",
-   "functions": 18,
-   "bytes": 1625,
-   "matched_functions": 9,
-   "matched_bytes": 73,
+   "functions": 9,
+   "bytes": 1552,
+   "matched_functions": 0,
+   "matched_bytes": 0,
    "review_bytes": 226,
    "open_bytes": 0,
    "parked_bytes": 1326
@@ -145,8 +145,8 @@
  "leaderboard": [
   {
    "who": "Legbreak",
-   "functions": 13601,
-   "bytes": 2041165
+   "functions": 13592,
+   "bytes": 2041092
   },
   {
    "who": "Esk",
@@ -177,8 +177,8 @@
   },
   {
    "model": "codex",
-   "functions": 364,
-   "bytes": 66781
+   "functions": 355,
+   "bytes": 66708
   },
   {
    "model": "unknown",
@@ -235,9 +235,9 @@
   {
    "day": "2026-11-10",
    "functions": 14023,
-   "bytes": 2151149,
+   "bytes": 2151076,
    "cum_functions": 14023,
-   "cum_bytes": 2151149
+   "cum_bytes": 2151076
   }
  ],
  "left_by_size": [
@@ -259,7 +259,7 @@
    ],
    "functions": 269,
    "bytes": 44981,
-   "tried": 266
+   "tried": 264
   },
   {
    "band": "medium",
@@ -279,7 +279,7 @@
    ],
    "functions": 206,
    "bytes": 154148,
-   "tried": 206
+   "tried": 205
   },
   {
    "band": "huge",
@@ -293,28 +293,28 @@
   }
  ],
  "relink": {
-  "pct_text": 84.83,
-  "identical_bytes": 2484461,
+  "pct_text": 84.86,
+  "identical_bytes": 2485294,
   "bytes": 2928640,
   "milestone": 6,
   "classes": [
    {
     "key": "matched",
     "label": "Verified functions",
-    "equal": 2147576,
+    "equal": 2148437,
     "different": 2712
    },
    {
     "key": "submitted",
     "label": "Submitted, waiting for the build host",
-    "equal": 247,
-    "different": 4312
+    "equal": 271,
+    "different": 4557
    },
    {
     "key": "pending",
     "label": "Open or parked functions",
-    "equal": 29495,
-    "different": 433302
+    "equal": 29443,
+    "different": 432224
    },
    {
     "key": "not_function",
@@ -351,7 +351,7 @@
    {
     "key": "unverified",
     "label": "Unverified functions (open, parked or submitted)",
-    "bytes": 437614
+    "bytes": 436781
    },
    {
     "key": "unplaced",
@@ -370,40 +370,40 @@
    }
   ],
   "generated_utc": "2026-11-10",
-  "commit": "bd5fa997",
+  "commit": "4618a3495",
   "sections_equal": true,
   "entry_equal": true,
   "iat_equal": true,
   "file": {
    "bytes": 3618792,
-   "built_bytes": 2731632,
-   "copied_bytes": 433788,
-   "identical_bytes": 3165420,
-   "pct_built": 75.48,
-   "pct_identical": 87.47,
+   "built_bytes": 2732493,
+   "copied_bytes": 433760,
+   "identical_bytes": 3166253,
+   "pct_built": 75.51,
+   "pct_identical": 87.49,
    "pct_signature": 0.17,
    "segments": [
     {
      "key": "built",
      "label": "Built from source",
-     "bytes": 2731632
+     "bytes": 2732493
     },
     {
      "key": "copied",
      "label": "Identical, copied data",
-     "bytes": 433788
+     "bytes": 433760
     },
     {
      "key": "rest",
      "label": "Not yet",
-     "bytes": 453372
+     "bytes": 452539
     }
    ],
    "remaining": [
     {
      "key": "placeholder",
      "label": "Placeholders for parked and unverified functions",
-     "bytes": 445211
+     "bytes": 444378
     },
     {
      "key": "linker",
@@ -420,7 +420,7 @@
     {
      "key": "source",
      "label": "Compiled from the project's source",
-     "equal": 2221146,
+     "equal": 2222007,
      "different": 0
     },
     {
@@ -444,14 +444,14 @@
     {
      "key": "copied",
      "label": "Game data tables and strings, copied",
-     "equal": 433788,
+     "equal": 433760,
      "different": 0
     },
     {
      "key": "placeholder",
      "label": "Placeholders for unverified functions",
      "equal": 1032,
-     "different": 444179
+     "different": 443346
     },
     {
      "key": "signature",
@@ -464,9 +464,9 @@
     {
      "name": ".text",
      "bytes": 2928640,
-     "built": 2454777,
-     "copied": 28652,
-     "identical": 2483429
+     "built": 2455638,
+     "copied": 28624,
+     "identical": 2484262
     },
     {
      "name": ".rdata",
