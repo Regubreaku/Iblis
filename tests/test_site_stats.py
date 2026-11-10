@@ -60,6 +60,93 @@ class SiteStatsTests(unittest.TestCase):
         self.assertEqual(self.normalize({'leaderboard': [], 'by_model': []}), {'leaderboard': [], 'by_model': []})
 
 
+class CodeSectionBarTests(unittest.TestCase):
+    def setUp(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+
+    def coverage(self, **over):
+        cats = {'matched': 2000, 'submitted': 50, 'claimed': 30, 'open': 20, 'parked': 400, 'not_function': 10,
+                'padding': 300, 'crt_library': 180, 'third_party': 0, 'data': 0, 'missing_game': 0}
+        cats.update(over)
+        return {'generated_utc': '2026-11-10T09:00Z', 'section': {'start': '0x00401000', 'end': hex(0x401000 + sum(cats.values()))},
+                'bytes': cats}
+
+    def stats(self):
+        return {'text_bytes': 3000, 'matched_bytes': 2000,
+                'states': {'matched': {'bytes': 2000}, 'claimed': {'bytes': 30}, 'submitted': {'bytes': 50},
+                           'open': {'bytes': 20}, 'parked': {'bytes': 400}}}
+
+    def test_not_game_code_is_split_out_and_shares_cover_the_whole_section(self):
+        from site_stats import code_section, load_coverage
+        cov = load_coverage(self.coverage())
+        self.assertEqual(cov['section_bytes'], 2990)
+        cs = code_section(self.stats(), cov)
+        seg = {s['key']: s for s in cs['segments']}
+        self.assertEqual([s['key'] for s in cs['segments']], ['matched', 'pending', 'parked', 'never', 'padding', 'library', 'other'])
+        self.assertEqual(seg['pending']['bytes'], 80)
+        self.assertEqual(seg['padding']['bytes'], 310)  # 300 measured + 10 B of section tail past the measured range
+        self.assertEqual(seg['library']['label'], 'Not game code: compiler runtime library')
+        self.assertEqual(seg['other']['bytes'], 10)
+        self.assertEqual(seg['never']['bytes'], 20)
+        self.assertEqual(cs['never_tried_measured'], 20)
+        self.assertEqual(sum(s['bytes'] for s in cs['segments']), 3000)
+        self.assertTrue(all(not s['game'] for s in cs['segments'][4:]))
+
+    def test_coverage_formats_and_validation(self):
+        from site_stats import load_coverage
+        flat = {k: {'bytes': v} for k, v in self.coverage()['bytes'].items()}
+        self.assertEqual(load_coverage(flat)['bytes']['padding'], 300)
+        self.assertIsNone(load_coverage(flat)['range'])
+        bad = self.coverage()
+        bad['section']['end'] = '0x00402000'
+        with self.assertRaises(ValueError):
+            load_coverage(bad)
+        with self.assertRaises(ValueError):
+            load_coverage({'bytes': {'padding': -1}})
+        with self.assertRaises(ValueError):
+            load_coverage({'whatever': 1})
+
+    def test_empty_categories_are_omitted_and_third_party_relabels_the_library(self):
+        from site_stats import code_section, load_coverage
+        cs = code_section(self.stats(), load_coverage(self.coverage(not_function=0, third_party=10)))
+        keys = [s['key'] for s in cs['segments']]
+        self.assertNotIn('other', keys)
+        self.assertEqual(cs['segments'][-1]['label'], 'Not game code: runtime and other libraries')
+
+    def test_host_measurement_format(self):
+        from site_stats import code_section, load_coverage
+        doc = {'text': {'start': '0x00401000', 'end': '0x00401BB8', 'bytes': 3000}, 'computed_utc': '20261110',
+               'queue_bytes': {'matched': 2000, 'submitted': 50, 'claimed': 30, 'open': 20, 'parked': 400, 'not_function': 10},
+               'padding_bytes': 300, 'unqueued_nonpadding_bytes': 190,
+               'categories': {'a_crt_compiler_helper': {'bytes': 180, 'runs': 2, 'ranges': [['0x1', '0x2', 'x', 'y']]},
+                              'b_third_party_library': {'bytes': 0}, 'c_data_or_tables': {'bytes': 9},
+                              'd_game_function_missing': {'bytes': 1}}}
+        cov = load_coverage(doc)
+        self.assertEqual(cov['generated_utc'], '2026-11-10')
+        self.assertEqual((cov['bytes']['crt_library'], cov['bytes']['data'], cov['bytes']['missing_game']), (180, 9, 1))
+        cs = code_section(self.stats(), cov)
+        self.assertEqual(cs['split'], 'coverage')
+        self.assertEqual({s['key']: s['bytes'] for s in cs['segments']}['never'], 21)
+        self.assertNotIn('ranges', repr(cs))
+
+    def test_stale_coverage_keeps_queue_figures_and_takes_never_tried_as_remainder(self):
+        from site_stats import code_section, load_coverage
+        stats = self.stats()
+        stats['matched_bytes'] = stats['states']['matched']['bytes'] = 2010
+        stats['states']['open']['bytes'] = 10
+        cs = code_section(stats, load_coverage(self.coverage()))
+        seg = {s['key']: s['bytes'] for s in cs['segments']}
+        self.assertEqual(cs['split'], 'queue')
+        self.assertEqual(seg['matched'], 2010)
+        self.assertEqual(seg['never'], 10)
+        self.assertEqual(sum(seg.values()), 3000)
+
+    def test_home_page_renders_the_split_bar(self):
+        page = (Path(__file__).resolve().parents[1] / 'src' / 'pages' / 'index.html').read_text(encoding='utf-8')
+        self.assertIn('S.code_section', page)
+        self.assertIn('Every share is of the whole code section', page)
+
+
 class IntakeSwitchTests(unittest.TestCase):
     def test_invite_notices_follow_the_invite_list(self):
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))

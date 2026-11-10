@@ -9,6 +9,16 @@
 .legend { display: flex; gap: .4rem 1.3rem; flex-wrap: wrap; margin-top: .7rem; font-size: .92rem; color: var(--ash); }
 .legend i { display: inline-block; width: .75rem; height: .75rem; margin-right: .4rem; vertical-align: -1px; }
 .legend b { color: var(--bone); font-weight: 600; font-variant-numeric: tabular-nums; }
+/* bytes that are not game code: neutral greys, hatched so they never read as part of the cinder "empty" track */
+.legend i.g { background: var(--gold); } .legend i.p { background: var(--pending); } .legend i.e { background: var(--ember); }
+.overall .track .c, .legend i.c { background: var(--cinder); }
+.overall .track .np, .legend i.np { background: repeating-linear-gradient(135deg, #4b4640 0 2px, #2b2825 2px 5px); }
+.overall .track .nl, .legend i.nl { background: #6d675f; }
+.overall .track .nd, .legend i.nd { background: repeating-linear-gradient(90deg, #6d675f 0 2px, #2b2825 2px 4px); }
+.overall .track .ng { flex: 0 0 2px; background: var(--stone); }
+.legend .ng { flex-basis: 100%; height: 0; }
+.legend .ngame { color: #9a948c; }
+.overall .note { margin: .8rem 0 0; font-size: .86rem; color: var(--ash); }
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 1.6rem; border-block: 1px solid var(--seam); }
 .stat { padding: 1rem 1rem 1.1rem; border-left: 1px solid var(--seam); }
 .stat:first-child { border-left: 0; padding-left: 0; }
@@ -39,6 +49,7 @@
       <h3>Game.exe code section</h3>
       <div class="track" id="overall"></div>
       <div class="legend" id="legend"></div>
+      <p class="note" id="legend-note" hidden></p>
     </div>
   </div>
   <div class="stats" id="stats"></div>
@@ -93,11 +104,28 @@
   const tried = st("parked").bytes, never = st("open").bytes;
   const T = S.text_bytes;
   const seg = (cls, b) => `<i class="${cls}" style="width:${(100 * b / T).toFixed(3)}%"></i>`;
-  $("overall").innerHTML = seg("g", S.matched_bytes) + seg("p", pend) + seg("e", tried);
-  $("legend").innerHTML = [
-    ["var(--gold)", "Verified", S.matched_bytes], ["var(--pending)", "Waiting for the build host", pend],
-    ["var(--ember)", "Tried, still open", tried], ["var(--cinder)", "Never tried or not yet queued", T - S.matched_bytes - pend - tried],
-  ].map(([c, l, b]) => `<span><i style="background:${c}"></i>${l} <b>${(100 * b / T).toFixed(1)}%</b></span>`).join("");
+  const share = b => { const v = 100 * b / T; return v > 0 && v < 0.05 ? "&lt;0.1%" : v.toFixed(1) + "%"; };
+  const CS = S.code_section;
+  if (CS && CS.segments) {
+    // game code first, then the bytes that are not game code (padding, the C runtime library), all as shares of .text
+    const cls = { matched: "g", pending: "p", parked: "e", never: "c", padding: "np", library: "nl", other: "nd" };
+    const firstNot = CS.segments.findIndex(x => !x.game);
+    $("overall").innerHTML = CS.segments.map((x, i) => (i === firstNot ? '<i class="ng" style="width:0"></i>' : "") + seg(cls[x.key] || "c", x.bytes)).join("");
+    $("overall").setAttribute("role", "img");
+    $("overall").setAttribute("aria-label", "Game.exe code section: " + CS.segments.map(x => `${x.label} ${share(x.bytes).replace("&lt;", "under ")}`).join(", "));
+    $("legend").innerHTML = CS.segments.map((x, i) => (i === firstNot ? '<span class="ng" aria-hidden="true"></span>' : "") +
+      `<span${x.game ? "" : ' class="ngame"'}><i class="${cls[x.key] || "c"}"></i>${esc(x.label)}&nbsp;<b>${share(x.bytes)}</b></span>`).join("");
+    $("legend-note").innerHTML = `Every share is of the whole code section, ${kb(T)} (${nf.format(T)} bytes), so the figures add up to 100%. ` +
+      `The grey segments, placed last, are not game code and are not rebuilt; the build host measures them` +
+      (CS.coverage_generated_utc ? ` (last measured ${esc(CS.coverage_generated_utc.slice(0, 10))})` : "") + ".";
+    $("legend-note").hidden = false;
+  } else {
+    $("overall").innerHTML = seg("g", S.matched_bytes) + seg("p", pend) + seg("e", tried);
+    $("legend").innerHTML = [
+      ["var(--gold)", "Verified", S.matched_bytes], ["var(--pending)", "Waiting for the build host", pend],
+      ["var(--ember)", "Tried, still open", tried], ["var(--cinder)", "Never tried or not yet queued", T - S.matched_bytes - pend - tried],
+    ].map(([c, l, b]) => `<span><i style="background:${c}"></i>${l} <b>${(100 * b / T).toFixed(1)}%</b></span>`).join("");
+  }
 
   $("stats").innerHTML = [
     [nf.format(S.matched_functions), "functions verified of " + nf.format(S.functions_total)],

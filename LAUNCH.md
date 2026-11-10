@@ -88,7 +88,8 @@ it, and run `python host/host.py verify --once --repo <Diablo2-Native>`. **Done 
 - Integration is manual for now. `host.py integrate` prepares verified submissions in the private repository for
   your review; you commit them.
 - Refresh the public figures after integrating:
-  `python tools/build_stats.py <Diablo2-Native> public/data/stats.json`, then `tools/build_site.py`, then push.
+  `python tools/build_stats.py <Diablo2-Native> public/data/stats.json --coverage <TEXT_COVERAGE.json>` (the host's
+  per-category .text byte totals, which split padding and the C runtime library out of the bar), then `tools/build_site.py`, then push.
 
 ## 7. Soft launch
 

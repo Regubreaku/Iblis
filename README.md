@@ -14,7 +14,7 @@ Byte-exact decompilation of Diablo II 1.14d, run as a contributor project. See `
 ## Build
 
 ```
-python tools/build_stats.py <source-repo> public/data/stats.json
+python tools/build_stats.py <source-repo> public/data/stats.json --coverage <TEXT_COVERAGE.json from the build host>
 python tools/build_kit.py   <source-repo> public/kit
 python tools/build_site.py  public/data/stats.json public
 ```
