@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build public/data/stats.json for the progress site from a checkout of the matching repo.
 
-usage: build_stats.py <repo> <out.json> [--coverage TEXT_COVERAGE.json]
+usage: build_stats.py <repo> <out.json> [--coverage TEXT_COVERAGE.json] [--relink RELINK_COVERAGE.json]
 
 Reads only what the repo already publishes: docs/grid-data.json (one row per function: address, length, module,
 state, who), queue/matched/*.json (the model that produced each match) and the git history of queue/matched/ (when
@@ -12,9 +12,14 @@ C runtime, data in .text). Only the build host can measure those, because it alo
 per-category byte totals to TEXT_COVERAGE.json (format in tools/site_stats.py). Pass that file with --coverage, or set
 IBLIS_TEXT_COVERAGE. Only its totals reach stats.json. Without it the bar has no "not game code" segments and the
 page falls back to a single "Never tried or not yet queued" remainder.
+
+The "linked executable" figure comes from the matching repo's docs/RELINK_COVERAGE.json (tools/relink.py links every
+verified function, the C runtime and the import thunks into a whole image and compares its .text with the original).
+Pass it with --relink, or set IBLIS_RELINK_COVERAGE; by default the repo's own copy is used when it exists. Only its
+per-class equal/different byte counts reach stats.json (as "relink"); the file's address lists do not.
 """
 import argparse, collections, datetime, glob, json, os, subprocess, sys
-from site_stats import code_section, load_coverage, normalize_stats
+from site_stats import code_section, load_coverage, load_relink, normalize_stats, relink_block
 
 TEXT_BYTES = None  # read from tools/board.py so the site and the board agree
 
@@ -26,7 +31,26 @@ def text_size(repo):
     raise SystemExit("TEXT not found in tools/board.py")
 
 
-def main(repo, out, coverage=None):
+def file_provenance(repo, path, tracked=None):
+    """(date, short commit) of a file: its last commit when it is tracked in `repo`, or when it is a byte-for-byte copy
+    of the tracked file `tracked` (a coverage file copied out of the repo for the host), else its modification date."""
+    try:
+        rel = os.path.relpath(os.path.realpath(path), os.path.realpath(repo))
+        if rel.startswith("..") and tracked and os.path.exists(os.path.join(repo, tracked)) and \
+                open(path, "rb").read() == open(os.path.join(repo, tracked), "rb").read():
+            rel = tracked
+        if not rel.startswith(".."):
+            r = subprocess.run(["git", "-C", repo, "log", "-1", "--format=%cs %h", "--", rel],
+                               capture_output=True, text=True)
+            if r.returncode == 0 and r.stdout.strip():
+                day, commit = r.stdout.split()[:2]
+                return day, commit
+    except (OSError, ValueError):
+        pass
+    return datetime.datetime.fromtimestamp(os.path.getmtime(path), datetime.timezone.utc).strftime("%Y-%m-%d"), None
+
+
+def main(repo, out, coverage=None, relink=None):
     text = text_size(repo)
     grid = json.load(open(os.path.join(repo, "docs", "grid-data.json")))
     length = {r["va"].upper(): r["length"] for r in grid}
@@ -137,6 +161,16 @@ def main(repo, out, coverage=None):
     else:
         print("warning: no coverage file; the bar cannot separate padding and library code from never-tried code",
               file=sys.stderr)
+    if relink is None and os.path.exists(os.path.join(repo, "docs", "RELINK_COVERAGE.json")):
+        relink = os.path.join(repo, "docs", "RELINK_COVERAGE.json")
+    if relink:
+        day, commit = file_provenance(repo, relink, os.path.join("docs", "RELINK_COVERAGE.json"))
+        stats["relink"] = rl = relink_block(stats, load_relink(json.load(open(relink)), day, commit))
+        print("linked executable: %.2f%% of .text identical (%s B of %s B; milestone %s, %s%s)" % (
+            rl["pct_text"], rl["identical_bytes"], rl["bytes"], rl["milestone"], rl["generated_utc"],
+            " @ " + rl["commit"] if rl["commit"] else ""))
+    else:
+        print("warning: no relink coverage file; the page shows no linked-executable figure", file=sys.stderr)
     normalize_stats(stats)
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     json.dump(stats, open(out, "w"), indent=1)
@@ -151,5 +185,8 @@ if __name__ == "__main__":
     ap.add_argument("out")
     ap.add_argument("--coverage", default=os.environ.get("IBLIS_TEXT_COVERAGE"),
                     help="TEXT_COVERAGE.json from the build host (default $IBLIS_TEXT_COVERAGE)")
+    ap.add_argument("--relink", default=os.environ.get("IBLIS_RELINK_COVERAGE"),
+                    help="RELINK_COVERAGE.json from the matching repo's tools/relink.py (default $IBLIS_RELINK_COVERAGE, "
+                         "else <repo>/docs/RELINK_COVERAGE.json when present)")
     a = ap.parse_args()
-    main(a.repo, a.out, a.coverage)
+    main(a.repo, a.out, a.coverage, a.relink)

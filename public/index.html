@@ -165,6 +165,17 @@ footer .wrap { display: flex; justify-content: space-between; gap: .6rem 1.4rem;
 .legend .ng { flex-basis: 100%; height: 0; }
 .legend .ngame { color: #9a948c; }
 .overall .note { margin: .8rem 0 0; font-size: .86rem; color: var(--ash); }
+/* the code-section bar and, beside it, the linked-executable figure (hidden when stats.json carries no relink block) */
+.bars2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 23rem); gap: 1rem; align-items: start; }
+.bars2.one { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 880px) { .bars2 { grid-template-columns: minmax(0, 1fr); } }
+.linked .big { display: block; margin-top: .2rem; font: 700 2.1rem/1.1 var(--display); letter-spacing: .02em; color: var(--gold); font-variant-numeric: tabular-nums; }
+.linked .what { display: block; color: var(--bone); font-size: 1rem; }
+.linked .track { height: 1.1rem; margin-top: .7rem; border: 1px solid var(--seam); }
+.linked .track .r { background: repeating-linear-gradient(45deg, #4a3d2a 0 2px, #2b2825 2px 5px); }
+.linked .legend { margin-top: .6rem; gap: .3rem 1rem; font-size: .86rem; }
+.linked .legend i.r { background: repeating-linear-gradient(45deg, #4a3d2a 0 2px, #2b2825 2px 5px); }
+.linked .note { margin: .8rem 0 0; font-size: .86rem; color: var(--ash); }
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 1.6rem; border-block: 1px solid var(--seam); }
 .stat { padding: 1rem 1rem 1.1rem; border-left: 1px solid var(--seam); }
 .stat:first-child { border-left: 0; padding-left: 0; }
@@ -184,7 +195,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: .6rem 1.4rem;
 .log li::before { content: ""; position: absolute; left: -5px; top: .5rem; width: 9px; height: 9px; transform: rotate(45deg); background: var(--stone); border: 1px solid var(--gold); }
 .log time { display: block; font: .8rem var(--mono); color: var(--ash); }
 </style>
-<script>document.body.dataset.page = "index"; window.IBLIS = {"generated_utc":"2026-11-10T08:41Z","commit":"da21a2435","text_bytes":2928640,"functions_total":15047,"bytes_total":2652272,"matched_functions":13976,"matched_bytes":2139692,"matched_pct_text":73.06,"states":{"parked":{"functions":1045,"bytes":500944},"matched":{"functions":13976,"bytes":2139692},"open":{"functions":10,"bytes":4204},"claimed":{"functions":14,"bytes":3050},"submitted":{"functions":2,"bytes":4382}},"certified":0,"modules":[{"name":"D2Game","functions":4181,"bytes":836871,"matched_functions":3880,"matched_bytes":679124,"review_bytes":1505,"open_bytes":589,"parked_bytes":155653},{"name":"D2Client","functions":4553,"bytes":776359,"matched_functions":4316,"matched_bytes":652375,"review_bytes":4775,"open_bytes":1847,"parked_bytes":117362},{"name":"D2Common","functions":2311,"bytes":441923,"matched_functions":2184,"matched_bytes":380524,"review_bytes":102,"open_bytes":822,"parked_bytes":60475},{"name":"Storm/Fog","functions":1374,"bytes":181472,"matched_functions":1283,"matched_bytes":139795,"review_bytes":289,"open_bytes":113,"parked_bytes":41275},{"name":"D2Win/D2CMP/gl/Smack/Sound","functions":849,"bytes":134909,"matched_functions":789,"matched_bytes":106186,"review_bytes":0,"open_bytes":0,"parked_bytes":28723},{"name":"Storm/Fog/Bnclient tail","functions":546,"bytes":97987,"matched_functions":460,"matched_bytes":58213,"review_bytes":535,"open_bytes":201,"parked_bytes":39038},{"name":"Bnclient/D2MCPClient","functions":507,"bytes":77082,"matched_functions":478,"matched_bytes":66509,"review_bytes":0,"open_bytes":0,"parked_bytes":10573},{"name":"D2CMP","functions":431,"bytes":58315,"matched_functions":399,"matched_bytes":43930,"review_bytes":0,"open_bytes":632,"parked_bytes":13753},{"name":"C runtime (prebuilt libcmt)","functions":112,"bytes":33877,"matched_functions":9,"matched_bytes":73,"review_bytes":226,"open_bytes":0,"parked_bytes":33578},{"name":"Storm","functions":172,"bytes":12943,"matched_functions":169,"matched_bytes":12491,"review_bytes":0,"open_bytes":0,"parked_bytes":452},{"name":"D2Hell","functions":11,"bytes":534,"matched_functions":9,"matched_bytes":472,"review_bytes":0,"open_bytes":0,"parked_bytes":62}],"leaderboard":[{"who":"Legbreak","functions":13585,"bytes":2037563},{"who":"Esk","functions":247,"bytes":69598},{"who":"Angel","functions":104,"bytes":25047},{"who":"Nathan","functions":22,"bytes":5735},{"who":"Anonymous","functions":18,"bytes":1749}],"by_model":[{"model":"claude-opus-5-5","functions":13242,"bytes":1990940},{"model":"codex","functions":372,"bytes":66829},{"model":"unknown","functions":197,"bytes":47808},{"model":"gpt-6-astra","functions":41,"bytes":14296},{"model":"claude-sonnet-5-5","functions":76,"bytes":11605},{"model":"codex-gpt-6.1-sol","functions":22,"bytes":5735},{"model":"openai codex","functions":4,"bytes":688},{"model":"gpt-6","functions":4,"bytes":656},{"model":"gpt-6.1-sol","functions":5,"bytes":572},{"model":"codex-gpt-6","functions":10,"bytes":545},{"model":"claude opus 5.5","functions":3,"bytes":18}],"trend":[{"day":"2026-11-08","functions":13480,"bytes":1966110,"cum_functions":13480,"cum_bytes":1966110},{"day":"2026-11-09","functions":449,"bytes":161882,"cum_functions":13929,"cum_bytes":2127992},{"day":"2026-11-10","functions":56,"bytes":11700,"cum_functions":13985,"cum_bytes":2139692}],"left_by_size":[{"band":"tiny","range":[0,64],"functions":57,"bytes":2037,"tried":48},{"band":"small","range":[64,256],"functions":323,"bytes":54072,"tried":319},{"band":"medium","range":[256,512],"functions":366,"bytes":136045,"tried":360},{"band":"large","range":[512,1024],"functions":221,"bytes":164293,"tried":215},{"band":"huge","range":[1024,null],"functions":104,"bytes":156133,"tried":103}],"code_section":{"bytes":2928640,"measured_bytes":2925985,"range":["0x00401000","0x006CB5A1"],"coverage_generated_utc":"2026-11-10","split":"coverage","segments":[{"key":"matched","label":"Verified","bytes":2139692,"game":true},{"key":"pending","label":"Waiting for the build host","bytes":7739,"game":true},{"key":"parked","label":"Tried, still open","bytes":499310,"game":true},{"key":"never","label":"Never tried","bytes":4205,"game":true},{"key":"padding","label":"Not game code: padding","bytes":131284,"game":false},{"key":"library","label":"Not game code: compiler runtime library","bytes":139717,"game":false},{"key":"other","label":"Not game code: data and fragments","bytes":6693,"game":false}],"never_tried_measured":4205}}; window.IBLIS_KIT = {
+<script>document.body.dataset.page = "index"; window.IBLIS = {"generated_utc":"2026-11-10T15:07Z","commit":"7e1c670c1","text_bytes":2928640,"functions_total":14970,"bytes_total":2619687,"matched_functions":14017,"matched_bytes":2147150,"matched_pct_text":73.32,"states":{"matched":{"functions":14017,"bytes":2147150},"parked":{"functions":908,"bytes":455470},"open":{"functions":24,"bytes":8658},"claimed":{"functions":15,"bytes":3742},"submitted":{"functions":6,"bytes":4667}},"certified":0,"modules":[{"name":"D2Game","functions":4181,"bytes":836871,"matched_functions":3890,"matched_bytes":682664,"review_bytes":1682,"open_bytes":2084,"parked_bytes":150441},{"name":"D2Client","functions":4553,"bytes":776359,"matched_functions":4321,"matched_bytes":653506,"review_bytes":4775,"open_bytes":2217,"parked_bytes":115861},{"name":"D2Common","functions":2312,"bytes":441922,"matched_functions":2189,"matched_bytes":381684,"review_bytes":874,"open_bytes":1412,"parked_bytes":57952},{"name":"Storm/Fog","functions":1374,"bytes":181472,"matched_functions":1286,"matched_bytes":140235,"review_bytes":289,"open_bytes":1550,"parked_bytes":39398},{"name":"D2Win/D2CMP/gl/Smack/Sound","functions":853,"bytes":134909,"matched_functions":789,"matched_bytes":106186,"review_bytes":0,"open_bytes":687,"parked_bytes":28036},{"name":"Storm/Fog/Bnclient tail","functions":553,"bytes":97655,"matched_functions":468,"matched_bytes":58783,"review_bytes":563,"open_bytes":395,"parked_bytes":37914},{"name":"Bnclient/D2MCPClient","functions":509,"bytes":77082,"matched_functions":483,"matched_bytes":67037,"review_bytes":0,"open_bytes":0,"parked_bytes":10045},{"name":"D2CMP","functions":431,"bytes":58315,"matched_functions":400,"matched_bytes":43977,"review_bytes":0,"open_bytes":313,"parked_bytes":14025},{"name":"Storm","functions":172,"bytes":12943,"matched_functions":169,"matched_bytes":12491,"review_bytes":0,"open_bytes":0,"parked_bytes":452},{"name":"C runtime (prebuilt libcmt)","functions":18,"bytes":1625,"matched_functions":9,"matched_bytes":73,"review_bytes":226,"open_bytes":0,"parked_bytes":1326},{"name":"D2Hell","functions":14,"bytes":534,"matched_functions":13,"matched_bytes":514,"review_bytes":0,"open_bytes":0,"parked_bytes":20}],"leaderboard":[{"who":"Legbreak","functions":13604,"bytes":2041183},{"who":"Esk","functions":260,"bytes":71251},{"who":"Angel","functions":113,"bytes":27232},{"who":"Nathan","functions":22,"bytes":5735},{"who":"Anonymous","functions":18,"bytes":1749}],"by_model":[{"model":"claude-opus-5-5","functions":13242,"bytes":1990940},{"model":"codex","functions":372,"bytes":66829},{"model":"unknown","functions":231,"bytes":54329},{"model":"gpt-6-astra","functions":41,"bytes":14296},{"model":"claude-sonnet-5-5","functions":76,"bytes":11605},{"model":"codex-gpt-6.1-sol","functions":22,"bytes":5735},{"model":"gpt-6-astra-ultra","functions":7,"bytes":937},{"model":"openai codex","functions":4,"bytes":688},{"model":"gpt-6","functions":4,"bytes":656},{"model":"gpt-6.1-sol","functions":5,"bytes":572},{"model":"codex-gpt-6","functions":10,"bytes":545},{"model":"claude opus 5.5","functions":3,"bytes":18}],"trend":[{"day":"2026-11-06","functions":12559,"bytes":1618061,"cum_functions":12559,"cum_bytes":1618061},{"day":"2026-11-07","functions":756,"bytes":330032,"cum_functions":13315,"cum_bytes":1948093},{"day":"2026-11-08","functions":172,"bytes":18017,"cum_functions":13487,"cum_bytes":1966110},{"day":"2026-11-09","functions":449,"bytes":161882,"cum_functions":13936,"cum_bytes":2127992},{"day":"2026-11-10","functions":97,"bytes":19158,"cum_functions":14033,"cum_bytes":2147150}],"left_by_size":[{"band":"tiny","range":[0,64],"functions":34,"bytes":1274,"tried":24},{"band":"small","range":[64,256],"functions":276,"bytes":46165,"tried":273},{"band":"medium","range":[256,512],"functions":339,"bytes":126755,"tried":310},{"band":"large","range":[512,1024],"functions":207,"bytes":154892,"tried":205},{"band":"huge","range":[1024,null],"functions":97,"bytes":143451,"tried":96}],"code_section":{"bytes":2928640,"measured_bytes":2925985,"range":["0x00401000","0x006CB5A1"],"coverage_generated_utc":"2026-11-10","split":"queue","segments":[{"key":"matched","label":"Verified","bytes":2147150,"game":true},{"key":"pending","label":"Waiting for the build host","bytes":8409,"game":true},{"key":"parked","label":"Tried, still open","bytes":455470,"game":true},{"key":"never","label":"Never tried","bytes":39917,"game":true},{"key":"padding","label":"Not game code: padding","bytes":131284,"game":false},{"key":"library","label":"Not game code: compiler runtime library","bytes":139717,"game":false},{"key":"other","label":"Not game code: data and fragments","bytes":6693,"game":false}],"never_tried_measured":4205},"relink":{"pct_text":83.09,"identical_bytes":2433266,"bytes":2928640,"milestone":4,"classes":[{"key":"matched","label":"Verified functions","equal":2130271,"different":9421},{"key":"submitted","label":"Submitted, waiting for the build host","equal":11,"different":10225},{"key":"pending","label":"Open or parked functions","equal":1610,"different":467644},{"key":"not_function","label":"Fragments and data in the queue","equal":2362,"different":2884},{"key":"thunk","label":"Import thunks","equal":2160,"different":0},{"key":"crt","label":"C runtime library","equal":181404,"different":5174},{"key":"padding","label":"Padding","equal":115448,"different":26},{"key":"other","label":"Other","equal":0,"different":0}],"remaining":[{"key":"unverified","label":"Unverified functions (open, parked or submitted)","bytes":477869},{"key":"unplaced","label":"Verified functions the linker cannot place yet","bytes":9421},{"key":"library","label":"Library data addresses, thunks and fragments","bytes":8058},{"key":"padding","label":"Padding","bytes":26}],"generated_utc":"2026-11-10","commit":"21ea2484b","sections_equal":false,"entry_equal":true,"iat_equal":true}}; window.IBLIS_KIT = {
  "file": "iblis-check-2026-11-09-6d60f31ea28a.zip",
  "sha256": "6d60f31ea28a4b4e6761f7d54f183065ca7658e7e9d5379cf254423b7104ec2a",
  "bytes": 723659
@@ -210,11 +221,21 @@ footer .wrap { display: flex; justify-content: space-between; gap: .6rem 1.4rem;
     <div class="tag">Diablo II · 1.14d · Game.exe · Visual C++ 2005 SP1</div>
     <h1><span class="pct" id="pct">—</span> of the game, rebuilt byte for byte</h1>
     <p class="lede">We are turning Game.exe back into C++ that compiles to exactly the machine code that shipped. Agents write the code, your own copy of the game checks it, and our build host verifies every function. <em>Almost right counts as zero.</em></p>
-    <div class="overall slab">
-      <h3>Game.exe code section</h3>
-      <div class="track" id="overall"></div>
-      <div class="legend" id="legend"></div>
-      <p class="note" id="legend-note" hidden></p>
+    <div class="bars2" id="bars2">
+      <div class="overall slab">
+        <h3>Game.exe code section</h3>
+        <div class="track" id="overall"></div>
+        <div class="legend" id="legend"></div>
+        <p class="note" id="legend-note" hidden></p>
+      </div>
+      <div class="linked slab" id="linked" hidden>
+        <h3>Linked executable</h3>
+        <b class="big" id="linked-pct">—</b>
+        <span class="what">of the code section identical</span>
+        <div class="track" id="linked-track"></div>
+        <div class="legend" id="linked-legend"></div>
+        <p class="note" id="linked-note"></p>
+      </div>
     </div>
   </div>
   <div class="stats" id="stats"></div>
@@ -312,6 +333,29 @@ footer .wrap { display: flex; justify-content: space-between; gap: .6rem 1.4rem;
     ].map(([c, l, b]) => `<span><i style="background:${c}"></i>${l} <b>${(100 * b / T).toFixed(1)}%</b></span>`).join("");
   }
 
+  // linked executable: every verified function, the C runtime and the import thunks linked into one image and its
+  // .text compared with the original byte for byte (the matching repo's tools/relink.py); counts only reach the site
+  const RL = S.relink;
+  if (RL && RL.bytes > 0) {
+    const rest = RL.bytes - RL.identical_bytes;
+    const groups = (RL.remaining || []).filter(x => x.bytes > 0);
+    $("linked-pct").textContent = RL.pct_text.toFixed(2) + "%";
+    $("linked-track").innerHTML = `<i class="g" style="width:${(100 * RL.identical_bytes / RL.bytes).toFixed(3)}%"></i><i class="r" style="width:${(100 * rest / RL.bytes).toFixed(3)}%"></i>`;
+    $("linked-track").setAttribute("role", "img");
+    $("linked-track").setAttribute("aria-label", `Linked executable: ${RL.pct_text.toFixed(2)}% of the code section identical to the original; ` +
+      groups.map(x => `${x.label} ${share(x.bytes).replace("&lt;", "under ")}`).join(", "));
+    $("linked-legend").innerHTML = `<span><i class="g"></i>Identical&nbsp;<b>${share(RL.identical_bytes)}</b></span>` +
+      `<span class="ngame"><i class="r"></i>Not yet&nbsp;<b>${share(rest)}</b></span>`;
+    const pc = k => { const x = groups.find(x => x.key === k); return x ? " (" + share(x.bytes) + ")" : ""; };
+    $("linked-note").innerHTML = `Every verified function, the C runtime library and the import thunks, linked into one image and compared with the original byte for byte. ` +
+      `The rest is unverified functions, open, parked or submitted${pc("unverified")}, library data addresses, thunks and fragments${pc("library")}` +
+      `, verified functions the linker cannot place yet${pc("unplaced")} and padding${pc("padding")}` +
+      (RL.generated_utc ? `; measured ${esc(RL.generated_utc.slice(0, 10))}` : "") + (RL.milestone ? ` (milestone ${RL.milestone})` : "") + ".";
+    $("linked").hidden = false;
+  } else {
+    $("bars2").classList.add("one");
+  }
+
   $("stats").innerHTML = [
     [nf.format(S.matched_functions), "functions verified of " + nf.format(S.functions_total)],
     [kb(S.matched_bytes), "of " + kb(T) + " of code"],
@@ -351,6 +395,10 @@ footer .wrap { display: flex; justify-content: space-between; gap: .6rem 1.4rem;
 
   const log = [...S.trend].reverse().map(d => [d.day, `${nf.format(d.functions)} functions (${kb(d.bytes)}) verified, ${(100 * d.cum_bytes / T).toFixed(2)}% of the code section in total.`]);
   log.unshift([S.generated_utc.slice(0, 10), "Project Iblis named; the public site and contributor service enter preview."]);
+  if (RL && RL.generated_utc) {
+    log.push([RL.generated_utc.slice(0, 10), `Whole executable linked${RL.milestone ? ` (milestone ${RL.milestone})` : ""}: ${RL.pct_text.toFixed(2)}% of the code section byte-identical in the linked image.`]);
+    log.sort((a, b) => (a[0] < b[0]) - (a[0] > b[0]));
+  }
   $("log").innerHTML = log.map(([d, t]) => `<li><time>${d}</time>${esc(t)}</li>`).join("");
 })();
 </script>
