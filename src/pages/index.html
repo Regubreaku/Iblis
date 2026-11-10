@@ -19,6 +19,17 @@
 .legend .ng { flex-basis: 100%; height: 0; }
 .legend .ngame { color: #9a948c; }
 .overall .note { margin: .8rem 0 0; font-size: .86rem; color: var(--ash); }
+/* the code-section bar and, beside it, the linked-executable figure (hidden when stats.json carries no relink block) */
+.bars2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 23rem); gap: 1rem; align-items: start; }
+.bars2.one { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 880px) { .bars2 { grid-template-columns: minmax(0, 1fr); } }
+.linked .big { display: block; margin-top: .2rem; font: 700 2.1rem/1.1 var(--display); letter-spacing: .02em; color: var(--gold); font-variant-numeric: tabular-nums; }
+.linked .what { display: block; color: var(--bone); font-size: 1rem; }
+.linked .track { height: 1.1rem; margin-top: .7rem; border: 1px solid var(--seam); }
+.linked .track .r { background: repeating-linear-gradient(45deg, #4a3d2a 0 2px, #2b2825 2px 5px); }
+.linked .legend { margin-top: .6rem; gap: .3rem 1rem; font-size: .86rem; }
+.linked .legend i.r { background: repeating-linear-gradient(45deg, #4a3d2a 0 2px, #2b2825 2px 5px); }
+.linked .note { margin: .8rem 0 0; font-size: .86rem; color: var(--ash); }
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 1.6rem; border-block: 1px solid var(--seam); }
 .stat { padding: 1rem 1rem 1.1rem; border-left: 1px solid var(--seam); }
 .stat:first-child { border-left: 0; padding-left: 0; }
@@ -45,11 +56,21 @@
     <div class="tag">Diablo II · 1.14d · Game.exe · Visual C++ 2005 SP1</div>
     <h1><span class="pct" id="pct">—</span> of the game, rebuilt byte for byte</h1>
     <p class="lede">We are turning Game.exe back into C++ that compiles to exactly the machine code that shipped. Agents write the code, your own copy of the game checks it, and our build host verifies every function. <em>Almost right counts as zero.</em></p>
-    <div class="overall slab">
-      <h3>Game.exe code section</h3>
-      <div class="track" id="overall"></div>
-      <div class="legend" id="legend"></div>
-      <p class="note" id="legend-note" hidden></p>
+    <div class="bars2" id="bars2">
+      <div class="overall slab">
+        <h3>Game.exe code section</h3>
+        <div class="track" id="overall"></div>
+        <div class="legend" id="legend"></div>
+        <p class="note" id="legend-note" hidden></p>
+      </div>
+      <div class="linked slab" id="linked" hidden>
+        <h3>Linked executable</h3>
+        <b class="big" id="linked-pct">—</b>
+        <span class="what">of the code section identical</span>
+        <div class="track" id="linked-track"></div>
+        <div class="legend" id="linked-legend"></div>
+        <p class="note" id="linked-note"></p>
+      </div>
     </div>
   </div>
   <div class="stats" id="stats"></div>
@@ -127,6 +148,29 @@
     ].map(([c, l, b]) => `<span><i style="background:${c}"></i>${l} <b>${(100 * b / T).toFixed(1)}%</b></span>`).join("");
   }
 
+  // linked executable: every verified function, the C runtime and the import thunks linked into one image and its
+  // .text compared with the original byte for byte (the matching repo's tools/relink.py); counts only reach the site
+  const RL = S.relink;
+  if (RL && RL.bytes > 0) {
+    const rest = RL.bytes - RL.identical_bytes;
+    const groups = (RL.remaining || []).filter(x => x.bytes > 0);
+    $("linked-pct").textContent = RL.pct_text.toFixed(2) + "%";
+    $("linked-track").innerHTML = `<i class="g" style="width:${(100 * RL.identical_bytes / RL.bytes).toFixed(3)}%"></i><i class="r" style="width:${(100 * rest / RL.bytes).toFixed(3)}%"></i>`;
+    $("linked-track").setAttribute("role", "img");
+    $("linked-track").setAttribute("aria-label", `Linked executable: ${RL.pct_text.toFixed(2)}% of the code section identical to the original; ` +
+      groups.map(x => `${x.label} ${share(x.bytes).replace("&lt;", "under ")}`).join(", "));
+    $("linked-legend").innerHTML = `<span><i class="g"></i>Identical&nbsp;<b>${share(RL.identical_bytes)}</b></span>` +
+      `<span class="ngame"><i class="r"></i>Not yet&nbsp;<b>${share(rest)}</b></span>`;
+    const pc = k => { const x = groups.find(x => x.key === k); return x ? " (" + share(x.bytes) + ")" : ""; };
+    $("linked-note").innerHTML = `Every verified function, the C runtime library and the import thunks, linked into one image and compared with the original byte for byte. ` +
+      `The rest is unverified functions, open, parked or submitted${pc("unverified")}, library data addresses, thunks and fragments${pc("library")}` +
+      `, verified functions the linker cannot place yet${pc("unplaced")} and padding${pc("padding")}` +
+      (RL.generated_utc ? `; measured ${esc(RL.generated_utc.slice(0, 10))}` : "") + (RL.milestone ? ` (milestone ${RL.milestone})` : "") + ".";
+    $("linked").hidden = false;
+  } else {
+    $("bars2").classList.add("one");
+  }
+
   $("stats").innerHTML = [
     [nf.format(S.matched_functions), "functions verified of " + nf.format(S.functions_total)],
     [kb(S.matched_bytes), "of " + kb(T) + " of code"],
@@ -166,6 +210,10 @@
 
   const log = [...S.trend].reverse().map(d => [d.day, `${nf.format(d.functions)} functions (${kb(d.bytes)}) verified, ${(100 * d.cum_bytes / T).toFixed(2)}% of the code section in total.`]);
   log.unshift([S.generated_utc.slice(0, 10), "Project Iblis named; the public site and contributor service enter preview."]);
+  if (RL && RL.generated_utc) {
+    log.push([RL.generated_utc.slice(0, 10), `Whole executable linked${RL.milestone ? ` (milestone ${RL.milestone})` : ""}: ${RL.pct_text.toFixed(2)}% of the code section byte-identical in the linked image.`]);
+    log.sort((a, b) => (a[0] < b[0]) - (a[0] > b[0]));
+  }
   $("log").innerHTML = log.map(([d, t]) => `<li><time>${d}</time>${esc(t)}</li>`).join("");
 })();
 </script>

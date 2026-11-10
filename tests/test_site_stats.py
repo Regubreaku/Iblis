@@ -147,6 +147,103 @@ class CodeSectionBarTests(unittest.TestCase):
         self.assertIn('Every share is of the whole code section', page)
 
 
+class LinkedExecutableTests(unittest.TestCase):
+    """The relink figure: RELINK_COVERAGE.json's per-class equal/different byte counts, nothing else."""
+
+    def setUp(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+
+    CLASSES = {'matched': {'equal': 2000, 'different': 10}, 'submitted': {'equal': 1, 'different': 49},
+               'pending': {'equal': 5, 'different': 415}, 'not_function': {'equal': 4, 'different': 6},
+               'thunk': {'equal': 20, 'different': 0}, 'crt': {'equal': 170, 'different': 10},
+               'padding': {'equal': 309, 'different': 1}, 'other': {'equal': 0, 'different': 0}}
+
+    def doc(self, **over):
+        d = {'generated_by': 'tools/relink.py (milestone 4)', 'milestone': 4,
+             'text_verify': {'text': {'original': ['0x00401000', hex(0x401000 + 3000)], 'relinked': ['0x00401000', hex(0x401000 + 3000)]},
+                             'classes': copy.deepcopy(self.CLASSES), 'differing_ranges': 2, 'sections_equal': False,
+                             'first_differing': [{'va': '0x00401090', 'length': 57, 'cls': 'matched'}],
+                             'entry': {'original': '0x00682985', 'relinked': '0x00682985', 'equal': True}, 'iat_equal': True},
+             'libraries': {'crt': {'first_differing': [{'va': '0x00681A48', 'length': 15, 'member': 'secchk.obj'}]}},
+             'problem_examples': {'address_conflict': ['0x00401000']}}
+        d.update(over)
+        return d
+
+    def test_counts_only_reach_the_block(self):
+        from site_stats import load_relink, relink_block
+        rl = load_relink(self.doc(), '2026-11-10', 'abc1234')
+        self.assertEqual((rl['bytes'], rl['identical_bytes'], rl['pct'], rl['milestone']), (3000, 2509, 83.63, 4))
+        self.assertEqual((rl['generated_utc'], rl['commit']), ('2026-11-10', 'abc1234'))
+        self.assertEqual((rl['sections_equal'], rl['entry_equal'], rl['iat_equal']), (False, True, True))
+        self.assertEqual([c['key'] for c in rl['classes']], ['matched', 'submitted', 'pending', 'not_function', 'thunk', 'crt', 'padding', 'other'])
+        self.assertEqual(rl['classes'][0], {'key': 'matched', 'label': 'Verified functions', 'equal': 2000, 'different': 10})
+        block = relink_block({'text_bytes': 3000}, rl)
+        self.assertEqual(block['pct_text'], 83.63)
+        self.assertEqual({r['key']: r['bytes'] for r in block['remaining']},
+                         {'unverified': 464, 'unplaced': 10, 'library': 16, 'padding': 1})
+        self.assertEqual(sum(r['bytes'] for r in block['remaining']) + block['identical_bytes'], 3000)
+        text = repr(block)
+        for leak in ('0x', 'first_differing', 'secchk', 'va', 'ranges', 'problem'):
+            self.assertNotIn(leak, text)
+
+    def test_validation(self):
+        from site_stats import load_relink, relink_block
+        with self.assertRaises(ValueError):
+            load_relink({'milestone': 4})
+        bad = self.doc()
+        bad['text_verify']['text']['original'][1] = '0x00402000'
+        with self.assertRaises(ValueError):
+            load_relink(bad)
+        bad = self.doc()
+        bad['text_verify']['classes']['crt'] = {'equal': -1, 'different': 0}
+        with self.assertRaises(ValueError):
+            load_relink(bad)
+        with self.assertRaises(ValueError):
+            relink_block({'text_bytes': 2999}, load_relink(self.doc()))
+
+    def test_top_level_classes_unknown_class_and_date_formats(self):
+        from site_stats import load_relink
+        classes = dict(self.CLASSES, seh={'equal': 1, 'different': 2})
+        del classes['other']
+        rl = load_relink({'classes': classes, 'computed_utc': '20261110'})
+        self.assertEqual(rl['generated_utc'], '2026-11-10')
+        self.assertIsNone(rl['milestone'])
+        self.assertIsNone(rl['commit'])
+        self.assertEqual(rl['classes'][-1], {'key': 'seh', 'label': 'Seh', 'equal': 1, 'different': 2})
+        self.assertEqual(rl['bytes'], 3003)
+
+    def test_build_stats_takes_the_file_date_and_commit_from_the_repo_copy(self):
+        import json, subprocess, tempfile
+        import build_stats
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'
+            (repo / 'docs').mkdir(parents=True)
+            (repo / 'docs' / 'RELINK_COVERAGE.json').write_text(json.dumps(self.doc()))
+            env = {'GIT_AUTHOR_NAME': 't', 'GIT_AUTHOR_EMAIL': 't@x', 'GIT_COMMITTER_NAME': 't', 'GIT_COMMITTER_EMAIL': 't@x',
+                   'GIT_AUTHOR_DATE': '2026-11-10T06:42:15-08:00', 'GIT_COMMITTER_DATE': '2026-11-10T06:42:15-08:00', 'PATH': '/usr/bin:/bin'}
+            for cmd in (['init', '-q'], ['add', '.'], ['commit', '-q', '-m', 'relink']):
+                subprocess.run(['git', '-C', str(repo)] + cmd, check=True, env=env)
+            head = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True).stdout.strip()
+            self.assertEqual(build_stats.file_provenance(str(repo), str(repo / 'docs' / 'RELINK_COVERAGE.json')), ('2026-11-10', head))
+            copy_ = Path(tmp) / 'host' / 'RELINK_COVERAGE.json'
+            copy_.parent.mkdir()
+            copy_.write_bytes((repo / 'docs' / 'RELINK_COVERAGE.json').read_bytes())
+            self.assertEqual(build_stats.file_provenance(str(repo), str(copy_), 'docs/RELINK_COVERAGE.json'), ('2026-11-10', head))
+            copy_.write_text(json.dumps(self.doc(milestone=5)))
+            day, commit = build_stats.file_provenance(str(repo), str(copy_), 'docs/RELINK_COVERAGE.json')
+            self.assertIsNone(commit)
+            self.assertRegex(day, r'^\d{4}-\d{2}-\d{2}$')
+
+    def test_home_page_shows_the_linked_executable_beside_the_code_section_bar(self):
+        page = (Path(__file__).resolve().parents[1] / 'src' / 'pages' / 'index.html').read_text(encoding='utf-8')
+        self.assertIn('S.relink', page)
+        self.assertIn('id="linked"', page)
+        self.assertIn('Linked executable', page)
+        self.assertIn('of the code section identical', page)
+        self.assertIn('library data addresses, thunks and fragments', page)
+        self.assertLess(page.index('id="overall"'), page.index('id="linked"'))
+
+
 class IntakeSwitchTests(unittest.TestCase):
     def test_invite_notices_follow_the_invite_list(self):
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))

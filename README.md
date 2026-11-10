@@ -14,10 +14,18 @@ Byte-exact decompilation of Diablo II 1.14d, run as a contributor project. See `
 ## Build
 
 ```
-python tools/build_stats.py <source-repo> public/data/stats.json --coverage <TEXT_COVERAGE.json from the build host>
+python tools/build_stats.py <source-repo> public/data/stats.json --coverage <TEXT_COVERAGE.json from the build host> \
+                            --relink <RELINK_COVERAGE.json from the source repo's tools/relink.py>
 python tools/build_kit.py   <source-repo> public/kit
 python tools/build_site.py  public/data/stats.json public
 ```
+
+`--coverage` (or `IBLIS_TEXT_COVERAGE`) is the host's per-category .text byte totals, which split padding and the C runtime
+library out of the code-section bar. `--relink` (or `IBLIS_RELINK_COVERAGE`; default `<source-repo>/docs/RELINK_COVERAGE.json`
+when it exists) is the relink report: every verified function, the C runtime and the import thunks linked into one
+image and its .text compared with the original. It gives the "Linked executable: X% of the code section identical"
+tile beside the bar. Both files stay beside the host's own files, outside this repository; only their byte totals
+reach `stats.json` (`code_section` and `relink`), never an address or a byte of the game.
 
 ## Run locally
 
