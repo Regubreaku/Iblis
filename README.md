@@ -23,8 +23,9 @@ python tools/build_site.py  public/data/stats.json public
 `--coverage` (or `IBLIS_TEXT_COVERAGE`) is the host's per-category .text byte totals, which split padding and the C runtime
 library out of the code-section bar. `--relink` (or `IBLIS_RELINK_COVERAGE`; default `<source-repo>/docs/RELINK_COVERAGE.json`
 when it exists) is the relink report: every verified function, the C runtime and the import thunks linked into one
-image and its .text compared with the original. It gives the "Linked executable: X% of the code section identical"
-tile beside the bar. Both files stay beside the host's own files, outside this repository; only their byte totals
+image compared with the original. It gives the "Linked executable" tile beside the bar: the whole file's share built
+from source and share identical (built plus the game's data tables and strings copied until they are reconstructed),
+with the code section's identical share as a second line. Both files stay beside the host's own files, outside this repository; only their byte totals
 reach `stats.json` (`code_section` and `relink`), never an address or a byte of the game.
 
 ## Run locally

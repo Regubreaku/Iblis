@@ -16,7 +16,9 @@ page falls back to a single "Never tried or not yet queued" remainder.
 The "linked executable" figure comes from the matching repo's docs/RELINK_COVERAGE.json (tools/relink.py links every
 verified function, the C runtime and the import thunks into a whole image and compares its .text with the original).
 Pass it with --relink, or set IBLIS_RELINK_COVERAGE; by default the repo's own copy is used when it exists. Only its
-per-class equal/different byte counts reach stats.json (as "relink"); the file's address lists do not.
+per-class equal/different byte counts reach stats.json (as "relink"); the file's address lists do not. From milestone 6
+the report also measures the whole file (built from source, identical but copied game data, not yet); those counts go
+in as "relink.file" and give the headline of the "Linked executable" slab.
 """
 import argparse, collections, datetime, glob, json, os, subprocess, sys
 from site_stats import code_section, load_coverage, load_relink, normalize_stats, relink_block
@@ -169,6 +171,11 @@ def main(repo, out, coverage=None, relink=None):
         print("linked executable: %.2f%% of .text identical (%s B of %s B; milestone %s, %s%s)" % (
             rl["pct_text"], rl["identical_bytes"], rl["bytes"], rl["milestone"], rl["generated_utc"],
             " @ " + rl["commit"] if rl["commit"] else ""))
+        if rl.get("file"):
+            f = rl["file"]
+            print("whole file: %.2f%% built from source, %.2f%% identical including copied data (%s of %s B; copied %s B; "
+                  "signature %s B)" % (f["pct_built"], f["pct_identical"], f["identical_bytes"], f["bytes"], f["copied_bytes"],
+                                       f["remaining"][2]["bytes"] if len(f["remaining"]) > 2 else 0))
     else:
         print("warning: no relink coverage file; the page shows no linked-executable figure", file=sys.stderr)
     normalize_stats(stats)
