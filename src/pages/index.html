@@ -25,10 +25,14 @@
 @media (max-width: 880px) { .bars2 { grid-template-columns: minmax(0, 1fr); } }
 .linked .big { display: block; margin-top: .2rem; font: 700 2.1rem/1.1 var(--display); letter-spacing: .02em; color: var(--gold); font-variant-numeric: tabular-nums; }
 .linked .what { display: block; color: var(--bone); font-size: 1rem; }
+.linked .what b { color: var(--bone); font-weight: 700; font-variant-numeric: tabular-nums; }
+.linked .also { display: block; margin-top: .35rem; color: var(--ash); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.linked .also b { color: var(--bone); font-weight: 600; }
 .linked .track { height: 1.1rem; margin-top: .7rem; border: 1px solid var(--seam); }
-.linked .track .r { background: repeating-linear-gradient(45deg, #4a3d2a 0 2px, #2b2825 2px 5px); }
+/* copied: the game's own data, identical but not rebuilt, a pale parchment hatch between the gold and the empty track */
+.linked .track .k, .linked .legend i.k { background: repeating-linear-gradient(135deg, #a8906a 0 3px, #5f4f36 3px 6px); }
+.linked .track .r, .linked .legend i.r { background: repeating-linear-gradient(45deg, #4a3d2a 0 2px, #2b2825 2px 5px); }
 .linked .legend { margin-top: .6rem; gap: .3rem 1rem; font-size: .86rem; }
-.linked .legend i.r { background: repeating-linear-gradient(45deg, #4a3d2a 0 2px, #2b2825 2px 5px); }
 .linked .note { margin: .8rem 0 0; font-size: .86rem; color: var(--ash); }
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 1.6rem; border-block: 1px solid var(--seam); }
 .stat { padding: 1rem 1rem 1.1rem; border-left: 1px solid var(--seam); }
@@ -66,7 +70,8 @@
       <div class="linked slab" id="linked" hidden>
         <h3>Linked executable</h3>
         <b class="big" id="linked-pct">—</b>
-        <span class="what">of the code section identical</span>
+        <span class="what" id="linked-what">of the code section identical</span>
+        <span class="also" id="linked-also" hidden></span>
         <div class="track" id="linked-track"></div>
         <div class="legend" id="linked-legend"></div>
         <p class="note" id="linked-note"></p>
@@ -150,8 +155,31 @@
 
   // linked executable: every verified function, the C runtime and the import thunks linked into one image and its
   // .text compared with the original byte for byte (the matching repo's tools/relink.py); counts only reach the site
-  const RL = S.relink;
-  if (RL && RL.bytes > 0) {
+  const RL = S.relink, FL = RL && RL.file && RL.file.bytes > 0 ? RL.file : null;
+  if (FL) {
+    // whole file: built from source, the game's data copied until it is reconstructed, and what is not there yet
+    const fshare = b => { const v = 100 * b / FL.bytes; return v > 0 && v < 0.05 ? "&lt;0.1%" : v.toFixed(1) + "%"; };
+    const fcls = { built: "g", copied: "k", rest: "r" };
+    const groups = (FL.remaining || []).filter(x => x.bytes > 0);
+    const pc = k => { const x = groups.find(x => x.key === k); return x ? " (" + fshare(x.bytes) + ")" : ""; };
+    $("linked-pct").textContent = FL.pct_built.toFixed(2) + "%";
+    $("linked-what").innerHTML = `of Game.exe built from source, <b>${FL.pct_identical.toFixed(2)}%</b> identical`;
+    $("linked-also").innerHTML = `Code section: <b>${RL.pct_text.toFixed(2)}%</b> identical in the linked image.`;
+    $("linked-also").hidden = false;
+    $("linked-track").innerHTML = FL.segments.map(x => `<i class="${fcls[x.key] || "r"}" style="width:${(100 * x.bytes / FL.bytes).toFixed(3)}%"></i>`).join("");
+    $("linked-track").setAttribute("role", "img");
+    $("linked-track").setAttribute("aria-label", `Linked executable, whole file: ${FL.pct_built.toFixed(2)}% built from source, ` +
+      `${FL.pct_identical.toFixed(2)}% identical to the original; ` + FL.segments.map(x => `${x.label} ${fshare(x.bytes).replace("&lt;", "under ")}`).join(", "));
+    $("linked-legend").innerHTML = FL.segments.map(x =>
+      `<span${x.key === "rest" ? ' class="ngame"' : ""}><i class="${fcls[x.key] || "r"}"></i>${esc(x.label)}&nbsp;<b>${fshare(x.bytes)}</b></span>`).join("");
+    $("linked-note").innerHTML = `The whole ${kb(FL.bytes)} file, linked from every verified function and compared with the original byte for byte. ` +
+      `Copied is the game's data tables and strings, identical but not yet reconstructed from source (${fshare(FL.copied_bytes)}); ` +
+      `not yet is placeholders for parked and unverified functions${pc("placeholder")}` +
+      (pc("linker") ? ` and linker and library bytes that still differ${pc("linker")}` : "") +
+      `; the ${FL.pct_signature ? FL.pct_signature.toFixed(2) + "% " : ""}signature can never be rebuilt` +
+      (RL.generated_utc ? `. Measured ${esc(RL.generated_utc.slice(0, 10))}` : "") + (RL.milestone ? ` (milestone ${RL.milestone})` : "") + ".";
+    $("linked").hidden = false;
+  } else if (RL && RL.bytes > 0) {
     const rest = RL.bytes - RL.identical_bytes;
     const groups = (RL.remaining || []).filter(x => x.bytes > 0);
     $("linked-pct").textContent = RL.pct_text.toFixed(2) + "%";
@@ -211,7 +239,8 @@
   const log = [...S.trend].reverse().map(d => [d.day, `${nf.format(d.functions)} functions (${kb(d.bytes)}) verified, ${(100 * d.cum_bytes / T).toFixed(2)}% of the code section in total.`]);
   log.unshift([S.generated_utc.slice(0, 10), "Project Iblis named; the public site and contributor service enter preview."]);
   if (RL && RL.generated_utc) {
-    log.push([RL.generated_utc.slice(0, 10), `Whole executable linked${RL.milestone ? ` (milestone ${RL.milestone})` : ""}: ${RL.pct_text.toFixed(2)}% of the code section byte-identical in the linked image.`]);
+    log.push([RL.generated_utc.slice(0, 10), `Whole executable linked${RL.milestone ? ` (milestone ${RL.milestone})` : ""}: ${RL.pct_text.toFixed(2)}% of the code section byte-identical in the linked image` +
+      (FL ? `; of the whole file, ${FL.pct_built.toFixed(2)}% built from source and ${FL.pct_identical.toFixed(2)}% identical.` : ".")]);
     log.sort((a, b) => (a[0] < b[0]) - (a[0] > b[0]));
   }
   $("log").innerHTML = log.map(([d, t]) => `<li><time>${d}</time>${esc(t)}</li>`).join("");

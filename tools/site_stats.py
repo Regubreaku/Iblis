@@ -153,6 +153,85 @@ RELINK_CLASSES = (("matched", "Verified functions"), ("submitted", "Submitted, w
                   ("pending", "Open or parked functions"), ("not_function", "Fragments and data in the queue"),
                   ("thunk", "Import thunks"), ("crt", "C runtime library"), ("padding", "Padding"), ("other", "Other"))
 
+# From milestone 6 the report also measures the whole file (built_vs_copied: "file" and per-section "sections"), every
+# byte of the linked image against the original, by where the byte came from. Classes, mutually exclusive:
+#   source       compiled from the project's own C++ (verified functions and the data they define)
+#   library      the statically linked C runtime, from the library by identity
+#   linker       what link.exe generates itself (headers, import and relocation tables, resources)
+#   padding      alignment fill
+#   copied       the game's own data tables and strings, copied from the original until they are reconstructed
+#   placeholder  stand-ins for functions not yet verified (open, parked or submitted)
+#   signature    the Authenticode signature, which no build can reproduce
+# "built" = source + library + linker + padding (everything the build itself produces); "identical" adds copied.
+FILE_CLASSES = (("source", "Compiled from the project's source"), ("library", "C runtime library"),
+                ("linker", "Linker-generated headers and tables"), ("padding", "Padding"),
+                ("copied", "Game data tables and strings, copied"), ("placeholder", "Placeholders for unverified functions"),
+                ("signature", "Authenticode signature"))
+BUILT_CLASSES = ("source", "library", "linker", "padding")
+SECTION_ORDER = (".text", ".rdata", ".data", ".rsrc", ".reloc", "headers")
+
+
+def _file_classes(by_class):
+    if not isinstance(by_class, dict) or not by_class:
+        raise ValueError("whole-file relink report has no by_class")
+    rows, known = [], dict(FILE_CLASSES)
+    for key, label in FILE_CLASSES:
+        if key in by_class:
+            rows.append((key, label, by_class[key]))
+    for key, v in by_class.items():
+        if key not in known:
+            rows.append((key, key.replace("_", " ").capitalize(), v))
+    out = []
+    for key, label, v in rows:
+        if not isinstance(v, dict) or "equal" not in v or "different" not in v:
+            raise ValueError("whole-file relink class %s is not {equal, different}: %r" % (key, v))
+        out.append({"key": key, "label": label, "equal": _int(v["equal"]), "different": _int(v["different"])})
+    return out
+
+
+def load_relink_file(bvc):
+    """Normalise built_vs_copied (the whole-file measurement) to counts only: {"bytes", "built_bytes", "copied_bytes",
+    "identical_bytes", "placeholder_bytes", "signature_bytes", "pct_built", "pct_identical", "classes": [...],
+    "sections": [{"name", "bytes", "built", "copied", "identical"}, ...]}. Returns None when the document has none."""
+    if not isinstance(bvc, dict) or not isinstance(bvc.get("file"), dict):
+        return None
+    f = bvc["file"]
+    classes = _file_classes(f.get("by_class"))
+    total = _int(f.get("bytes", sum(c["equal"] + c["different"] for c in classes)))
+    if sum(c["equal"] + c["different"] for c in classes) != total:
+        raise ValueError("whole-file relink classes sum to %d B but the file is %d B" % (
+            sum(c["equal"] + c["different"] for c in classes), total))
+    eq = {c["key"]: c["equal"] for c in classes}
+    built = _int(f.get("identical_built", sum(eq.get(k, 0) for k in BUILT_CLASSES)))
+    copied = _int(f.get("copied_bytes", eq.get("copied", 0)))
+    identical = _int(f.get("identical_including_copied", built + copied))
+    if not 0 <= built <= identical <= total:
+        raise ValueError("whole-file relink totals are inconsistent: built %d, identical %d, file %d" % (built, identical, total))
+    sections = []
+    secs = bvc.get("sections") if isinstance(bvc.get("sections"), dict) else {}
+    for name in list(SECTION_ORDER) + sorted(k for k in secs if k not in SECTION_ORDER):
+        s = secs.get(name)
+        if not isinstance(s, dict):
+            continue
+        sections.append({"name": str(name), "bytes": _int(s.get("bytes", 0)), "built": _int(s.get("identical_built", 0)),
+                         "copied": _int(s.get("copied_bytes", 0)), "identical": _int(s.get("identical_including_copied", 0))})
+    if sum(s["bytes"] for s in sections) > total:
+        raise ValueError("whole-file relink sections sum to more than the file")
+    sig = next((c["equal"] + c["different"] for c in classes if c["key"] == "signature"), 0)
+    placeholder = next((c["equal"] + c["different"] for c in classes if c["key"] == "placeholder"), 0)
+    return {
+        "bytes": total,
+        "built_bytes": built,
+        "copied_bytes": copied,
+        "identical_bytes": identical,
+        "placeholder_bytes": placeholder,
+        "signature_bytes": sig,
+        "pct_built": round(100.0 * built / total, 2),
+        "pct_identical": round(100.0 * identical / total, 2),
+        "classes": classes,
+        "sections": sections,
+    }
+
 
 def load_relink(doc, generated_utc=None, commit=None):
     """Normalise a RELINK_COVERAGE.json document to counts only: {"milestone": n | None, "classes": [{"key", "label",
@@ -160,7 +239,8 @@ def load_relink(doc, generated_utc=None, commit=None):
     "commit": str | None, "sections_equal": bool | None, "entry_equal": bool | None, "iat_equal": bool | None}.
     The classes may sit under text_verify.classes (the relink tool's layout) or at the top level as "classes".
     `generated_utc` and `commit` are the file's own date and commit when the caller knows them (the document carries
-    neither); fields of the same name in the document are used when the caller gives none."""
+    neither); fields of the same name in the document are used when the caller gives none. "file" is the whole-file
+    measurement (load_relink_file) when the document carries built_vs_copied, else None."""
     tv = doc.get("text_verify") if isinstance(doc.get("text_verify"), dict) else {}
     classes = tv.get("classes") if isinstance(tv.get("classes"), dict) else doc.get("classes")
     if not isinstance(classes, dict) or not classes:
@@ -205,6 +285,41 @@ def load_relink(doc, generated_utc=None, commit=None):
         "sections_equal": flag(tv.get("sections_equal")),
         "entry_equal": flag(entry.get("equal")),
         "iat_equal": flag(tv.get("iat_equal")),
+        "file": load_relink_file(doc.get("built_vs_copied")),
+    }
+
+
+def relink_file_block(f):
+    """The whole-file figure: built from source / identical but copied / not yet, each a share of the file, and what
+    the "not yet" bytes are: placeholders for unverified functions, linker and library bytes that still differ, and
+    the signature no build can reproduce. Counts only."""
+    if not f:
+        return None
+    diff = {c["key"]: c["different"] for c in f["classes"]}
+    rest = f["bytes"] - f["identical_bytes"]
+    linker = diff.get("linker", 0) + diff.get("library", 0)
+    signature = f["signature_bytes"]
+    placeholder = f["placeholder_bytes"]
+    other = rest - placeholder - linker - signature
+    remaining = [{"key": "placeholder", "label": "Placeholders for parked and unverified functions", "bytes": placeholder},
+                 {"key": "linker", "label": "Linker and library bytes that still differ", "bytes": linker},
+                 {"key": "signature", "label": "Authenticode signature, never reproducible", "bytes": signature}]
+    if other:
+        remaining.append({"key": "other", "label": "Other", "bytes": other})
+    return {
+        "bytes": f["bytes"],
+        "built_bytes": f["built_bytes"],
+        "copied_bytes": f["copied_bytes"],
+        "identical_bytes": f["identical_bytes"],
+        "pct_built": f["pct_built"],
+        "pct_identical": f["pct_identical"],
+        "pct_signature": round(100.0 * signature / f["bytes"], 2),
+        "segments": [{"key": "built", "label": "Built from source", "bytes": f["built_bytes"]},
+                     {"key": "copied", "label": "Identical, copied data", "bytes": f["copied_bytes"]},
+                     {"key": "rest", "label": "Not yet", "bytes": rest}],
+        "remaining": remaining,
+        "classes": f["classes"],
+        "sections": f["sections"],
     }
 
 
@@ -212,7 +327,8 @@ def relink_block(stats, relink):
     """The home page's "linked executable" figure: the relink's identical bytes as a share of stats["text_bytes"], the
     per-class split, and the bytes the headline does not cover grouped the way the page explains them: unverified
     functions (open, parked, submitted), verified functions the linker cannot place yet, library and other addresses
-    (the C runtime's relocations to library data, thunks, fragments) and padding. Counts only."""
+    (the C runtime's relocations to library data, thunks, fragments) and padding. Counts only. "file" is the
+    whole-file figure (relink_file_block) when the report measured it, else None."""
     total = stats["text_bytes"]
     if relink["bytes"] != total:
         raise ValueError("relink measured %d B but the code section is %d B" % (relink["bytes"], total))
@@ -236,4 +352,5 @@ def relink_block(stats, relink):
         "sections_equal": relink["sections_equal"],
         "entry_equal": relink["entry_equal"],
         "iat_equal": relink["iat_equal"],
+        "file": relink_file_block(relink.get("file")),
     }

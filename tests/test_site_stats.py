@@ -234,12 +234,73 @@ class LinkedExecutableTests(unittest.TestCase):
             self.assertIsNone(commit)
             self.assertRegex(day, r'^\d{4}-\d{2}-\d{2}$')
 
+    FILE = {'file': {'bytes': 4000, 'identical_built': 2800, 'identical_from_game_source': 2000, 'identical_including_copied': 3400,
+                     'copied_bytes': 600, 'placeholder_bytes': 500,
+                     'by_class': {'copied': {'equal': 600, 'different': 0}, 'library': {'equal': 300, 'different': 2},
+                                  'linker': {'equal': 200, 'different': 20}, 'padding': {'equal': 300, 'different': 0},
+                                  'placeholder': {'equal': 4, 'different': 496}, 'signature': {'equal': 0, 'different': 78},
+                                  'source': {'equal': 2000, 'different': 0}}},
+            'sections': {'.data': {'bytes': 700, 'identical_built': 50, 'copied_bytes': 600, 'identical_including_copied': 650},
+                         '.text': {'bytes': 3000, 'identical_built': 2509, 'copied_bytes': 0, 'identical_including_copied': 2509,
+                                   'first_differing': [{'va': '0x00401090'}]},
+                         '.reloc': {'bytes': 222, 'identical_built': 200, 'copied_bytes': 0, 'identical_including_copied': 200}}}
+
+    def test_whole_file_counts_reach_the_block(self):
+        from site_stats import load_relink, relink_block
+        rl = load_relink(self.doc(built_vs_copied=copy.deepcopy(self.FILE)), '2026-11-10', 'abc1234')
+        f = rl['file']
+        self.assertEqual((f['bytes'], f['built_bytes'], f['copied_bytes'], f['identical_bytes']), (4000, 2800, 600, 3400))
+        self.assertEqual((f['pct_built'], f['pct_identical'], f['placeholder_bytes'], f['signature_bytes']), (70.0, 85.0, 500, 78))
+        self.assertEqual([c['key'] for c in f['classes']], ['source', 'library', 'linker', 'padding', 'copied', 'placeholder', 'signature'])
+        self.assertEqual([s['name'] for s in f['sections']], ['.text', '.data', '.reloc'])
+        self.assertEqual(f['sections'][1], {'name': '.data', 'bytes': 700, 'built': 50, 'copied': 600, 'identical': 650})
+        block = relink_block({'text_bytes': 3000}, rl)['file']
+        self.assertEqual([(s['key'], s['bytes']) for s in block['segments']], [('built', 2800), ('copied', 600), ('rest', 600)])
+        self.assertEqual({r['key']: r['bytes'] for r in block['remaining']}, {'placeholder': 500, 'linker': 22, 'signature': 78})
+        self.assertEqual(sum(r['bytes'] for r in block['remaining']), block['bytes'] - block['identical_bytes'])
+        self.assertEqual((block['pct_built'], block['pct_identical'], block['pct_signature']), (70.0, 85.0, 1.95))
+        text = repr(block)
+        for leak in ('0x', 'first_differing', 'va'):
+            self.assertNotIn(leak, text)
+        # the code-section figure is unchanged beside it
+        self.assertEqual(relink_block({'text_bytes': 3000}, rl)['pct_text'], 83.63)
+
+    def test_whole_file_is_optional_and_validated(self):
+        from site_stats import load_relink, load_relink_file, relink_block
+        rl = load_relink(self.doc())
+        self.assertIsNone(rl['file'])
+        self.assertIsNone(relink_block({'text_bytes': 3000}, rl)['file'])
+        self.assertIsNone(load_relink_file(None))
+        self.assertIsNone(load_relink_file({'sections': {}}))
+        bad = copy.deepcopy(self.FILE)
+        bad['file']['bytes'] = 4001
+        with self.assertRaises(ValueError):
+            load_relink_file(bad)
+        bad = copy.deepcopy(self.FILE)
+        bad['file']['identical_including_copied'] = 2000  # less than built
+        with self.assertRaises(ValueError):
+            load_relink_file(bad)
+        bad = copy.deepcopy(self.FILE)
+        bad['file']['by_class']['source'] = {'equal': 2000}
+        with self.assertRaises(ValueError):
+            load_relink_file(bad)
+        bad = copy.deepcopy(self.FILE)
+        bad['sections']['.text']['bytes'] = 5000
+        with self.assertRaises(ValueError):
+            load_relink_file(bad)
+        # totals derived from the classes when the summary fields are absent
+        minimal = {'file': {'by_class': copy.deepcopy(self.FILE['file']['by_class'])}}
+        f = load_relink_file(minimal)
+        self.assertEqual((f['bytes'], f['built_bytes'], f['copied_bytes'], f['identical_bytes'], f['sections']), (4000, 2800, 600, 3400, []))
+
     def test_home_page_shows_the_linked_executable_beside_the_code_section_bar(self):
         page = (Path(__file__).resolve().parents[1] / 'src' / 'pages' / 'index.html').read_text(encoding='utf-8')
         self.assertIn('S.relink', page)
         self.assertIn('id="linked"', page)
         self.assertIn('Linked executable', page)
         self.assertIn('of the code section identical', page)
+        self.assertIn('built from source', page)
+        self.assertIn('S.relink, FL = RL && RL.file', page)
         self.assertIn('library data addresses, thunks and fragments', page)
         self.assertLess(page.index('id="overall"'), page.index('id="linked"'))
 
