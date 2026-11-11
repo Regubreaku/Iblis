@@ -1,28 +1,28 @@
 {
- "generated_utc": "2026-11-11T06:30Z",
- "commit": "3f2a85d4d",
+ "generated_utc": "2026-11-11T15:24Z",
+ "commit": "1500c1b32",
  "text_bytes": 2928640,
  "functions_total": 14941,
  "bytes_total": 2617850,
- "matched_functions": 14138,
- "matched_bytes": 2193652,
- "matched_pct_text": 74.9,
+ "matched_functions": 14207,
+ "matched_bytes": 2217514,
+ "matched_pct_text": 75.72,
  "states": {
   "matched": {
-   "functions": 14138,
-   "bytes": 2193652
+   "functions": 14207,
+   "bytes": 2217514
   },
   "parked": {
-   "functions": 793,
-   "bytes": 422088
+   "functions": 727,
+   "bytes": 397672
   },
   "submitted": {
-   "functions": 8,
-   "bytes": 1601
-  },
-  "claimed": {
    "functions": 2,
-   "bytes": 509
+   "bytes": 474
+  },
+  "open": {
+   "functions": 5,
+   "bytes": 2190
   }
  },
  "certified": 0,
@@ -31,69 +31,69 @@
    "name": "D2Game",
    "functions": 4181,
    "bytes": 836871,
-   "matched_functions": 3941,
-   "matched_bytes": 701819,
-   "review_bytes": 831,
-   "open_bytes": 0,
-   "parked_bytes": 134221
+   "matched_functions": 3957,
+   "matched_bytes": 707142,
+   "review_bytes": 399,
+   "open_bytes": 769,
+   "parked_bytes": 128561
   },
   {
    "name": "D2Client",
    "functions": 4553,
    "bytes": 776359,
-   "matched_functions": 4349,
-   "matched_bytes": 666174,
-   "review_bytes": 79,
-   "open_bytes": 0,
-   "parked_bytes": 110106
+   "matched_functions": 4371,
+   "matched_bytes": 675208,
+   "review_bytes": 75,
+   "open_bytes": 892,
+   "parked_bytes": 100184
   },
   {
    "name": "D2Common",
    "functions": 2312,
    "bytes": 441922,
-   "matched_functions": 2210,
-   "matched_bytes": 387663,
+   "matched_functions": 2212,
+   "matched_bytes": 388357,
    "review_bytes": 0,
-   "open_bytes": 0,
-   "parked_bytes": 54259
+   "open_bytes": 529,
+   "parked_bytes": 53036
   },
   {
    "name": "Storm/Fog",
    "functions": 1374,
    "bytes": 181472,
-   "matched_functions": 1298,
-   "matched_bytes": 143041,
+   "matched_functions": 1304,
+   "matched_bytes": 144424,
    "review_bytes": 0,
    "open_bytes": 0,
-   "parked_bytes": 38431
+   "parked_bytes": 37048
   },
   {
    "name": "D2Win/D2CMP/gl/Smack/Sound",
    "functions": 853,
    "bytes": 134909,
-   "matched_functions": 797,
-   "matched_bytes": 108666,
-   "review_bytes": 884,
+   "matched_functions": 802,
+   "matched_bytes": 110888,
+   "review_bytes": 0,
    "open_bytes": 0,
-   "parked_bytes": 25359
+   "parked_bytes": 24021
   },
   {
    "name": "Storm/Fog/Bnclient tail",
    "functions": 537,
    "bytes": 96117,
-   "matched_functions": 464,
-   "matched_bytes": 59656,
-   "review_bytes": 276,
+   "matched_functions": 471,
+   "matched_bytes": 62370,
+   "review_bytes": 0,
    "open_bytes": 0,
-   "parked_bytes": 36185
+   "parked_bytes": 33747
   },
   {
    "name": "Bnclient/D2MCPClient",
    "functions": 509,
    "bytes": 77082,
-   "matched_functions": 489,
-   "matched_bytes": 67635,
-   "review_bytes": 20,
+   "matched_functions": 490,
+   "matched_bytes": 67655,
+   "review_bytes": 0,
    "open_bytes": 0,
    "parked_bytes": 9427
   },
@@ -101,11 +101,11 @@
    "name": "D2CMP",
    "functions": 431,
    "bytes": 58315,
-   "matched_functions": 406,
-   "matched_bytes": 45705,
+   "matched_functions": 415,
+   "matched_bytes": 48157,
    "review_bytes": 0,
    "open_bytes": 0,
-   "parked_bytes": 12610
+   "parked_bytes": 10158
   },
   {
    "name": "Storm",
@@ -131,9 +131,9 @@
    "name": "D2Hell",
    "functions": 14,
    "bytes": 534,
-   "matched_functions": 13,
-   "matched_bytes": 514,
-   "review_bytes": 20,
+   "matched_functions": 14,
+   "matched_bytes": 534,
+   "review_bytes": 0,
    "open_bytes": 0,
    "parked_bytes": 0
   }
@@ -141,19 +141,19 @@
  "leaderboard": [
   {
    "who": "Legbreak",
-   "functions": 13693,
-   "bytes": 2077605
+   "functions": 13752,
+   "bytes": 2099234
   },
   {
    "who": "Eskeshehir",
-   "functions": 283,
-   "bytes": 77264,
+   "functions": 287,
+   "bytes": 77587,
    "github": true
   },
   {
    "who": "Angel",
-   "functions": 134,
-   "bytes": 32570
+   "functions": 140,
+   "bytes": 34480
   },
   {
    "who": "Nathan",
@@ -175,8 +175,8 @@
   },
   {
    "model": "unknown",
-   "functions": 353,
-   "bytes": 92002
+   "functions": 420,
+   "bytes": 115765
   },
   {
    "model": "codex",
@@ -200,8 +200,8 @@
   },
   {
    "model": "gpt-6-astra-ultra",
-   "functions": 19,
-   "bytes": 5147
+   "functions": 21,
+   "bytes": 5246
   },
   {
    "model": "openai codex",
@@ -260,10 +260,17 @@
   },
   {
    "day": "2026-11-10",
-   "functions": 238,
-   "bytes": 65799,
-   "cum_functions": 14174,
-   "cum_bytes": 2193652
+   "functions": 277,
+   "bytes": 76781,
+   "cum_functions": 14213,
+   "cum_bytes": 2204634
+  },
+  {
+   "day": "2026-11-11",
+   "functions": 30,
+   "bytes": 12880,
+   "cum_functions": 14243,
+   "cum_bytes": 2217514
   }
  ],
  "left_by_size": [
@@ -273,8 +280,8 @@
     0,
     64
    ],
-   "functions": 21,
-   "bytes": 767,
+   "functions": 19,
+   "bytes": 727,
    "tried": 19
   },
   {
@@ -283,9 +290,9 @@
     64,
     256
    ],
-   "functions": 205,
-   "bytes": 33451,
-   "tried": 201
+   "functions": 179,
+   "bytes": 28868,
+   "tried": 178
   },
   {
    "band": "medium",
@@ -293,9 +300,9 @@
     256,
     512
    ],
-   "functions": 290,
-   "bytes": 109412,
-   "tried": 286
+   "functions": 259,
+   "bytes": 98267,
+   "tried": 255
   },
   {
    "band": "large",
@@ -303,9 +310,9 @@
     512,
     1024
    ],
-   "functions": 195,
-   "bytes": 146282,
-   "tried": 195
+   "functions": 186,
+   "bytes": 139569,
+   "tried": 184
   },
   {
    "band": "huge",
@@ -313,9 +320,9 @@
     1024,
     null
    ],
-   "functions": 92,
-   "bytes": 134286,
-   "tried": 92
+   "functions": 91,
+   "bytes": 132905,
+   "tried": 91
   }
  ],
  "code_section": {
@@ -331,25 +338,25 @@
    {
     "key": "matched",
     "label": "Verified",
-    "bytes": 2193652,
+    "bytes": 2217514,
     "game": true
    },
    {
     "key": "pending",
     "label": "Waiting for the build host",
-    "bytes": 2110,
+    "bytes": 474,
     "game": true
    },
    {
     "key": "parked",
     "label": "Tried, still open",
-    "bytes": 422088,
+    "bytes": 397672,
     "game": true
    },
    {
     "key": "never",
     "label": "Never tried",
-    "bytes": 0,
+    "bytes": 864,
     "game": true
    },
    {
