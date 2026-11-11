@@ -145,9 +145,10 @@
    "bytes": 2077605
   },
   {
-   "who": "Esk",
-   "functions": 273,
-   "bytes": 75563
+   "who": "Eskeshehir",
+   "functions": 283,
+   "bytes": 77264,
+   "github": true
   },
   {
    "who": "Angel",
@@ -158,12 +159,6 @@
    "who": "Nathan",
    "functions": 22,
    "bytes": 5735
-  },
-  {
-   "who": "Eskeshehir",
-   "functions": 10,
-   "bytes": 1701,
-   "github": true
   },
   {
    "who": "slurpeestraw",

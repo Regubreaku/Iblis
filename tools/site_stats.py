@@ -24,6 +24,10 @@ def parse_names(doc):
     return out
 
 
+# project handle (casefolded) -> GitHub login (casefolded) of the same contributor; owner's instruction 2026-11-11.
+SAME_PERSON = {'esk': 'eskeshehir'}
+
+
 def normalize_stats(stats, names=None):
     """Merge contributor and model spellings. Site contributors are imported as iblis-<github id>: one whose id is in
     `names` (parse_names: the opted-in contributors only) is shown by GitHub login, every other one is merged into
@@ -52,6 +56,15 @@ def normalize_stats(stats, names=None):
                 name = 'claude-opus-5-5'
             grouped[(name, github)]['functions'] += row['functions']
             grouped[(name, github)]['bytes'] += row['bytes']
+        # Owner-declared: a project handle and a site account that are the same person share one row, under the login,
+        # and only while that login is on the board (opted in); otherwise the handle row stays as it is.
+        for handle, login in SAME_PERSON.items():
+            src = next((k for k in grouped if not k[1] and k[0].casefold() == handle), None)
+            dst = next((k for k in grouped if k[1] and k[0].casefold() == login), None)
+            if src and dst:
+                counts = grouped.pop(src)
+                for k in ('functions', 'bytes'):
+                    grouped[dst][k] += counts[k]
         # A login that reads like a project handle (or "Anonymous") must not take that row's credit, or give it its own.
         taken = {n.casefold() for n, g in grouped if not g}
         merged = defaultdict(lambda: {'functions': 0, 'bytes': 0})
