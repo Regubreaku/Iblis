@@ -444,3 +444,25 @@ test('an UNLIMITED_GITHUB account has no tier limits and is never paused', async
   f.env.UNLIMITED_GITHUB = '';
   assert.equal((await f.request('/api/v1/status', {})).body.tier, 'new');
 });
+
+test('GET /api/v1/names lists only opted-in accounts, without a key, with a short public cache', async t => {
+  const f = await fixture(t);
+  f.sql.prepare('INSERT INTO users(id,login,show_name) VALUES(2,?,1)').run('shown-one');
+  f.sql.prepare('INSERT INTO users(id,login,show_name) VALUES(3,?,0)').run('hidden-one');
+  f.sql.prepare('INSERT INTO users(id,login,show_name) VALUES(4,?,1)').run('shown-two');
+  // user 1 ("tester") keeps the default show_name = 0
+  const r = await f.request('/api/v1/names', {}, {method: 'GET', headers: {Authorization: ''}});
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body, {names: [{github_id: 2, login: 'shown-one'}, {github_id: 4, login: 'shown-two'}]});
+  assert.ok(!JSON.stringify(r.body).includes('hidden-one') && !JSON.stringify(r.body).includes('tester'));
+  assert.match(r.headers.get('cache-control'), /^public, max-age=\d+$/);
+  assert.ok(Number(/max-age=(\d+)/.exec(r.headers.get('cache-control'))[1]) <= 300);
+  // turning the switch off removes the account from the map at once
+  f.sql.prepare('UPDATE users SET show_name = 0 WHERE id = 2').run();
+  assert.deepEqual((await f.request('/api/v1/names', {}, {method: 'GET'})).body, {names: [{github_id: 4, login: 'shown-two'}]});
+  // the account switch the page uses feeds the same map
+  assert.equal((await f.request('/api/v1/account', {show_name: true})).status, 200);
+  assert.deepEqual((await f.request('/api/v1/names', {}, {method: 'GET'})).body.names.map(n => n.login), ['tester', 'shown-two']);
+  // only GET answers
+  assert.notEqual((await f.request('/api/v1/names', {})).status, 200);
+});

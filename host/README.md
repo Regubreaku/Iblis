@@ -77,6 +77,13 @@ as ordinary verification. Adjudication accepts `verified` or `failed` with an
 owner note. A manual acceptance does not invent a successful compiler result or
 produce import evidence; use recheck for an importable match.
 
+Before compiling, and again before importing, the host runs the private repository's own target-name check
+(`tools/names_guard.check`, the one `tools/submit.py` runs). A refused name is not compiled: the result is `failed` with
+a `NAME_POLICY` note that states the rule (names.json, D2MOO, Blizzard's lists, or `sub_<address>` /
+`sub_<address>_<Verb>`), so the contributor can rename and resubmit. A record verified before this check is not
+imported if the check refuses it. A repository without `tools/names_guard.py` has no such rule and nothing is checked; a
+guard that fails to load or run holds the item for review (not a strike).
+
 Import requires a locally recorded match acknowledged by the service, intact
 source/object hashes and complete verifier metadata. Source line endings are
 normalized to LF before compilation; the original text is retained in the private

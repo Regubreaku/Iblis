@@ -91,7 +91,10 @@ it, and run `python host/host.py verify --once --repo <Diablo2-Native>`. **Done 
   `python tools/build_stats.py <Diablo2-Native> public/data/stats.json --coverage <TEXT_COVERAGE.json> --relink <RELINK_COVERAGE.json>`
   (the host's per-category .text byte totals, which split padding and the C runtime library out of the bar, and the
   relink report from `tools/relink.py`, which gives the linked-executable tile; `--relink` defaults to the repo's
-  `docs/RELINK_COVERAGE.json`), then `tools/build_site.py`, then push. Keep both files beside the host's other files,
+  `docs/RELINK_COVERAGE.json`), then `tools/build_site.py`, then push. The build also reads the opt-in login map from
+  the live site's `/api/v1/names`, so contributors who turned on "Show my GitHub name" appear by login; on a host that
+  cannot reach the site, save that response elsewhere and pass it with `--names <file>` (unreadable means everyone
+  stays anonymous). Keep both files beside the host's other files,
   not in this repository: only their totals are published.
 
 ## 7. Soft launch

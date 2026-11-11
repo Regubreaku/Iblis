@@ -1,23 +1,67 @@
 """Apply the public site's contributor and model attribution to generated counts."""
+import re
 from collections import defaultdict
 
+# A GitHub login: letters, digits and single hyphens, at most 39 characters. Anything else in a names map is ignored.
+LOGIN = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$")
+IBLIS = re.compile(r"^iblis-(\d+)$", re.I)
 
-def normalize_stats(stats):
-    # iblis-120912283 is the owner's own GitHub account (Regubreaku). Other site contributors are imported as
-    # iblis-<github id> and stay anonymous on the board until a login map for opted-in contributors exists.
+
+def parse_names(doc):
+    """The service's opt-in login map (GET /api/v1/names: {"names": [{"github_id": n, "login": "x"}, ...]}, or the bare
+    list) as {github id: login}. Entries without a positive integer id or a valid GitHub login are dropped, never
+    guessed. The map lists only contributors who turned on "Show my GitHub name on the board"."""
+    rows = doc.get("names") if isinstance(doc, dict) else doc
+    out = {}
+    for r in rows if isinstance(rows, list) else []:
+        if not isinstance(r, dict):
+            continue
+        gid, login = r.get("github_id"), r.get("login")
+        if isinstance(gid, str) and gid.isdigit():
+            gid = int(gid)
+        if isinstance(gid, int) and not isinstance(gid, bool) and gid > 0 and isinstance(login, str) and LOGIN.match(login):
+            out[gid] = login
+    return out
+
+
+def normalize_stats(stats, names=None):
+    """Merge contributor and model spellings. Site contributors are imported as iblis-<github id>: one whose id is in
+    `names` (parse_names: the opted-in contributors only) is shown by GitHub login, every other one is merged into
+    "Anonymous". The id itself never reaches the output. A login row carries "github": true, so a later pass (build_site
+    renormalises the published file) keeps it exactly as written instead of re-capitalising it as a handle."""
+    # iblis-120912283 is the owner's own GitHub account (Regubreaku): credited as Legbreak whatever the map says.
     aliases = {'lead': 'Legbreak', 'leg': 'Legbreak', 'fable': 'Legbreak', 'iblis-120912283': 'Legbreak',
                'legbreak': 'Legbreak', 'codex': 'Nathan', 'nathan': 'Nathan'}
+    names = names or {}
     for field, key in (('leaderboard', 'who'), ('by_model', 'model')):
         grouped = defaultdict(lambda: {'functions': 0, 'bytes': 0})
         for row in stats[field]:
-            name = row[key]
+            name, github = row[key], False
             if key == 'who':
-                name = aliases.get(name.casefold()) or ('Anonymous' if name.casefold().startswith('iblis-') else name[:1].upper() + name[1:])
+                m = IBLIS.match(name)
+                if row.get('github') is True:
+                    github = True
+                elif name.casefold() in aliases:
+                    name = aliases[name.casefold()]
+                elif m:
+                    login = names.get(int(m.group(1)))
+                    name, github = (login, True) if login else ('Anonymous', False)
+                else:
+                    name = name[:1].upper() + name[1:]
             elif name == 'lead':
                 name = 'claude-opus-5-5'
-            grouped[name]['functions'] += row['functions']
-            grouped[name]['bytes'] += row['bytes']
-        stats[field] = sorted(({key: name, **counts} for name, counts in grouped.items()),
+            grouped[(name, github)]['functions'] += row['functions']
+            grouped[(name, github)]['bytes'] += row['bytes']
+        # A login that reads like a project handle (or "Anonymous") must not take that row's credit, or give it its own.
+        taken = {n.casefold() for n, g in grouped if not g}
+        merged = defaultdict(lambda: {'functions': 0, 'bytes': 0})
+        for (name, github), counts in grouped.items():
+            if github and name.casefold() in taken:
+                name += ' (GitHub)'
+            for k in ('functions', 'bytes'):
+                merged[(name, github)][k] += counts[k]
+        stats[field] = sorted(({key: name, **counts, **({'github': True} if github else {})}
+                               for (name, github), counts in merged.items()),
                               key=lambda row: (-row['bytes'], row[key]))
     return stats
 

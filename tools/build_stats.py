@@ -2,10 +2,12 @@
 """Build public/data/stats.json for the progress site from a checkout of the matching repo.
 
 usage: build_stats.py <repo> <out.json> [--coverage TEXT_COVERAGE.json] [--relink RELINK_COVERAGE.json]
+                      [--names FILE-OR-URL | --no-names]
 
 Reads only what the repo already publishes: docs/grid-data.json (one row per function: address, length, module,
 state, who), queue/matched/*.json (the model that produced each match) and the git history of queue/matched/ (when
-each function first became matched). Publishes counts and sizes only: no names, no code, no game bytes.
+each function first became matched). Publishes counts and sizes only: no function names, no code, no game bytes;
+contributors appear by handle, and site contributors by GitHub login only when they opted in (below).
 
 The code-section bar also needs the bytes that are not game code (padding between functions, the statically linked
 C runtime, data in .text). Only the build host can measure those, because it alone holds the image: it writes
@@ -19,9 +21,51 @@ Pass it with --relink, or set IBLIS_RELINK_COVERAGE; by default the repo's own c
 per-class equal/different byte counts reach stats.json (as "relink"); the file's address lists do not. From milestone 6
 the report also measures the whole file (built from source, identical but copied game data, not yet); those counts go
 in as "relink.file" and give the headline of the "Linked executable" slab.
+
+The board credits site contributors, whom the matching repo records as iblis-<github id>, by GitHub login only when they
+turned on "Show my GitHub name on the board". That opt-in lives in the service, so the build reads the service's login
+map, GET <site>/api/v1/names, which lists opted-in accounts and nobody else. --names takes a URL or a saved copy of that
+response (a build host without network access fetches it elsewhere and passes the file); the default is
+$IBLIS_NAMES_URL, else <site>/api/v1/names for the site address build_site.py publishes. If the map cannot be read, every
+iblis-<id> row is "Anonymous", as before the map existed: the build never fails over it and never guesses a name.
+Neither github ids nor any login outside the map reach stats.json.
 """
-import argparse, collections, datetime, glob, json, os, subprocess, sys
-from site_stats import code_section, load_coverage, load_relink, normalize_stats, relink_block
+import argparse, collections, datetime, glob, json, os, subprocess, sys, urllib.request
+from site_stats import code_section, load_coverage, load_relink, normalize_stats, parse_names, relink_block
+
+NAMES_MAX_BYTES = 1 << 20
+
+
+def default_names_url():
+    """$IBLIS_NAMES_URL, else /api/v1/names on the address build_site.py publishes (IBLIS_SITE_URL / wrangler.toml)."""
+    if os.environ.get("IBLIS_NAMES_URL"):
+        return os.environ["IBLIS_NAMES_URL"]
+    from build_site import site_url
+    return site_url() + "/api/v1/names"
+
+
+def load_names(source, timeout=15):
+    """{github id: login} for opted-in contributors from a URL or a file; {} (everyone anonymous) when it cannot be read.
+    Prints only how many logins it found, never the logins or ids."""
+    if not source:
+        return {}
+    try:
+        if source.startswith(("https://", "http://")):
+            req = urllib.request.Request(source, headers={"accept": "application/json", "user-agent": "iblis-build-stats"})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                raw = r.read(NAMES_MAX_BYTES + 1)
+        else:
+            with open(source, "rb") as f:
+                raw = f.read(NAMES_MAX_BYTES + 1)
+        if len(raw) > NAMES_MAX_BYTES:
+            raise ValueError("larger than %d bytes" % NAMES_MAX_BYTES)
+        names = parse_names(json.loads(raw.decode("utf-8")))
+    except Exception as e:  # network, file or format: fall back to the anonymous board, never fail the build
+        print("warning: board names not read from %s (%s); site contributors stay Anonymous" % (source, type(e).__name__),
+              file=sys.stderr)
+        return {}
+    print("board names: %d opted-in contributor%s from %s" % (len(names), "" if len(names) == 1 else "s", source))
+    return names
 
 TEXT_BYTES = None  # read from tools/board.py so the site and the board agree
 
@@ -52,7 +96,7 @@ def file_provenance(repo, path, tracked=None):
     return datetime.datetime.fromtimestamp(os.path.getmtime(path), datetime.timezone.utc).strftime("%Y-%m-%d"), None
 
 
-def main(repo, out, coverage=None, relink=None):
+def main(repo, out, coverage=None, relink=None, names=None):
     text = text_size(repo)
     grid = json.load(open(os.path.join(repo, "docs", "grid-data.json")))
     length = {r["va"].upper(): r["length"] for r in grid}
@@ -178,7 +222,7 @@ def main(repo, out, coverage=None, relink=None):
                                        f["remaining"][2]["bytes"] if len(f["remaining"]) > 2 else 0))
     else:
         print("warning: no relink coverage file; the page shows no linked-executable figure", file=sys.stderr)
-    normalize_stats(stats)
+    normalize_stats(stats, names or {})
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     json.dump(stats, open(out, "w"), indent=1)
     print("matched %d fn, %d B = %.2f%% of .text; %d trend days; %d contributors; %d models" % (
@@ -195,5 +239,9 @@ if __name__ == "__main__":
     ap.add_argument("--relink", default=os.environ.get("IBLIS_RELINK_COVERAGE"),
                     help="RELINK_COVERAGE.json from the matching repo's tools/relink.py (default $IBLIS_RELINK_COVERAGE, "
                          "else <repo>/docs/RELINK_COVERAGE.json when present)")
+    ap.add_argument("--names", default=None,
+                    help="opted-in login map: a URL or a saved copy of GET <site>/api/v1/names (default $IBLIS_NAMES_URL, "
+                         "else the published site's /api/v1/names)")
+    ap.add_argument("--no-names", action="store_true", help="do not read the login map: every site contributor is Anonymous")
     a = ap.parse_args()
-    main(a.repo, a.out, a.coverage, a.relink)
+    main(a.repo, a.out, a.coverage, a.relink, {} if a.no_names else load_names(a.names or default_names_url()))

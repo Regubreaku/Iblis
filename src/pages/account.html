@@ -64,7 +64,7 @@
   $("a-show").checked = s.shown_on_board_as !== "anonymous";
   $("a-show").addEventListener("change", async e => {
     const r = await call("account", { show_name: e.target.checked });
-    $("msg").textContent = r.ok ? (e.target.checked ? "The board will show " + s.login + " from its next refresh." : "You will appear as anonymous from the next refresh.") : "That did not save. Reload and try again.";
+    $("msg").textContent = r.ok ? (e.target.checked ? "The board will show your verified work as " + s.login + " from its next refresh." : "You will appear as anonymous from the next refresh.") : "That did not save. Reload and try again.";
   });
   let armed = false;
   $("a-revoke").addEventListener("click", async () => {

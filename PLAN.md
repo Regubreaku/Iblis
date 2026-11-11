@@ -80,7 +80,7 @@ count until the owner's rule is met.
 | 5 | Compiler from Microsoft's distribution: find the image that carries `cl.exe` 14.00.50727.762 with our hashes | to verify; the kit fetches the pinned tree until then |
 | 6 | Build host `host/host.py` (`sync`, `verify`, `integrate`, `flags`) sharing the kit's compile-and-compare | done; end-to-end test passed |
 | 6b | Host as a service: run `verify` continuously, `integrate` + figures + `wrangler deploy` nightly (cron or a scheduled task) | next |
-| 6c | A form of the board and history for the integrated contributors (map `iblis-<id>` to the opted-in login) | next |
+| 6c | A form of the board and history for the integrated contributors (map `iblis-<id>` to the opted-in login) | board done (`/api/v1/names`, `build_stats.py --names`); history next |
 | 7 | Accounts: Cloudflare (Worker, D1), GitHub OAuth app, contact address, Discord | owner |
 | 8 | Soft launch with 3-5 trusted contributors; fix onboarding | after 2-6 |
 | 9 | Reddit post (drafted, posted by the owner) | after 8 |
