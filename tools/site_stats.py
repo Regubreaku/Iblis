@@ -106,7 +106,10 @@ def _int(v):
 
 # the build host's measurement names some categories by what they hold; these are the same totals
 ALIASES = {"crt_compiler_helper": "crt_library", "crt": "crt_library", "third_party_library": "third_party",
-           "data_or_tables": "data", "game_function_missing": "missing_game", "padding_bytes": "padding"}
+           "data_or_tables": "data", "game_function_missing": "missing_game", "padding_bytes": "padding",
+           # the linker's import thunks (docs/LINKER_PIECES.json): reproduced by identity like the queue/library
+           # records the host already counts under the CRT category, so they join the library share of the bar
+           "linker_import_thunks": "crt_library"}
 
 
 def _category(name):
@@ -123,12 +126,15 @@ def load_coverage(cov):
     totals are kept: per-run address lists in the file are dropped."""
     found = {}
     for group in [cov] + [cov[k] for k in ("bytes", "totals", "categories", "queue_bytes") if isinstance(cov.get(k), dict)]:
+        mine = {}  # several host names for one category in the same group (an alias beside its target) add up
         for k, v in group.items():
             c = _category(k)
             if c in COVERAGE_CATEGORIES and (isinstance(v, (int, str)) and not isinstance(v, bool) or isinstance(v, dict) and "bytes" in v):
-                if c in found and _int(v) != found[c]:
-                    raise ValueError("coverage file gives %s twice with different totals" % c)
-                found[c] = _int(v)
+                mine[c] = mine.get(c, 0) + _int(v)
+        for c, n in mine.items():
+            if c in found and n != found[c]:
+                raise ValueError("coverage file gives %s twice with different totals" % c)
+            found[c] = n
     if not found:
         raise ValueError("coverage file has none of the categories %s" % ", ".join(COVERAGE_CATEGORIES))
     out = {k: found.get(k, 0) for k in COVERAGE_CATEGORIES}
