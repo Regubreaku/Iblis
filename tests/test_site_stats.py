@@ -339,6 +339,14 @@ class BoardNameTests(unittest.TestCase):
         from site_stats import normalize_stats
         return normalize_stats({'leaderboard': rows, 'by_model': []}, names)['leaderboard']
 
+    def test_handle_and_login_of_one_person_share_a_row(self):
+        rows = self.board([{'who': 'esk', 'functions': 5, 'bytes': 50}, {'who': 'iblis-777', 'functions': 2, 'bytes': 7}],
+                          {777: 'Eskeshehir'})
+        self.assertEqual(rows, [{'who': 'Eskeshehir', 'functions': 7, 'bytes': 57, 'github': True}])
+        # not opted in: the handle row stays, the site account stays anonymous
+        rows = self.board([{'who': 'esk', 'functions': 5, 'bytes': 50}, {'who': 'iblis-777', 'functions': 2, 'bytes': 7}])
+        self.assertEqual({r['who']: r['functions'] for r in rows}, {'Esk': 5, 'Anonymous': 2})
+
     def test_opted_in_contributor_is_shown_by_login(self):
         rows = self.board([{'who': 'iblis-555', 'functions': 3, 'bytes': 30}, {'who': 'esk', 'functions': 1, 'bytes': 4}],
                           {555: 'octo-cat'})
