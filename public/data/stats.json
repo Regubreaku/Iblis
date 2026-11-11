@@ -1,6 +1,6 @@
 {
- "generated_utc": "2026-11-10T21:52Z",
- "commit": "7083bf74b",
+ "generated_utc": "2026-11-11T00:03Z",
+ "commit": "c58f271b0",
  "text_bytes": 2928640,
  "functions_total": 14941,
  "bytes_total": 2617850,
@@ -13,16 +13,12 @@
    "bytes": 2152589
   },
   "parked": {
-   "functions": 892,
-   "bytes": 449224
+   "functions": 850,
+   "bytes": 438054
   },
   "submitted": {
-   "functions": 30,
-   "bytes": 14922
-  },
-  "claimed": {
-   "functions": 2,
-   "bytes": 1115
+   "functions": 74,
+   "bytes": 27207
   }
  },
  "certified": 0,
@@ -33,9 +29,9 @@
    "bytes": 836871,
    "matched_functions": 3895,
    "matched_bytes": 684924,
-   "review_bytes": 7466,
+   "review_bytes": 11699,
    "open_bytes": 0,
-   "parked_bytes": 144481
+   "parked_bytes": 140248
   },
   {
    "name": "D2Client",
@@ -43,9 +39,9 @@
    "bytes": 776359,
    "matched_functions": 4322,
    "matched_bytes": 653888,
-   "review_bytes": 6774,
+   "review_bytes": 10065,
    "open_bytes": 0,
-   "parked_bytes": 115697
+   "parked_bytes": 112406
   },
   {
    "name": "D2Common",
@@ -53,9 +49,9 @@
    "bytes": 441922,
    "matched_functions": 2194,
    "matched_bytes": 382929,
-   "review_bytes": 1192,
+   "review_bytes": 3147,
    "open_bytes": 0,
-   "parked_bytes": 57801
+   "parked_bytes": 55846
   },
   {
    "name": "Storm/Fog",
@@ -63,9 +59,9 @@
    "bytes": 181472,
    "matched_functions": 1286,
    "matched_bytes": 140235,
-   "review_bytes": 0,
+   "review_bytes": 289,
    "open_bytes": 0,
-   "parked_bytes": 41237
+   "parked_bytes": 40948
   },
   {
    "name": "D2Win/D2CMP/gl/Smack/Sound",
@@ -73,9 +69,9 @@
    "bytes": 134909,
    "matched_functions": 790,
    "matched_bytes": 106584,
-   "review_bytes": 520,
+   "review_bytes": 596,
    "open_bytes": 0,
-   "parked_bytes": 27805
+   "parked_bytes": 27729
   },
   {
    "name": "Storm/Fog/Bnclient tail",
@@ -83,9 +79,9 @@
    "bytes": 96117,
    "matched_functions": 461,
    "matched_bytes": 59033,
-   "review_bytes": 0,
+   "review_bytes": 77,
    "open_bytes": 0,
-   "parked_bytes": 37084
+   "parked_bytes": 37007
   },
   {
    "name": "Bnclient/D2MCPClient",
@@ -93,9 +89,9 @@
    "bytes": 77082,
    "matched_functions": 485,
    "matched_bytes": 67153,
-   "review_bytes": 85,
+   "review_bytes": 482,
    "open_bytes": 0,
-   "parked_bytes": 9844
+   "parked_bytes": 9447
   },
   {
    "name": "D2CMP",
@@ -103,9 +99,9 @@
    "bytes": 58315,
    "matched_functions": 402,
    "matched_bytes": 44838,
-   "review_bytes": 0,
+   "review_bytes": 564,
    "open_bytes": 0,
-   "parked_bytes": 13477
+   "parked_bytes": 12913
   },
   {
    "name": "Storm",
@@ -113,9 +109,9 @@
    "bytes": 12943,
    "matched_functions": 169,
    "matched_bytes": 12491,
-   "review_bytes": 0,
+   "review_bytes": 288,
    "open_bytes": 0,
-   "parked_bytes": 452
+   "parked_bytes": 164
   },
   {
    "name": "C runtime (prebuilt libcmt)",
@@ -273,7 +269,7 @@
    ],
    "functions": 26,
    "bytes": 973,
-   "tried": 25
+   "tried": 23
   },
   {
    "band": "small",
@@ -283,7 +279,7 @@
    ],
    "functions": 265,
    "bytes": 44184,
-   "tried": 251
+   "tried": 225
   },
   {
    "band": "medium",
@@ -293,7 +289,7 @@
    ],
    "functions": 331,
    "bytes": 123721,
-   "tried": 322
+   "tried": 312
   },
   {
    "band": "large",
@@ -303,7 +299,7 @@
    ],
    "functions": 206,
    "bytes": 154148,
-   "tried": 202
+   "tried": 198
   },
   {
    "band": "huge",
@@ -324,7 +320,7 @@
    "0x006CB5A1"
   ],
   "coverage_generated_utc": "2026-11-10",
-  "split": "queue",
+  "split": "coverage",
   "segments": [
    {
     "key": "matched",
@@ -335,19 +331,19 @@
    {
     "key": "pending",
     "label": "Waiting for the build host",
-    "bytes": 16037,
+    "bytes": 24762,
     "game": true
    },
    {
     "key": "parked",
     "label": "Tried, still open",
-    "bytes": 449224,
+    "bytes": 438151,
     "game": true
    },
    {
     "key": "never",
     "label": "Never tried",
-    "bytes": 0,
+    "bytes": 1022,
     "game": true
    },
    {
@@ -359,7 +355,7 @@
    {
     "key": "library",
     "label": "Not game code: compiler runtime library",
-    "bytes": 173507,
+    "bytes": 173805,
     "game": false
    },
    {
@@ -369,31 +365,31 @@
     "game": false
    }
   ],
-  "never_tried_measured": 1820
+  "never_tried_measured": 1022
  },
  "relink": {
-  "pct_text": 84.86,
-  "identical_bytes": 2485294,
+  "pct_text": 84.91,
+  "identical_bytes": 2486772,
   "bytes": 2928640,
   "milestone": 6,
   "classes": [
    {
     "key": "matched",
     "label": "Verified functions",
-    "equal": 2148437,
+    "equal": 2149877,
     "different": 2712
    },
    {
     "key": "submitted",
     "label": "Submitted, waiting for the build host",
-    "equal": 271,
-    "different": 4557
+    "equal": 1017,
+    "different": 23745
    },
    {
     "key": "pending",
     "label": "Open or parked functions",
-    "equal": 29443,
-    "different": 432224
+    "equal": 28436,
+    "different": 411558
    },
    {
     "key": "not_function",
@@ -410,7 +406,7 @@
    {
     "key": "crt",
     "label": "C runtime library",
-    "equal": 186615,
+    "equal": 186914,
     "different": 1435
    },
    {
@@ -430,7 +426,7 @@
    {
     "key": "unverified",
     "label": "Unverified functions (open, parked or submitted)",
-    "bytes": 436781
+    "bytes": 435303
    },
    {
     "key": "unplaced",
@@ -449,40 +445,40 @@
    }
   ],
   "generated_utc": "2026-11-10",
-  "commit": "4618a3495",
+  "commit": "b06e18ce5",
   "sections_equal": true,
   "entry_equal": true,
   "iat_equal": true,
   "file": {
    "bytes": 3618792,
-   "built_bytes": 2732493,
-   "copied_bytes": 433760,
-   "identical_bytes": 3166253,
-   "pct_built": 75.51,
-   "pct_identical": 87.49,
+   "built_bytes": 2988544,
+   "copied_bytes": 179190,
+   "identical_bytes": 3167734,
+   "pct_built": 82.58,
+   "pct_identical": 87.54,
    "pct_signature": 0.17,
    "segments": [
     {
      "key": "built",
      "label": "Built from source",
-     "bytes": 2732493
+     "bytes": 2988544
     },
     {
      "key": "copied",
      "label": "Identical, copied data",
-     "bytes": 433760
+     "bytes": 179190
     },
     {
      "key": "rest",
      "label": "Not yet",
-     "bytes": 452539
+     "bytes": 451058
     }
    ],
    "remaining": [
     {
      "key": "placeholder",
      "label": "Placeholders for parked and unverified functions",
-     "bytes": 444378
+     "bytes": 442897
     },
     {
      "key": "linker",
@@ -499,7 +495,7 @@
     {
      "key": "source",
      "label": "Compiled from the project's source",
-     "equal": 2222007,
+     "equal": 2478058,
      "different": 0
     },
     {
@@ -523,14 +519,14 @@
     {
      "key": "copied",
      "label": "Game data tables and strings, copied",
-     "equal": 433760,
+     "equal": 179190,
      "different": 0
     },
     {
      "key": "placeholder",
      "label": "Placeholders for unverified functions",
-     "equal": 1032,
-     "different": 443346
+     "equal": 1029,
+     "different": 441868
     },
     {
      "key": "signature",
@@ -543,22 +539,22 @@
     {
      "name": ".text",
      "bytes": 2928640,
-     "built": 2455638,
-     "copied": 28624,
-     "identical": 2484262
+     "built": 2457151,
+     "copied": 28592,
+     "identical": 2485743
     },
     {
      "name": ".rdata",
      "bytes": 233472,
-     "built": 120649,
-     "copied": 112819,
+     "built": 179865,
+     "copied": 53603,
      "identical": 233468
     },
     {
      "name": ".data",
      "bytes": 294912,
-     "built": 9131,
-     "copied": 285781,
+     "built": 204453,
+     "copied": 90459,
      "identical": 294912
     },
     {
