@@ -335,5 +335,93 @@ class BoardNameTests(unittest.TestCase):
         self.assertEqual(rows, {'Legbreak': 3, 'Anonymous': 1, 'Esk': 1})
 
 
+    def board(self, rows, names=None):
+        from site_stats import normalize_stats
+        return normalize_stats({'leaderboard': rows, 'by_model': []}, names)['leaderboard']
+
+    def test_opted_in_contributor_is_shown_by_login(self):
+        rows = self.board([{'who': 'iblis-555', 'functions': 3, 'bytes': 30}, {'who': 'esk', 'functions': 1, 'bytes': 4}],
+                          {555: 'octo-cat'})
+        self.assertEqual(rows, [{'who': 'octo-cat', 'functions': 3, 'bytes': 30, 'github': True},
+                                {'who': 'Esk', 'functions': 1, 'bytes': 4}])
+
+    def test_contributor_not_in_the_map_stays_anonymous_and_anonymous_accounts_merge(self):
+        rows = self.board([{'who': 'iblis-555', 'functions': 3, 'bytes': 30}, {'who': 'iblis-777', 'functions': 2, 'bytes': 7},
+                           {'who': 'iblis-888', 'functions': 1, 'bytes': 5}], {555: 'octo-cat'})
+        self.assertEqual(rows, [{'who': 'octo-cat', 'functions': 3, 'bytes': 30, 'github': True},
+                                {'who': 'Anonymous', 'functions': 3, 'bytes': 12}])
+        # no map at all: exactly the earlier behaviour
+        self.assertEqual(self.board([{'who': 'iblis-555', 'functions': 3, 'bytes': 30},
+                                     {'who': 'iblis-777', 'functions': 2, 'bytes': 7}]),
+                         [{'who': 'Anonymous', 'functions': 5, 'bytes': 37}])
+
+    def test_owner_alias_is_unchanged_by_the_map(self):
+        rows = self.board([{'who': 'iblis-120912283', 'functions': 1, 'bytes': 3}, {'who': 'leg', 'functions': 2, 'bytes': 20}],
+                          {120912283: 'Regubreaku'})
+        self.assertEqual(rows, [{'who': 'Legbreak', 'functions': 3, 'bytes': 23}])
+
+    def test_no_github_id_reaches_the_output_and_a_rebuild_keeps_the_login(self):
+        import json
+        rows = self.board([{'who': 'iblis-555', 'functions': 3, 'bytes': 30}, {'who': 'iblis-777', 'functions': 2, 'bytes': 7}],
+                          {555: 'octo-cat'})
+        self.assertNotIn('555', json.dumps(rows)); self.assertNotIn('777', json.dumps(rows))
+        self.assertEqual(self.board(copy.deepcopy(rows)), rows)   # build_site renormalises without the map
+
+    def test_login_that_reads_like_a_handle_does_not_take_its_credit(self):
+        rows = self.board([{'who': 'iblis-555', 'functions': 1, 'bytes': 9}, {'who': 'leg', 'functions': 2, 'bytes': 20},
+                           {'who': 'iblis-777', 'functions': 1, 'bytes': 1}, {'who': 'iblis-999', 'functions': 1, 'bytes': 2}],
+                          {555: 'legbreak', 999: 'anonymous'})
+        self.assertEqual({r['who']: r['bytes'] for r in rows},
+                         {'Legbreak': 20, 'legbreak (GitHub)': 9, 'Anonymous': 1, 'anonymous (GitHub)': 2})
+
+    def test_parse_names_keeps_only_valid_entries(self):
+        from site_stats import parse_names
+        doc = {'names': [{'github_id': 1, 'login': 'ok-name'}, {'github_id': '2', 'login': 'two'},
+                         {'github_id': 0, 'login': 'zero'}, {'github_id': True, 'login': 'flag'},
+                         {'github_id': 3, 'login': '<script>'}, {'github_id': 4, 'login': '-bad'},
+                         {'github_id': 5}, 'junk']}
+        self.assertEqual(parse_names(doc), {1: 'ok-name', 2: 'two'})
+        self.assertEqual(parse_names([{'github_id': 9, 'login': 'x'}]), {9: 'x'})
+        self.assertEqual(parse_names({'error': 'nope'}), {})
+
+    def test_build_stats_reads_a_file_and_falls_back_when_unreadable(self):
+        import io, json, tempfile, contextlib
+        import build_stats
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / 'names.json'
+            p.write_text(json.dumps({'names': [{'github_id': 555, 'login': 'octo-cat'}]}))
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(build_stats.load_names(str(p)), {555: 'octo-cat'})
+            self.assertNotIn('octo-cat', out.getvalue()); self.assertNotIn('555', out.getvalue())
+            (Path(d) / 'bad.json').write_text('not json')
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                self.assertEqual(build_stats.load_names(str(Path(d) / 'bad.json')), {})
+                self.assertEqual(build_stats.load_names(str(Path(d) / 'missing.json')), {})
+                self.assertEqual(build_stats.load_names('http://127.0.0.1:9/api/v1/names', timeout=2), {})
+            self.assertIn('stay Anonymous', err.getvalue())
+        self.assertEqual(build_stats.load_names(''), {})
+
+    def test_default_names_url_follows_the_site_address(self):
+        import os
+        import build_stats
+        old = {k: os.environ.pop(k, None) for k in ('IBLIS_NAMES_URL', 'IBLIS_SITE_URL')}
+        try:
+            os.environ['IBLIS_SITE_URL'] = 'https://example.invalid/'
+            self.assertEqual(build_stats.default_names_url(), 'https://example.invalid/api/v1/names')
+            os.environ['IBLIS_NAMES_URL'] = '/tmp/names.json'
+            self.assertEqual(build_stats.default_names_url(), '/tmp/names.json')
+        finally:
+            for k, v in old.items():
+                os.environ.pop(k, None)
+                if v is not None:
+                    os.environ[k] = v
+
+    def test_home_page_escapes_board_names(self):
+        page = (Path(__file__).resolve().parents[1] / 'src' / 'pages' / 'index.html').read_text(encoding='utf-8')
+        self.assertIn('${esc(r.who)}', page)
+
+
 if __name__ == '__main__':
     unittest.main()

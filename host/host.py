@@ -14,9 +14,13 @@
 Environment: IBLIS_RUNNER_CONFIG, IBLIS_HOST_KEY, IBLIS_URL (default https://iblis.captainlegbreak.workers.dev).
 Soft launch without Docker: IBLIS_RUNNER=trusted-local and IBLIS_TRUSTED_GITHUB=login1,login2 (host/trusted_runner.py).
 Verdicts: verified = the host's compile matches; failed = the submission cannot be right as sent (forbidden construct,
-no marker, does not compile, extra forms); review = it compiles cleanly but the host sees different bytes (not a strike).
+no marker, does not compile, extra forms, a target name outside the naming rule); review = it compiles cleanly but the
+host sees different bytes (not a strike).
+
+Target names: before compiling, and again before importing, the host runs the matching repository's own name check
+(tools/names_guard.check, the one tools/submit.py runs), so a site submission meets the same rule as a chat's.
 """
-import glob, hashlib, json, os, re, shutil, subprocess, sys, time, urllib.request
+import glob, hashlib, importlib.util, json, os, re, shutil, subprocess, sys, time, urllib.request
 from pathlib import Path
 from contextlib import contextmanager
 
@@ -61,6 +65,50 @@ class Repo:
         lib = next((r for _, r in self.rulings if r.get("id") == "OWNER-RULING-CRT-LIBRARY-20261108"), None)
         self.library = (int(lib["range"][0], 16), int(lib["range"][1], 16)) if lib else None
         self.no_body = {norm(v) for v in self.cfg["rules"].get("no_body", []) if re.match(r"^0[xX][0-9A-Fa-f]+$", str(v))}
+
+    def name_check(self, va, source):
+        """None when the target's name passes the repository's naming rule, else (name or None, the guard's reason).
+        Runs <repo>/tools/names_guard.check(va_int, source), exactly as tools/submit.py does. A repository without that
+        tool has no such rule to apply (None). A guard that cannot be loaded or run raises: the caller holds the item."""
+        guard = self._names_guard()
+        if guard is None:
+            return None
+        why = guard.check(int(va, 16), source, *self._allowed)
+        if not why:
+            return None
+        name = None
+        try:
+            name = guard.target_name(int(va, 16), source)[0]
+        except Exception:
+            pass
+        return name, why
+
+    def _names_guard(self):
+        if hasattr(self, "_guard"):
+            return self._guard
+        path = os.path.join(self.root, "tools", "names_guard.py")
+        if not os.path.exists(path):
+            print("warning: %s has no tools/names_guard.py; target names are not checked" % self.root, file=sys.stderr)
+            self._guard = None
+            return None
+        tools = os.path.dirname(path)
+        # The guard imports the repository's own checker.py by name: load it from that directory and leave the host's
+        # module table and path as they were.
+        prior, path0 = sys.modules.pop("checker", None), list(sys.path)
+        try:
+            spec = importlib.util.spec_from_file_location("iblis_private_names_guard", path)
+            guard = importlib.util.module_from_spec(spec)
+            sys.path.insert(0, tools)
+            spec.loader.exec_module(guard)
+            self._allowed = guard.load_allowed(self.root)
+        finally:
+            sys.path[:] = path0
+            if prior is not None:
+                sys.modules["checker"] = prior
+            else:
+                sys.modules.pop("checker", None)
+        self._guard = guard
+        return guard
 
     def flags(self, va):
         """The profile plus every flag ruling naming this address, in file-name order (the order match.py uses)."""
@@ -124,8 +172,42 @@ def cmd_sync(repo, replace_notes=()):
         print("synced", done, "of", len(fs), "- rows changed", written, "- D1 rows written", billed)
 
 
+NAME_RULE = ("The target must be named from names.json (the address's own name or any name it lists; the kit carries "
+             "a copy), from D2MOO's function names, from Blizzard's own name lists, or sub_<address> / "
+             "sub_<address>_<Verb> with its own address")
+
+
+def name_policy_note(va, name, why=""):
+    """The host note for a target name outside the project's naming rule, in words the contributor's agent can act on.
+    `why` is the guard's own reason; only its suggested sub_ name is reused (it names the private tools)."""
+    a = norm(va)[2:]
+    m = re.search(r"\(e\.g\. (sub_%s_[A-Za-z0-9_]+)\)" % a, why or "", re.I)
+    return ("the function defined at 0x%s is named %s, which the project's naming rule does not allow. %s (here "
+            "sub_%s or sub_%s_<Verb>%s). Rename it and its uses in the file, run check again and submit again; a "
+            "rename changes no bytes." % (a, name or "something else", NAME_RULE, a, a,
+                                          ", e.g. " + m.group(1) if m else ""))
+
+
+def name_refusal(repo, va, source):
+    """A NAME_POLICY result when the repository's name check refuses the target, else None."""
+    check = getattr(repo, "name_check", None)
+    if check is None:
+        return None
+    try:
+        refused = check(va, source)
+    except Exception as e:
+        # The check itself broke: hold the item for the owner, never a strike.
+        return dict(status="INFRA_ERROR", detail="name check: " + type(e).__name__)
+    if not refused:
+        return None
+    name, why = refused
+    return dict(status="NAME_POLICY", detail=name_policy_note(va, name, why), guard_reason=why)
+
+
 def verdict_for(res):
     st = res.get("status", "INFRA_ERROR")
+    if st == "NAME_POLICY":
+        return "failed", "NAME_POLICY: " + res.get("detail", NAME_RULE)
     if st in ("RAW_EQUAL", "RELOCATION_RESOLVED_EQUAL"):
         stand = [h["va"] for h in res.get("helpers", []) if h.get("status") == "STAND_IN"]
         return "verified", "%s, body %s%s" % (st, res["compiled_body_sha256"][:16],
@@ -190,7 +272,8 @@ def process_items(repo, runner, lengths, items):
         except (ValueError, TypeError, KeyError, UnicodeError) as e:
             res = dict(status="INVALID_SOURCE", detail=str(e))
         else:
-            res = compile_item(runner, p, va, lengths[va], repo.flags(va), source)
+            # The naming rule first: a refused name is never compiled, and the contributor can rename and resubmit.
+            res = name_refusal(repo, va, source) or compile_item(runner, p, va, lengths[va], repo.flags(va), source)
         try:
             v, note = verdict_for(res)
             if v == "verified" and p.get("body_sha256") and p["body_sha256"] != res["compiled_body_sha256"]:
@@ -289,6 +372,10 @@ def import_record(repo, vp, v):
         if sd.exists() or dst.exists() or drop.exists():
             raise ValueError("submission or object drop exists; owner reconciliation required")
         res = dict(v["host"])
+        refused = name_refusal(repo, va, v["source"])
+        if refused:
+            # Verified before the gate existed, or the rule changed since: never import a name the repository refuses.
+            raise ValueError("target name refused by tools/names_guard.py: " + refused.get("guard_reason", refused["detail"]))
         src = v["source"].encode("latin-1")
         obj = (vp.parent / "candidate.obj").read_bytes()
         if hashlib.sha256(src).hexdigest() != res["source_sha256"] or hashlib.sha256(obj).hexdigest() != res["object_sha256"]:

@@ -15,7 +15,8 @@ Byte-exact decompilation of Diablo II 1.14d, run as a contributor project. See `
 
 ```
 python tools/build_stats.py <source-repo> public/data/stats.json --coverage <TEXT_COVERAGE.json from the build host> \
-                            --relink <RELINK_COVERAGE.json from the source repo's tools/relink.py>
+                            --relink <RELINK_COVERAGE.json from the source repo's tools/relink.py> \
+                            [--names <URL or saved copy of GET /api/v1/names>]
 python tools/build_kit.py   <source-repo> public/kit
 python tools/build_site.py  public/data/stats.json public
 ```
@@ -25,7 +26,14 @@ library out of the code-section bar. `--relink` (or `IBLIS_RELINK_COVERAGE`; def
 when it exists) is the relink report: every verified function, the C runtime and the import thunks linked into one
 image compared with the original. It gives the "Linked executable" tile beside the bar: the whole file's share built
 from source and share identical (built plus the game's data tables and strings copied until they are reconstructed),
-with the code section's identical share as a second line. Both files stay beside the host's own files, outside this repository; only their byte totals
+with the code section's identical share as a second line.
+
+`--names` (or `IBLIS_NAMES_URL`; default `<site>/api/v1/names`, the address `build_site.py` publishes) is the service's
+opt-in login map: site contributors are recorded in the source repo as `iblis-<github id>`, and the board shows one by
+GitHub login only when that account turned on "Show my GitHub name on the board". The endpoint lists those accounts and
+nobody else. A build host without network access saves the response elsewhere
+(`curl -s https://<site>/api/v1/names > names.json`) and passes the file. If the map cannot be read, every site
+contributor is "Anonymous", as before; the build does not fail. No github id or unlisted login reaches `stats.json`. Both files stay beside the host's own files, outside this repository; only their byte totals
 reach `stats.json` (`code_section` and `relink`), never an address or a byte of the game.
 
 ## Run locally

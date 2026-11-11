@@ -260,6 +260,7 @@ async function packetFor(env, va) {
       "Readable C++ that compiles to the original bytes under the given flags.",
       "No inline assembly, _emit, naked functions, byte arrays as code, #pragma optimize, or flag changes.",
       "Declare every callee and global with a trailing // 0x<address> marker.",
+      "Name the target from names.json, D2MOO, Blizzard's name lists, or sub_<address> / sub_<address>_<Verb> (kit CONVENTIONS.md, \"Naming the target\"); the host refuses any other name.",
       "Never post or submit game files, machine code, disassembly, object files or builds.",
       "One form of the function per compile; no extra copies to test spellings.",
     ],
@@ -723,6 +724,16 @@ async function board(env) {
   return rows.map((r, i) => ({ rank: i + 1, who: r.show_name ? r.login : "anonymous", functions: r.functions, bytes: r.bytes }));
 }
 
+// The login map the static board is built with (tools/build_stats.py --names): integrated work is credited in the
+// source repository as iblis-<github id>, and only these accounts may be shown by name. Contributors who keep the
+// default (show_name = 0) are never listed, so the board shows them as anonymous.
+async function names(env) {
+  const rows = (await env.DB.prepare("SELECT id, login FROM users WHERE show_name = 1 ORDER BY id").all()).results;
+  return new Response(JSON.stringify({ names: rows.map((r) => ({ github_id: r.id, login: r.login })) }), {
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=60" },
+  });
+}
+
 // ---------------------------------------------------------------- router
 
 export default {
@@ -762,6 +773,7 @@ export default {
       if (p === "/api/v1/connect" && m === "POST") return json(await connectStart(env));
       if (p === "/api/v1/connect/poll" && m === "POST") return json(await connectPoll(env, req));
       if (p === "/api/v1/board" && m === "GET") return json(await board(env));
+      if (p === "/api/v1/names" && m === "GET") return await names(env);
       if (p === "/api/v1/stats" && m === "GET") return env.ASSETS.fetch(new Request(new URL("/data/stats.json", url)));
 
       if (p.startsWith("/api/v1/host/")) {
