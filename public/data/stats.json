@@ -1,32 +1,32 @@
 {
- "generated_utc": "2026-11-12T12:24Z",
- "commit": "39a26d5bb",
+ "generated_utc": "2026-11-12T13:11Z",
+ "commit": "3b1656cc2",
  "text_bytes": 2928640,
  "functions_total": 14928,
  "bytes_total": 2614245,
- "matched_functions": 14432,
- "matched_bytes": 2300585,
- "matched_pct_text": 78.55,
+ "matched_functions": 14442,
+ "matched_bytes": 2307167,
+ "matched_pct_text": 78.78,
  "states": {
   "matched": {
-   "functions": 14432,
-   "bytes": 2300585
+   "functions": 14442,
+   "bytes": 2307167
   },
   "parked": {
-   "functions": 473,
-   "bytes": 298818
-  },
-  "submitted": {
-   "functions": 11,
-   "bytes": 6819
-  },
-  "claimed": {
-   "functions": 5,
-   "bytes": 3996
+   "functions": 470,
+   "bytes": 296486
   },
   "open": {
-   "functions": 7,
-   "bytes": 4027
+   "functions": 4,
+   "bytes": 2573
+  },
+  "claimed": {
+   "functions": 6,
+   "bytes": 5188
+  },
+  "submitted": {
+   "functions": 6,
+   "bytes": 2831
   }
  },
  "certified": 0,
@@ -35,21 +35,21 @@
    "name": "D2Game",
    "functions": 4181,
    "bytes": 836871,
-   "matched_functions": 4031,
-   "matched_bytes": 735904,
-   "review_bytes": 4540,
-   "open_bytes": 206,
-   "parked_bytes": 96221
+   "matched_functions": 4034,
+   "matched_bytes": 737765,
+   "review_bytes": 4152,
+   "open_bytes": 0,
+   "parked_bytes": 94954
   },
   {
    "name": "D2Client",
    "functions": 4553,
    "bytes": 776360,
-   "matched_functions": 4430,
-   "matched_bytes": 700331,
-   "review_bytes": 3159,
-   "open_bytes": 2502,
-   "parked_bytes": 70368
+   "matched_functions": 4434,
+   "matched_bytes": 702754,
+   "review_bytes": 2611,
+   "open_bytes": 1502,
+   "parked_bytes": 69493
   },
   {
    "name": "D2Common",
@@ -57,19 +57,19 @@
    "bytes": 441922,
    "matched_functions": 2236,
    "matched_bytes": 396619,
-   "review_bytes": 0,
+   "review_bytes": 1008,
    "open_bytes": 628,
-   "parked_bytes": 44675
+   "parked_bytes": 43667
   },
   {
    "name": "Storm/Fog",
    "functions": 1374,
    "bytes": 181472,
-   "matched_functions": 1313,
-   "matched_bytes": 147851,
-   "review_bytes": 3116,
+   "matched_functions": 1316,
+   "matched_bytes": 150149,
+   "review_bytes": 0,
    "open_bytes": 443,
-   "parked_bytes": 30062
+   "parked_bytes": 30880
   },
   {
    "name": "D2Win/D2CMP/gl/Smack/Sound",
@@ -87,8 +87,8 @@
    "bytes": 93316,
    "matched_functions": 493,
    "matched_bytes": 67147,
-   "review_bytes": 0,
-   "open_bytes": 248,
+   "review_bytes": 248,
+   "open_bytes": 0,
    "parked_bytes": 25921
   },
   {
@@ -135,8 +135,8 @@
  "leaderboard": [
   {
    "who": "Legbreak",
-   "functions": 13966,
-   "bytes": 2178256
+   "functions": 13976,
+   "bytes": 2184838
   },
   {
    "who": "Eskeshehir",
@@ -164,13 +164,13 @@
  "by_model": [
   {
    "model": "claude-opus-5-5",
-   "functions": 13326,
-   "bytes": 2028211
+   "functions": 13331,
+   "bytes": 2031740
   },
   {
    "model": "unknown",
-   "functions": 562,
-   "bytes": 165845
+   "functions": 567,
+   "bytes": 168898
   },
   {
    "model": "codex",
@@ -268,10 +268,10 @@
   },
   {
    "day": "2026-11-12",
-   "functions": 64,
-   "bytes": 26788,
-   "cum_functions": 14468,
-   "cum_bytes": 2300585
+   "functions": 74,
+   "bytes": 33370,
+   "cum_functions": 14478,
+   "cum_bytes": 2307167
   }
  ],
  "left_by_size": [
@@ -293,7 +293,7 @@
    ],
    "functions": 93,
    "bytes": 15465,
-   "tried": 90
+   "tried": 89
   },
   {
    "band": "medium",
@@ -301,9 +301,9 @@
     256,
     512
    ],
-   "functions": 167,
-   "bytes": 64379,
-   "tried": 163
+   "functions": 164,
+   "bytes": 63120,
+   "tried": 162
   },
   {
    "band": "large",
@@ -311,8 +311,8 @@
     512,
     1024
    ],
-   "functions": 152,
-   "bytes": 114927,
+   "functions": 145,
+   "bytes": 109604,
    "tried": 136
   },
   {
@@ -323,7 +323,7 @@
    ],
    "functions": 80,
    "bytes": 118715,
-   "tried": 80
+   "tried": 79
   }
  ],
  "code_section": {
@@ -339,19 +339,19 @@
    {
     "key": "matched",
     "label": "Verified",
-    "bytes": 2300585,
+    "bytes": 2307167,
     "game": true
    },
    {
     "key": "pending",
     "label": "Waiting for the build host",
-    "bytes": 10027,
+    "bytes": 6842,
     "game": true
    },
    {
     "key": "parked",
     "label": "Tried, still open",
-    "bytes": 301060,
+    "bytes": 297663,
     "game": true
    },
    {
@@ -382,34 +382,34 @@
   "never_tried_measured": 2573
  },
  "relink": {
-  "pct_text": 89.8,
-  "identical_bytes": 2630027,
+  "pct_text": 90.01,
+  "identical_bytes": 2636203,
   "bytes": 2928640,
   "milestone": 6,
   "classes": [
    {
     "key": "matched",
     "label": "Verified functions",
-    "equal": 2300585,
+    "equal": 2307167,
     "different": 0
    },
    {
     "key": "submitted",
     "label": "Submitted, waiting for the build host",
-    "equal": 444,
-    "different": 5643
+    "equal": 30,
+    "different": 2801
    },
    {
     "key": "pending",
     "label": "Open or parked functions",
-    "equal": 18945,
-    "different": 288628
+    "equal": 18906,
+    "different": 285341
    },
    {
     "key": "not_function",
     "label": "Fragments and data in the queue",
-    "equal": 4538,
-    "different": 159
+    "equal": 4585,
+    "different": 112
    },
    {
     "key": "thunk",
@@ -440,7 +440,7 @@
    {
     "key": "unverified",
     "label": "Unverified functions (open, parked or submitted)",
-    "bytes": 294271
+    "bytes": 288142
    },
    {
     "key": "unplaced",
@@ -450,7 +450,7 @@
    {
     "key": "library",
     "label": "Library data addresses, thunks and fragments",
-    "bytes": 4342
+    "bytes": 4295
    },
    {
     "key": "padding",
@@ -459,45 +459,45 @@
    }
   ],
   "generated_utc": "2026-11-12",
-  "commit": "a10266e29",
+  "commit": "34b70a6b5",
   "sections_equal": true,
   "entry_equal": true,
   "iat_equal": true,
   "file": {
    "bytes": 3618792,
-   "built_bytes": 3210554,
-   "copied_bytes": 100576,
-   "identical_bytes": 3311130,
-   "pct_built": 88.72,
-   "pct_identical": 91.5,
+   "built_bytes": 3225528,
+   "copied_bytes": 91784,
+   "identical_bytes": 3317312,
+   "pct_built": 89.13,
+   "pct_identical": 91.67,
    "pct_signature": 0.17,
    "segments": [
     {
      "key": "built",
      "label": "Built from source",
-     "bytes": 3210554
+     "bytes": 3225528
     },
     {
      "key": "copied",
      "label": "Identical, copied data",
-     "bytes": 100576
+     "bytes": 91784
     },
     {
      "key": "rest",
      "label": "Not yet",
-     "bytes": 307662
+     "bytes": 301480
     }
    ],
    "remaining": [
     {
      "key": "placeholder",
      "label": "Placeholders for parked and unverified functions",
-     "bytes": 299496
+     "bytes": 293319
     },
     {
      "key": "linker",
      "label": "Linker and library bytes that still differ",
-     "bytes": 2046
+     "bytes": 2041
     },
     {
      "key": "signature",
@@ -509,7 +509,7 @@
     {
      "key": "source",
      "label": "Compiled from the project's source",
-     "equal": 2700047,
+     "equal": 2715016,
      "different": 0
     },
     {
@@ -521,8 +521,8 @@
     {
      "key": "linker",
      "label": "Linker-generated headers and tables",
-     "equal": 164683,
-     "different": 2046
+     "equal": 164688,
+     "different": 2041
     },
     {
      "key": "padding",
@@ -533,14 +533,14 @@
     {
      "key": "copied",
      "label": "Game data tables and strings, copied",
-     "equal": 100576,
+     "equal": 91784,
      "different": 0
     },
     {
      "key": "placeholder",
      "label": "Placeholders for unverified functions",
-     "equal": 883,
-     "different": 298613
+     "equal": 882,
+     "different": 292437
     },
     {
      "key": "signature",
@@ -553,15 +553,15 @@
     {
      "name": ".text",
      "bytes": 2928640,
-     "built": 2609988,
-     "copied": 19156,
-     "identical": 2629144
+     "built": 2616621,
+     "copied": 18700,
+     "identical": 2635321
     },
     {
      "name": ".rdata",
      "bytes": 233472,
-     "built": 191968,
-     "copied": 41500,
+     "built": 200304,
+     "copied": 33164,
      "identical": 233468
     },
     {
@@ -588,9 +588,9 @@
     {
      "name": "headers",
      "bytes": 4096,
-     "built": 3710,
+     "built": 3715,
      "copied": 0,
-     "identical": 3710
+     "identical": 3715
     }
    ]
   }
