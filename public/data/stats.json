@@ -1,24 +1,20 @@
 {
- "generated_utc": "2026-11-14T03:45Z",
+ "generated_utc": "2026-11-14T03:46Z",
  "commit": "81e969d1b8",
  "text_bytes": 2928640,
  "functions_total": 14927,
  "bytes_total": 2614122,
- "matched_functions": 14763,
- "matched_bytes": 2489809,
- "matched_pct_text": 85.02,
+ "matched_functions": 14771,
+ "matched_bytes": 2494595,
+ "matched_pct_text": 85.18,
  "states": {
   "matched": {
-   "functions": 14763,
-   "bytes": 2489809
+   "functions": 14771,
+   "bytes": 2494595
   },
   "parked": {
    "functions": 154,
    "bytes": 118761
-  },
-  "submitted": {
-   "functions": 8,
-   "bytes": 4786
   },
   "claimed": {
    "functions": 2,
@@ -31,9 +27,9 @@
    "name": "D2Game",
    "functions": 4181,
    "bytes": 836871,
-   "matched_functions": 4142,
-   "matched_bytes": 805306,
-   "review_bytes": 2766,
+   "matched_functions": 4144,
+   "matched_bytes": 807411,
+   "review_bytes": 661,
    "open_bytes": 0,
    "parked_bytes": 28799
   },
@@ -41,9 +37,9 @@
    "name": "D2Client",
    "functions": 4553,
    "bytes": 776360,
-   "matched_functions": 4516,
-   "matched_bytes": 754388,
-   "review_bytes": 2681,
+   "matched_functions": 4522,
+   "matched_bytes": 757069,
+   "review_bytes": 0,
    "open_bytes": 0,
    "parked_bytes": 19291
   },
@@ -131,8 +127,8 @@
  "leaderboard": [
   {
    "who": "Legbreak",
-   "functions": 14290,
-   "bytes": 2363804
+   "functions": 14298,
+   "bytes": 2368590
   },
   {
    "who": "Eskeshehir",
@@ -292,8 +288,8 @@
     64,
     256
    ],
-   "functions": 21,
-   "bytes": 3581,
+   "functions": 20,
+   "bytes": 3466,
    "tried": 19
   },
   {
@@ -302,8 +298,8 @@
     256,
     512
    ],
-   "functions": 57,
-   "bytes": 21266,
+   "functions": 54,
+   "bytes": 20144,
    "tried": 54
   },
   {
@@ -312,8 +308,8 @@
     512,
     1024
    ],
-   "functions": 51,
-   "bytes": 38223,
+   "functions": 48,
+   "bytes": 35830,
    "tried": 47
   },
   {
@@ -322,8 +318,8 @@
     1024,
     null
    ],
-   "functions": 35,
-   "bytes": 61243,
+   "functions": 34,
+   "bytes": 60087,
    "tried": 34
   }
  ],
@@ -340,13 +336,13 @@
    {
     "key": "matched",
     "label": "Verified",
-    "bytes": 2489809,
+    "bytes": 2494595,
     "game": true
    },
    {
     "key": "pending",
     "label": "Waiting for the build host",
-    "bytes": 5552,
+    "bytes": 766,
     "game": true
    },
    {
