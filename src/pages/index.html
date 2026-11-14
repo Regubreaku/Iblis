@@ -28,6 +28,13 @@
 .linked .what b { color: var(--bone); font-weight: 700; font-variant-numeric: tabular-nums; }
 .linked .also { display: block; margin-top: .35rem; color: var(--ash); font-size: .9rem; font-variant-numeric: tabular-nums; }
 .linked .also b { color: var(--bone); font-weight: 600; }
+/* the 100% panel: shown only when every byte of Game.exe but its signature is identical (or with ?celebrate to preview) */
+.hundred { text-align: center; display: grid; gap: .7rem; justify-items: center; border-color: var(--gold); box-shadow: 0 0 40px rgba(216, 168, 78, .18); }
+.hundred[hidden] { display: none; }
+.hundred h3 { margin: 0; color: var(--gold); }
+.hundred p { margin: 0; color: var(--ash); }
+.hundred .player { width: min(100%, 36rem); aspect-ratio: 16 / 9; }
+.hundred .player iframe { width: 100%; height: 100%; border: 0; }
 .linked .track { height: 1.1rem; margin-top: .7rem; border: 1px solid var(--seam); }
 /* copied: the game's own data, identical but not rebuilt, a pale parchment hatch between the gold and the empty track */
 .linked .track .k, .linked .legend i.k { background: repeating-linear-gradient(135deg, #a8906a 0 3px, #5f4f36 3px 6px); }
@@ -76,6 +83,11 @@
         <div class="legend" id="linked-legend"></div>
         <p class="note" id="linked-note"></p>
       </div>
+    </div>
+    <div class="hundred slab" id="hundred" hidden>
+      <h3>Game.exe: 100% matched</h3>
+      <p>Every byte of the executable rebuilt and identical to the original, all but the signature no one can rebuild. Stay a while and listen.</p>
+      <div class="player" id="hundred-player"></div>
     </div>
   </div>
   <div class="stats" id="stats"></div>
@@ -197,6 +209,18 @@
     $("linked").hidden = false;
   } else {
     $("bars2").classList.add("one");
+  }
+
+  // 100%: every byte of the whole file identical except the Authenticode signature, which can never be rebuilt.
+  // Then the Rogue Encampment plays (YouTube's own player; browsers may wait for a click before sound).
+  const done = !!(FL && FL.bytes > 0 && (FL.remaining || []).every(x => x.key === "signature" || x.bytes === 0));
+  const preview = typeof location !== "undefined" && /[?&]celebrate\b/.test(location.search || "");
+  if (done || preview) {
+    $("hundred-player").innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/OO-vG8oPhhM?autoplay=1&start=3&rel=0" ` +
+      `title="Diablo 2 - Rogue Encampment" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
+    $("hundred").hidden = false;
+  } else {
+    $("hundred").hidden = true;
   }
 
   $("stats").innerHTML = [
