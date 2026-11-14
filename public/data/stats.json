@@ -1,28 +1,28 @@
 {
- "generated_utc": "2026-11-14T01:08Z",
- "commit": "5ecb669446",
+ "generated_utc": "2026-11-14T01:23Z",
+ "commit": "92cba6e3ba",
  "text_bytes": 2928640,
  "functions_total": 14927,
  "bytes_total": 2614122,
- "matched_functions": 14753,
- "matched_bytes": 2479785,
- "matched_pct_text": 84.67,
+ "matched_functions": 14758,
+ "matched_bytes": 2483417,
+ "matched_pct_text": 84.8,
  "states": {
   "matched": {
-   "functions": 14753,
-   "bytes": 2479785
+   "functions": 14758,
+   "bytes": 2483417
   },
   "parked": {
-   "functions": 167,
-   "bytes": 130298
+   "functions": 161,
+   "bytes": 120459
   },
   "submitted": {
    "functions": 4,
-   "bytes": 2815
+   "bytes": 4320
   },
   "claimed": {
-   "functions": 3,
-   "bytes": 1224
+   "functions": 4,
+   "bytes": 5926
   }
  },
  "certified": 0,
@@ -41,11 +41,11 @@
    "name": "D2Client",
    "functions": 4553,
    "bytes": 776360,
-   "matched_functions": 4513,
-   "matched_bytes": 750987,
-   "review_bytes": 619,
+   "matched_functions": 4516,
+   "matched_bytes": 752876,
+   "review_bytes": 2232,
    "open_bytes": 0,
-   "parked_bytes": 24754
+   "parked_bytes": 21252
   },
   {
    "name": "D2Common",
@@ -53,19 +53,19 @@
    "bytes": 441922,
    "matched_functions": 2279,
    "matched_bytes": 414010,
-   "review_bytes": 0,
+   "review_bytes": 1780,
    "open_bytes": 0,
-   "parked_bytes": 27912
+   "parked_bytes": 26132
   },
   {
    "name": "Storm/Fog",
    "functions": 1374,
    "bytes": 181472,
-   "matched_functions": 1347,
-   "matched_bytes": 164652,
-   "review_bytes": 1701,
+   "matched_functions": 1348,
+   "matched_bytes": 165900,
+   "review_bytes": 1089,
    "open_bytes": 0,
-   "parked_bytes": 15119
+   "parked_bytes": 14483
   },
   {
    "name": "D2Win/D2CMP/gl/Smack/Sound",
@@ -73,17 +73,17 @@
    "bytes": 134909,
    "matched_functions": 846,
    "matched_bytes": 131050,
-   "review_bytes": 563,
+   "review_bytes": 105,
    "open_bytes": 0,
-   "parked_bytes": 3296
+   "parked_bytes": 3754
   },
   {
    "name": "Storm/Fog/Bnclient tail",
    "functions": 526,
    "bytes": 93193,
-   "matched_functions": 508,
-   "matched_bytes": 76873,
-   "review_bytes": 495,
+   "matched_functions": 509,
+   "matched_bytes": 77368,
+   "review_bytes": 0,
    "open_bytes": 0,
    "parked_bytes": 15825
   },
@@ -103,9 +103,9 @@
    "bytes": 58315,
    "matched_functions": 429,
    "matched_bytes": 53839,
-   "review_bytes": 0,
+   "review_bytes": 4379,
    "open_bytes": 0,
-   "parked_bytes": 4476
+   "parked_bytes": 97
   },
   {
    "name": "Storm",
@@ -131,8 +131,8 @@
  "leaderboard": [
   {
    "who": "Legbreak",
-   "functions": 14280,
-   "bytes": 2353780
+   "functions": 14285,
+   "bytes": 2357412
   },
   {
    "who": "Eskeshehir",
@@ -160,8 +160,8 @@
  "by_model": [
   {
    "model": "claude-opus-5-5",
-   "functions": 13572,
-   "bytes": 2167256
+   "functions": 13578,
+   "bytes": 2171341
   },
   {
    "model": "unknown",
@@ -269,10 +269,10 @@
   },
   {
    "day": "2026-11-13",
-   "functions": 134,
-   "bytes": 76172,
-   "cum_functions": 14782,
-   "cum_bytes": 2479785
+   "functions": 140,
+   "bytes": 80257,
+   "cum_functions": 14788,
+   "cum_bytes": 2483870
   }
  ],
  "left_by_size": [
@@ -302,8 +302,8 @@
     256,
     512
    ],
-   "functions": 60,
-   "bytes": 22715,
+   "functions": 58,
+   "bytes": 21775,
    "tried": 57
   },
   {
@@ -312,9 +312,9 @@
     512,
     1024
    ],
-   "functions": 54,
-   "bytes": 40526,
-   "tried": 52
+   "functions": 52,
+   "bytes": 39082,
+   "tried": 49
   },
   {
    "band": "huge",
@@ -322,9 +322,9 @@
     1024,
     null
    ],
-   "functions": 39,
-   "bytes": 67515,
-   "tried": 38
+   "functions": 38,
+   "bytes": 66267,
+   "tried": 35
   }
  ],
  "code_section": {
@@ -340,19 +340,19 @@
    {
     "key": "matched",
     "label": "Verified",
-    "bytes": 2479785,
+    "bytes": 2483417,
     "game": true
    },
    {
     "key": "pending",
     "label": "Waiting for the build host",
-    "bytes": 4039,
+    "bytes": 10246,
     "game": true
    },
    {
     "key": "parked",
     "label": "Tried, still open",
-    "bytes": 130298,
+    "bytes": 120459,
     "game": true
    },
    {
