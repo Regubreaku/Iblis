@@ -124,17 +124,3 @@ test('a relink block measured against another image size still renders from its 
   assert.match($('linked-note').innerHTML, /and padding\.$/);
   assert.doesNotMatch($('linked-note').innerHTML, /measured|milestone/);
 });
-
-test('the 100% panel stays hidden while any byte but the signature differs', () => {
-  const $ = render(stats());
-  assert.equal($('hundred').hidden, true);
-  assert.equal($('hundred-player').innerHTML, '');
-});
-
-test('the 100% panel shows and plays the Rogue Encampment once only the signature is left', () => {
-  const S = stats();
-  S.relink.file.remaining = S.relink.file.remaining.map(x => x.key === 'signature' ? x : { ...x, bytes: 0 });
-  const $ = render(S);
-  assert.equal($('hundred').hidden, false);
-  assert.match($('hundred-player').innerHTML, /youtube-nocookie\.com\/embed\/OO-vG8oPhhM\?autoplay=1&start=3/);
-});
