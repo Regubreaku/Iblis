@@ -1,24 +1,28 @@
 {
- "generated_utc": "2026-11-14T20:37Z",
- "commit": "12f609d5fb",
+ "generated_utc": "2026-11-14T23:13Z",
+ "commit": "998698c6a6",
  "text_bytes": 2928640,
  "functions_total": 14927,
  "bytes_total": 2614122,
- "matched_functions": 14824,
- "matched_bytes": 2523405,
- "matched_pct_text": 86.16,
+ "matched_functions": 14831,
+ "matched_bytes": 2530448,
+ "matched_pct_text": 86.4,
  "states": {
   "matched": {
-   "functions": 14824,
-   "bytes": 2523405
+   "functions": 14831,
+   "bytes": 2530448
   },
   "parked": {
-   "functions": 94,
-   "bytes": 88076
+   "functions": 86,
+   "bytes": 75855
   },
   "claimed": {
-   "functions": 9,
-   "bytes": 2641
+   "functions": 4,
+   "bytes": 4056
+  },
+  "submitted": {
+   "functions": 6,
+   "bytes": 3763
   }
  },
  "certified": 0,
@@ -29,59 +33,59 @@
    "bytes": 836871,
    "matched_functions": 4156,
    "matched_bytes": 812276,
-   "review_bytes": 925,
+   "review_bytes": 2206,
    "open_bytes": 0,
-   "parked_bytes": 23670
+   "parked_bytes": 22389
   },
   {
    "name": "D2Client",
    "functions": 4553,
    "bytes": 776360,
-   "matched_functions": 4534,
-   "matched_bytes": 762904,
-   "review_bytes": 578,
+   "matched_functions": 4536,
+   "matched_bytes": 764609,
+   "review_bytes": 0,
    "open_bytes": 0,
-   "parked_bytes": 12878
+   "parked_bytes": 11751
   },
   {
    "name": "D2Common",
    "functions": 2312,
    "bytes": 441922,
-   "matched_functions": 2284,
-   "matched_bytes": 416430,
-   "review_bytes": 406,
+   "matched_functions": 2285,
+   "matched_bytes": 418350,
+   "review_bytes": 3616,
    "open_bytes": 0,
-   "parked_bytes": 25086
+   "parked_bytes": 19956
   },
   {
    "name": "Storm/Fog",
    "functions": 1374,
    "bytes": 181472,
-   "matched_functions": 1365,
-   "matched_bytes": 175365,
-   "review_bytes": 206,
+   "matched_functions": 1366,
+   "matched_bytes": 175743,
+   "review_bytes": 0,
    "open_bytes": 0,
-   "parked_bytes": 5901
+   "parked_bytes": 5729
   },
   {
    "name": "D2Win/D2CMP/gl/Smack/Sound",
    "functions": 853,
    "bytes": 134909,
-   "matched_functions": 847,
-   "matched_bytes": 131766,
+   "matched_functions": 848,
+   "matched_bytes": 132630,
    "review_bytes": 429,
    "open_bytes": 0,
-   "parked_bytes": 2714
+   "parked_bytes": 1850
   },
   {
    "name": "Storm/Fog/Bnclient tail",
    "functions": 526,
    "bytes": 93193,
-   "matched_functions": 515,
-   "matched_bytes": 81838,
+   "matched_functions": 517,
+   "matched_bytes": 84014,
    "review_bytes": 0,
    "open_bytes": 0,
-   "parked_bytes": 11355
+   "parked_bytes": 9179
   },
   {
    "name": "Bnclient/D2MCPClient",
@@ -89,9 +93,9 @@
    "bytes": 77603,
    "matched_functions": 507,
    "matched_bytes": 74511,
-   "review_bytes": 0,
+   "review_bytes": 1568,
    "open_bytes": 0,
-   "parked_bytes": 3092
+   "parked_bytes": 1524
   },
   {
    "name": "D2CMP",
@@ -99,9 +103,9 @@
    "bytes": 58315,
    "matched_functions": 430,
    "matched_bytes": 54838,
-   "review_bytes": 97,
+   "review_bytes": 0,
    "open_bytes": 0,
-   "parked_bytes": 3380
+   "parked_bytes": 3477
   },
   {
    "name": "Storm",
@@ -127,8 +131,8 @@
  "leaderboard": [
   {
    "who": "Legbreak",
-   "functions": 14349,
-   "bytes": 2396803
+   "functions": 14356,
+   "bytes": 2403846
   },
   {
    "who": "Eskeshehir",
@@ -156,13 +160,13 @@
  "by_model": [
   {
    "model": "claude-opus-5-5",
-   "functions": 13638,
-   "bytes": 2209169
+   "functions": 13643,
+   "bytes": 2213061
   },
   {
    "model": "unknown",
-   "functions": 614,
-   "bytes": 197157
+   "functions": 616,
+   "bytes": 200308
   },
   {
    "model": "codex",
@@ -272,10 +276,10 @@
   },
   {
    "day": "2026-11-14",
-   "functions": 46,
-   "bytes": 25788,
-   "cum_functions": 14853,
-   "cum_bytes": 2523405
+   "functions": 53,
+   "bytes": 32831,
+   "cum_functions": 14860,
+   "cum_bytes": 2530448
   }
  ],
  "left_by_size": [
@@ -297,7 +301,7 @@
    ],
    "functions": 11,
    "bytes": 1830,
-   "tried": 8
+   "tried": 10
   },
   {
    "band": "medium",
@@ -305,9 +309,9 @@
     256,
     512
    ],
-   "functions": 28,
-   "bytes": 10177,
-   "tried": 23
+   "functions": 25,
+   "bytes": 9069,
+   "tried": 22
   },
   {
    "band": "large",
@@ -315,9 +319,9 @@
     512,
     1024
    ],
-   "functions": 36,
-   "bytes": 27391,
-   "tried": 35
+   "functions": 35,
+   "bytes": 26527,
+   "tried": 32
   },
   {
    "band": "huge",
@@ -325,9 +329,9 @@
     1024,
     null
    ],
-   "functions": 28,
-   "bytes": 51319,
-   "tried": 28
+   "functions": 25,
+   "bytes": 46248,
+   "tried": 22
   }
  ],
  "code_section": {
@@ -343,19 +347,19 @@
    {
     "key": "matched",
     "label": "Verified",
-    "bytes": 2523405,
+    "bytes": 2530448,
     "game": true
    },
    {
     "key": "pending",
     "label": "Waiting for the build host",
-    "bytes": 2641,
+    "bytes": 7819,
     "game": true
    },
    {
     "key": "parked",
     "label": "Tried, still open",
-    "bytes": 88076,
+    "bytes": 75855,
     "game": true
    },
    {
@@ -400,14 +404,14 @@
    {
     "key": "submitted",
     "label": "Submitted, waiting for the build host",
-    "equal": 68,
-    "different": 1320
+    "equal": 776,
+    "different": 5522
    },
    {
     "key": "pending",
     "label": "Open or parked functions",
-    "equal": 6600,
-    "different": 89027
+    "equal": 5892,
+    "different": 84825
    },
    {
     "key": "not_function",
@@ -463,7 +467,7 @@
    }
   ],
   "generated_utc": "2026-11-14",
-  "commit": "d1ec96b214",
+  "commit": "7859153f09",
   "sections_equal": true,
   "entry_equal": true,
   "iat_equal": true,
