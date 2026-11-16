@@ -10,7 +10,7 @@
 .legend i { display: inline-block; width: .75rem; height: .75rem; margin-right: .4rem; vertical-align: -1px; }
 .legend b { color: var(--bone); font-weight: 600; font-variant-numeric: tabular-nums; }
 /* bytes that are not game code: neutral greys, hatched so they never read as part of the cinder "empty" track */
-.legend i.g { background: var(--gold); } .legend i.p { background: var(--pending); } .legend i.e { background: var(--ember); }
+.legend i.g { background: var(--gold); } .legend i.s { background: #7a5c2e; } .legend i.p { background: var(--pending); } .legend i.e { background: var(--ember); }
 .overall .track .c, .legend i.c { background: var(--cinder); }
 .overall .track .np, .legend i.np { background: repeating-linear-gradient(135deg, #4b4640 0 2px, #2b2825 2px 5px); }
 .overall .track .nl, .legend i.nl { background: #6d675f; }
@@ -134,7 +134,7 @@
   const CS = S.code_section;
   if (CS && CS.segments) {
     // game code first, then the bytes that are not game code (padding, the C runtime library), all as shares of .text
-    const cls = { matched: "g", pending: "p", parked: "e", never: "c", padding: "np", library: "nl", other: "nd" };
+    const cls = { matched: "g", steered: "s", pending: "p", parked: "e", never: "c", padding: "np", library: "nl", other: "nd" };
     const firstNot = CS.segments.findIndex(x => !x.game);
     $("overall").innerHTML = CS.segments.map((x, i) => (i === firstNot ? '<i class="ng" style="width:0"></i>' : "") + seg(cls[x.key] || "c", x.bytes)).join("");
     $("overall").setAttribute("role", "img");

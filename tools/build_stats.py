@@ -100,7 +100,9 @@ def main(repo, out, coverage=None, relink=None, names=None):
     text = text_size(repo)
     grid = json.load(open(os.path.join(repo, "docs", "grid-data.json")))
     length = {r["va"].upper(): r["length"] for r in grid}
-    verified = {"verified", "verified_raw"}
+    # "steered" (Diablo2-Native's grid, 2026-11-16): verifier-confirmed through a steering form admitted by a ruling for
+    # that one function; it is verified, counted in every verified total, and also reported on its own (states.steered)
+    verified = {"verified", "verified_raw", "steered"}
 
     # ---- totals ----
     by_state = collections.Counter()
@@ -109,10 +111,13 @@ def main(repo, out, coverage=None, relink=None, names=None):
         s = "matched" if r["state"] in verified else r["state"]
         by_state[s] += 1
         bytes_by_state[s] += r["length"]
+        if r["state"] == "steered":
+            by_state["steered"] += 1
+            bytes_by_state["steered"] += r["length"]
     matched_bytes = bytes_by_state["matched"]
 
     # ---- per module ----
-    group = {"verified": "matched", "verified_raw": "matched", "claimed": "review", "submitted": "review",
+    group = {"verified": "matched", "verified_raw": "matched", "steered": "matched", "claimed": "review", "submitted": "review",
              "lead_counted": "review", "open": "open", "parked": "parked"}
     mods = collections.defaultdict(lambda: {"functions": 0, "bytes": 0, "matched_functions": 0, "matched_bytes": 0,
                                             "review_bytes": 0, "open_bytes": 0, "parked_bytes": 0})
