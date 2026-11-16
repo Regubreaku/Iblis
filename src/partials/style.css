@@ -87,6 +87,7 @@ section { padding-block: 1rem; scroll-margin-top: 5rem; }
 .track { display: flex; height: .6rem; background: var(--cinder); margin-top: .35rem; overflow: hidden; }
 .track i { display: block; height: 100%; }
 .track .g { background: linear-gradient(90deg, #a77a2c, var(--gold)); }
+.track .s { background: #7a5c2e; }  /* verified through a steering form: a darker gold, still part of the verified share */
 .track .p { background: var(--pending); }
 .track .e { background: var(--ember); }
 

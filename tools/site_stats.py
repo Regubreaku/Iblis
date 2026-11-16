@@ -171,16 +171,19 @@ def code_section(stats, coverage):
     # are). When its matched total is the headline's, it measured this queue snapshot: use its split as is. Otherwise
     # take the game-code states from the queue and let never-tried be what is left.
     same = coverage.get("has_queue") and c["matched"] == stats["matched_bytes"]
+    steered = st("steered")  # verified through a steering form; shown as its own share of the verified bytes
     if same:
-        game = [("matched", "Verified", c["matched"]), ("pending", "Waiting for the build host", c["claimed"] + c["submitted"]),
+        game = [("matched", "Verified", c["matched"] - steered),
+                ("steered", "Verified through a steering form", steered), ("pending", "Waiting for the build host", c["claimed"] + c["submitted"]),
                 ("parked", "Tried, still open", c["parked"])]
         never = c["open"] + c["missing_game"]
     else:
-        game = [("matched", "Verified", stats["matched_bytes"]),
+        game = [("matched", "Verified", stats["matched_bytes"] - steered),
+                ("steered", "Verified through a steering form", steered),
                 ("pending", "Waiting for the build host", st("claimed") + st("submitted") + st("lead_counted")),
                 ("parked", "Tried, still open", st("parked"))]
         never = total - sum(b for _, _, b in game) - padding - library - other
-    segs = [{"key": k, "label": l, "bytes": b, "game": True} for k, l, b in game]
+    segs = [{"key": k, "label": l, "bytes": b, "game": True} for k, l, b in game if k != "steered" or b > 0]
     segs.append({"key": "never", "label": "Never tried", "bytes": max(never, 0), "game": True})
     segs.append({"key": "padding", "label": "Not game code: padding", "bytes": padding, "game": False})
     segs.append({"key": "library", "label": "Not game code: compiler runtime library" if not c["third_party"]
