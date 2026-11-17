@@ -1,4 +1,4 @@
-# Project Iblis: one Worker serves the static site (public/) and the service (/mcp, /api/*, /auth/*, /approve).
+# Project Iblis is closed: one Worker serves the closing notice for every address.
 name = "iblis"
 main = "worker/index.js"
 compatibility_date = "2025-09-01"
@@ -7,34 +7,4 @@ workers_dev = true
 [assets]
 directory = "public"
 binding = "ASSETS"
-not_found_handling = "404-page"   # unknown addresses get public/404.html, not the browser's bare error
-run_worker_first = ["/mcp", "/api/*", "/auth/*", "/approve", "/agents.md", "/join", "/join.html", "/kit/*"]
-
-[[d1_databases]]
-binding = "DB"
-database_name = "iblis"
-database_id = "31ccab53-4d94-472e-a727-c2035cea1b2d"
-
-[vars]
-# Enable only after secret rotation and a real isolated host submission test.
-CONTRIBUTIONS_ENABLED = "true"
-# Keep old potentially exposed host/OAuth credentials unusable until the owner rotates both secrets.
-CREDENTIALS_ROTATED = "true"
-# Soft launch: only these GitHub logins (or numeric ids), comma-separated, may take work or submit. "" = open to all.
-INVITED_GITHUB = ""
-# No tier limits and no strike or expiry pauses for these GitHub logins or numeric ids, comma-separated.
-# 353598303 = Eskeshehir (esk), 120912283 = Regubreaku (the owner); owner decisions 2026-11-08.
-# Verification still decides every submission.
-UNLIMITED_GITHUB = "353598303,120912283"
-# SITE_URL = "https://your.domain"   (unset: the service uses the address it is served from)
-REPO_URL = "https://github.com/Regubreaku/Iblis"
-DEFAULT_FLAGS = "/nologo /c /TP /Zl /Z7 /Gy /MT /O2 /Oy- /Ob2 /Gd"
-MAX_SOURCE_BYTES = "262144"
-
-[triggers]
-crons = ["*/5 * * * *"]
-
-# Secrets (set with `wrangler secret put NAME`, never committed):
-#   GITHUB_CLIENT_ID      GitHub OAuth app client id
-#   GITHUB_CLIENT_SECRET  GitHub OAuth app secret
-#   HOST_KEY              bearer key the build host uses for /api/v1/host/*
+run_worker_first = true
